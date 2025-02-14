@@ -7,6 +7,6 @@ RUN mvn clean package -DskipTests
 # Step 2: Use OpenJDK 21 to run the application
 FROM openjdk:21-jdk-slim
 WORKDIR /app
-COPY --from=builder /app/target/api-gateway-0.0.1-SNAPSHOT.jar app.jar
+COPY --from=builder /app/target/authentication-0.0.1-SNAPSHOT.jar app.jar
 EXPOSE 8080
 CMD ["java", "-jar", "app.jar"]
