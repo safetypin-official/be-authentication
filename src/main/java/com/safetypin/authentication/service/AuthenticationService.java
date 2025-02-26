@@ -53,7 +53,7 @@ public class AuthenticationService {
         User existing = userRepository.findByEmail(request.getEmail());
         if (existing != null) {
             if (EMAIL_PROVIDER.equals(existing.getProvider())) {
-                throw new IllegalArgumentException("An account with this email exists. Please sign in using your email and password.");
+                throw new UserAlreadyExistsException("An account with this email exists. Please sign in using your email and password.");
             }
             return existing;
         }
