@@ -2,10 +2,15 @@ package com.safetypin.authentication.seeder;
 
 import com.safetypin.authentication.model.User;
 import com.safetypin.authentication.repository.UserRepository;
+import jakarta.annotation.PostConstruct;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 
+@Component
+@Profile({"dev"})
 public class DevDataSeeder implements Runnable {
 
     private final UserRepository userRepository;
@@ -14,6 +19,11 @@ public class DevDataSeeder implements Runnable {
     public DevDataSeeder(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+    }
+
+    @PostConstruct
+    public void init() {
+        run();
     }
 
     @Override
