@@ -17,11 +17,10 @@ import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class AuthenticationServiceTest {
+class AuthenticationServiceTest {
 
     @Mock
     private UserRepository userRepository;
@@ -38,7 +37,7 @@ public class AuthenticationServiceTest {
     // registerUser tests
 
     @Test
-    public void testRegisterUser_UnderAge() {
+    void testRegisterUser_UnderAge() {
         RegistrationRequest request = new RegistrationRequest();
         request.setEmail("test@example.com");
         request.setPassword("password");
@@ -53,7 +52,7 @@ public class AuthenticationServiceTest {
     }
 
     @Test
-    public void testRegisterUser_DuplicateEmail() {
+    void testRegisterUser_DuplicateEmail() {
         RegistrationRequest request = new RegistrationRequest();
         request.setEmail("test@example.com");
         request.setPassword("password");
@@ -69,7 +68,7 @@ public class AuthenticationServiceTest {
     }
 
     @Test
-    public void testRegisterUser_Success() {
+    void testRegisterUser_Success() {
         RegistrationRequest request = new RegistrationRequest();
         request.setEmail("test@example.com");
         request.setPassword("password");
@@ -93,7 +92,7 @@ public class AuthenticationServiceTest {
     // socialLogin tests
 
     @Test
-    public void testSocialLogin_UnderAge() {
+    void testSocialLogin_UnderAge() {
         SocialLoginRequest request = new SocialLoginRequest();
         request.setEmail("social@example.com");
         request.setName("Social User");
@@ -109,7 +108,7 @@ public class AuthenticationServiceTest {
     }
 
     @Test
-    public void testSocialLogin_DuplicateEmailWithEmailProvider() {
+    void testSocialLogin_DuplicateEmailWithEmailProvider() {
         SocialLoginRequest request = new SocialLoginRequest();
         request.setEmail("social@example.com");
         request.setName("Social User");
@@ -129,7 +128,7 @@ public class AuthenticationServiceTest {
     }
 
     @Test
-    public void testSocialLogin_ExistingSocialUser() {
+    void testSocialLogin_ExistingSocialUser() {
         SocialLoginRequest request = new SocialLoginRequest();
         request.setEmail("social@example.com");
         request.setName("Social User");
@@ -148,7 +147,7 @@ public class AuthenticationServiceTest {
     }
 
     @Test
-    public void testSocialLogin_NewUser() {
+    void testSocialLogin_NewUser() {
         SocialLoginRequest request = new SocialLoginRequest();
         request.setEmail("social@example.com");
         request.setName("Social User");
@@ -171,7 +170,7 @@ public class AuthenticationServiceTest {
     // loginUser tests
 
     @Test
-    public void testLoginUser_EmailNotFound() {
+    void testLoginUser_EmailNotFound() {
         when(userRepository.findByEmail("notfound@example.com")).thenReturn(null);
         Exception exception = assertThrows(InvalidCredentialsException.class, () ->
                 authenticationService.loginUser("notfound@example.com", "password")
@@ -180,7 +179,7 @@ public class AuthenticationServiceTest {
     }
 
     @Test
-    public void testLoginUser_InvalidPassword_NullPassword() {
+    void testLoginUser_InvalidPassword_NullPassword() {
         User user = new User("test@example.com", null, "Test User", true, "USER",
                 LocalDate.now().minusYears(20), "EMAIL", null);
         when(userRepository.findByEmail("test@example.com")).thenReturn(user);
@@ -192,7 +191,7 @@ public class AuthenticationServiceTest {
     }
 
     @Test
-    public void testLoginUser_InvalidPassword_WrongMatch() {
+    void testLoginUser_InvalidPassword_WrongMatch() {
         User user = new User("test@example.com", "encodedPassword", "Test User", true, "USER",
                 LocalDate.now().minusYears(20), "EMAIL", null);
         when(userRepository.findByEmail("test@example.com")).thenReturn(user);
@@ -205,7 +204,7 @@ public class AuthenticationServiceTest {
     }
 
     @Test
-    public void testLoginUser_Success() {
+    void testLoginUser_Success() {
         User user = new User("test@example.com", "encodedPassword", "Test User", true, "USER",
                 LocalDate.now().minusYears(20), "EMAIL", null);
         when(userRepository.findByEmail("test@example.com")).thenReturn(user);
@@ -219,7 +218,7 @@ public class AuthenticationServiceTest {
     // loginSocial tests
 
     @Test
-    public void testLoginSocial_UserNotFound() {
+    void testLoginSocial_UserNotFound() {
         when(userRepository.findByEmail("notfound@example.com")).thenReturn(null);
         Exception exception = assertThrows(InvalidCredentialsException.class, () ->
                 authenticationService.loginSocial("notfound@example.com")
@@ -228,7 +227,7 @@ public class AuthenticationServiceTest {
     }
 
     @Test
-    public void testLoginSocial_Success() {
+    void testLoginSocial_Success() {
         User user = new User("social@example.com", null, "Social User", true, "USER",
                 LocalDate.now().minusYears(25), "GOOGLE", "social123");
         when(userRepository.findByEmail("social@example.com")).thenReturn(user);
@@ -241,7 +240,7 @@ public class AuthenticationServiceTest {
     // verifyOTP tests
 
     @Test
-    public void testVerifyOTP_Success() {
+    void testVerifyOTP_Success() {
         // OTPService returns true and user is found
         when(otpService.verifyOTP("test@example.com", "123456")).thenReturn(true);
         User user = new User("test@example.com", "encodedPassword", "Test User", false, "USER",
@@ -256,7 +255,7 @@ public class AuthenticationServiceTest {
     }
 
     @Test
-    public void testVerifyOTP_Success_UserNotFound() {
+    void testVerifyOTP_Success_UserNotFound() {
         // OTPService returns true but user is not found
         when(otpService.verifyOTP("nonexistent@example.com", "123456")).thenReturn(true);
         when(userRepository.findByEmail("nonexistent@example.com")).thenReturn(null);
@@ -267,7 +266,7 @@ public class AuthenticationServiceTest {
     }
 
     @Test
-    public void testVerifyOTP_Failure() {
+    void testVerifyOTP_Failure() {
         when(otpService.verifyOTP("test@example.com", "000000")).thenReturn(false);
         boolean result = authenticationService.verifyOTP("test@example.com", "000000");
         assertFalse(result);
@@ -277,7 +276,7 @@ public class AuthenticationServiceTest {
     // forgotPassword tests
 
     @Test
-    public void testForgotPassword_Success() {
+    void testForgotPassword_Success() {
         User user = new User("test@example.com", "encodedPassword", "Test User", true, "USER",
                 LocalDate.now().minusYears(20), "EMAIL", null);
         when(userRepository.findByEmail("test@example.com")).thenReturn(user);
@@ -286,7 +285,7 @@ public class AuthenticationServiceTest {
     }
 
     @Test
-    public void testForgotPassword_Invalid() {
+    void testForgotPassword_Invalid() {
         // Case 1: user not found
         when(userRepository.findByEmail("notfound@example.com")).thenReturn(null);
         Exception exception1 = assertThrows(IllegalArgumentException.class, () ->
@@ -307,14 +306,14 @@ public class AuthenticationServiceTest {
     // postContent tests
 
     @Test
-    public void testPostContent_UserNotFound() {
+    void testPostContent_UserNotFound() {
         when(userRepository.findByEmail("notfound@example.com")).thenReturn(null);
         String response = authenticationService.postContent("notfound@example.com", "Content");
         assertEquals("User not found. Please register.", response);
     }
 
     @Test
-    public void testPostContent_UserNotVerified() {
+    void testPostContent_UserNotVerified() {
         User user = new User("test@example.com", "encodedPassword", "Test User", false, "USER",
                 LocalDate.now().minusYears(20), "EMAIL", null);
         when(userRepository.findByEmail("test@example.com")).thenReturn(user);
@@ -323,7 +322,7 @@ public class AuthenticationServiceTest {
     }
 
     @Test
-    public void testPostContent_UserVerified() {
+    void testPostContent_UserVerified() {
         User user = new User("test@example.com", "encodedPassword", "Test User", true, "USER",
                 LocalDate.now().minusYears(20), "EMAIL", null);
         when(userRepository.findByEmail("test@example.com")).thenReturn(user);
