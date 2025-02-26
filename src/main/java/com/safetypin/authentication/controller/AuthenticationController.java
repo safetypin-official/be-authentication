@@ -49,7 +49,6 @@ public class AuthenticationController {
         try {
             return ResponseEntity.ok(authenticationService.loginUser(email, password));
         } catch (InvalidCredentialsException e){
-            //TODO
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(e.getMessage());
         }
