@@ -28,7 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(AuthenticationController.class)
 @Import({AuthenticationControllerTest.TestConfig.class, AuthenticationControllerTest.TestSecurityConfig.class})
-public class AuthenticationControllerTest {
+class AuthenticationControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -52,13 +52,13 @@ public class AuthenticationControllerTest {
         @Bean
         public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
             http.csrf(csrf -> csrf.disable())
-                    .authorizeHttpRequests(authz -> authz.anyRequest().permitAll());
+                    .authorizeHttpRequests(authz -> authz.anyRequest().permitAll())
             return http.build();
         }
     }
 
     @Test
-    public void testRegisterEmail() throws Exception {
+    void testRegisterEmail() throws Exception {
         RegistrationRequest request = new RegistrationRequest();
         request.setEmail("email@example.com");
         request.setPassword("password");
@@ -79,7 +79,7 @@ public class AuthenticationControllerTest {
     }
 
     @Test
-    public void testRegisterSocial() throws Exception {
+    void testRegisterSocial() throws Exception {
         SocialLoginRequest request = new SocialLoginRequest();
         request.setProvider("GOOGLE");
         request.setSocialToken("token");
@@ -102,7 +102,7 @@ public class AuthenticationControllerTest {
     }
 
     @Test
-    public void testLoginEmail() throws Exception {
+    void testLoginEmail() throws Exception {
         User user = new User("email@example.com", "encodedPassword", "Test User", true, "USER",
                 LocalDate.now().minusYears(20), "EMAIL", null);
         user.setId(1L);
@@ -117,7 +117,7 @@ public class AuthenticationControllerTest {
     }
 
     @Test
-    public void testLoginSocial() throws Exception {
+    void testLoginSocial() throws Exception {
         User user = new User("social@example.com", null, "Social User", true, "USER",
                 LocalDate.now().minusYears(25), "GOOGLE", "social123");
         user.setId(2L);
@@ -131,7 +131,7 @@ public class AuthenticationControllerTest {
     }
 
     @Test
-    public void testVerifyOTP_Success() throws Exception {
+    void testVerifyOTP_Success() throws Exception {
         Mockito.when(authenticationService.verifyOTP(eq("email@example.com"), eq("123456"))).thenReturn(true);
 
         mockMvc.perform(post("/api/auth/verify-otp")
@@ -142,7 +142,7 @@ public class AuthenticationControllerTest {
     }
 
     @Test
-    public void testVerifyOTP_Failure() throws Exception {
+    void testVerifyOTP_Failure() throws Exception {
         Mockito.when(authenticationService.verifyOTP(eq("email@example.com"), eq("000000"))).thenReturn(false);
 
         mockMvc.perform(post("/api/auth/verify-otp")
@@ -153,7 +153,7 @@ public class AuthenticationControllerTest {
     }
 
     @Test
-    public void testForgotPassword() throws Exception {
+    void testForgotPassword() throws Exception {
         PasswordResetRequest request = new PasswordResetRequest();
         request.setEmail("email@example.com");
 
@@ -167,7 +167,7 @@ public class AuthenticationControllerTest {
     }
 
     @Test
-    public void testPostContent() throws Exception {
+    void testPostContent() throws Exception {
         Mockito.when(authenticationService.postContent(eq("email@example.com"), eq("Test Content")))
                 .thenReturn("Content posted successfully");
 
@@ -179,7 +179,7 @@ public class AuthenticationControllerTest {
     }
 
     @Test
-    public void testDashboard() throws Exception {
+    void testDashboard() throws Exception {
         mockMvc.perform(get("/api/auth/dashboard"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("{}"));
