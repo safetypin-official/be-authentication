@@ -29,6 +29,6 @@ spec:
     spec:
       containers:
         - name: authentication
-          image: us-central1-docker.pkg.dev/GOOGLE_PROJECT/my-repository/authentication:latest
+          image: us-central1-docker.pkg.dev/GOOGLE_PROJECT/GOOGLE_REPOSITORY/authentication:latest
           ports:
             - containerPort: 8080

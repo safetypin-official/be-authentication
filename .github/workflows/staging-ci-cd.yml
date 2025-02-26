@@ -71,6 +71,7 @@ jobs:
       - name: Deploy to GKE
         env:
           GOOGLE_PROJECT: ${{ secrets.GOOGLE_PROJECT }}
+          GOOGLE_REPOSiTORY: staging-repository
         run: |
           gcloud container clusters get-credentials safetypin-staging --region asia-southeast2
           sed -i "s/GOOGLE_PROJECT/$GOOGLE_PROJECT/g" resources.yaml
