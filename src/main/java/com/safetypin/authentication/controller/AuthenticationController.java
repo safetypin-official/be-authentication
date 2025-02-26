@@ -9,7 +9,6 @@ import com.safetypin.authentication.service.AuthenticationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import jakarta.validation.Valid;
-import com.safetypin.authentication.dto.ErrorResponse;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
