@@ -1,13 +1,15 @@
 package com.safetypin.authentication.model;
 
 import org.junit.jupiter.api.Test;
+
 import java.time.LocalDate;
+
 import static org.junit.jupiter.api.Assertions.*;
 
-public class UserTest {
+class UserTest {
 
     @Test
-    public void testDefaultConstructorDefaults() {
+    void testDefaultConstructorDefaults() {
         User user = new User();
         // Verify that default constructor sets all fields to their default values
         assertNull(user.getId(), "Default id should be null");
@@ -22,7 +24,7 @@ public class UserTest {
     }
 
     @Test
-    public void testSettersAndGetters() {
+    void testSettersAndGetters() {
         User user = new User();
         Long id = 123L;
         String email = "test@example.com";
@@ -56,7 +58,7 @@ public class UserTest {
     }
 
     @Test
-    public void testParameterizedConstructor() {
+    void testParameterizedConstructor() {
         String email = "test2@example.com";
         String password = "password123";
         String name = "Another User";
