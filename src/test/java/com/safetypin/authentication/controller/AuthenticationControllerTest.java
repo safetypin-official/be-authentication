@@ -15,6 +15,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -51,10 +52,12 @@ class AuthenticationControllerTest {
     static class TestSecurityConfig {
         @Bean
         public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-                http.authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll());
-                return http.build();
+            http.csrf(AbstractHttpConfigurer::disable)
+                    .authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll());
+            return http.build();
         }
     }
+
 
     @Test
     void testRegisterEmail() throws Exception {
@@ -73,8 +76,8 @@ class AuthenticationControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1L))
-                .andExpect(jsonPath("$.email").value("email@example.com"));
+                .andExpect(jsonPath("$.data.id").value(1L))
+                .andExpect(jsonPath("$.data.email").value("email@example.com"));
     }
 
     @Test
@@ -96,8 +99,8 @@ class AuthenticationControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(2L))
-                .andExpect(jsonPath("$.email").value("social@example.com"));
+                .andExpect(jsonPath("$.data.id").value(2L))
+                .andExpect(jsonPath("$.data.email").value("social@example.com"));
     }
 
     @Test
