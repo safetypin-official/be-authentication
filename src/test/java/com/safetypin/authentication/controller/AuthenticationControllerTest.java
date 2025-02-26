@@ -51,9 +51,9 @@ class AuthenticationControllerTest {
     static class TestSecurityConfig {
         @Bean
         public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-            http.csrf(csrf -> csrf.disable())
-                    .authorizeHttpRequests(authz -> authz.anyRequest().permitAll())
-            return http.build();
+            http.csrf(csrf -> csrf.disable());
+            .authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll());
+                return http.build();
         }
     }
 
