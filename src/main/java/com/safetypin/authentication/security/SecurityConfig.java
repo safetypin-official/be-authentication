@@ -16,7 +16,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(AbstractHttpConfigurer::disable)  // Disable CSRF protection (not recommended for production)
+                // CSRF protection is enabled by default, so we don't disable it here
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/**").permitAll() // Allow all requests
                 )
