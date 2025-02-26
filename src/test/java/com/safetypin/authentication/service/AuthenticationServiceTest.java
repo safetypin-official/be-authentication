@@ -121,7 +121,7 @@ class AuthenticationServiceTest {
                 LocalDate.now().minusYears(30), "EMAIL", null);
         when(userRepository.findByEmail("social@example.com")).thenReturn(existingUser);
 
-        Exception exception = assertThrows(IllegalArgumentException.class, () ->
+        Exception exception = assertThrows(UserAlreadyExistsException.class, () ->
                 authenticationService.socialLogin(request)
         );
         assertTrue(exception.getMessage().contains("An account with this email exists"));
