@@ -74,5 +74,5 @@ jobs:
           GOOGLE_REPOSiTORY: staging-repository
         run: |
           gcloud container clusters get-credentials safetypin-staging --region asia-southeast2
-          sed -i "s/GOOGLE_PROJECT/$GOOGLE_PROJECT/g" resources.yaml
-          kubectl apply -f resources.yaml
+          sed -i "s/GOOGLE_PROJECT/$GOOGLE_PROJECT/g" staging.yaml
+          kubectl apply -f staging.yaml
