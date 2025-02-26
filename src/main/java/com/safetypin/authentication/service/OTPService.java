@@ -3,8 +3,9 @@ package com.safetypin.authentication.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
-import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
@@ -13,7 +14,7 @@ public class OTPService {
     private static final long OTP_EXPIRATION_SECONDS = 120; // 2 minutes expiration
     private static final Logger log = LoggerFactory.getLogger(OTPService.class);
     private final ConcurrentHashMap<String, OTPDetails> otpStorage = new ConcurrentHashMap<>();
-    private final Random random = new Random();
+    private final SecureRandom random = new SecureRandom();
 
     public String generateOTP(String email) {
         String otp = String.format("%06d", random.nextInt(1000000));
