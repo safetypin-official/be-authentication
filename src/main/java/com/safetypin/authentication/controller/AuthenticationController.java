@@ -1,9 +1,11 @@
 package com.safetypin.authentication.controller;
 
+import com.safetypin.authentication.dto.AuthResponse;
 import com.safetypin.authentication.dto.PasswordResetRequest;
 import com.safetypin.authentication.dto.RegistrationRequest;
 import com.safetypin.authentication.dto.SocialLoginRequest;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
+import com.safetypin.authentication.exception.UserAlreadyExistsException;
 import com.safetypin.authentication.model.User;
 import com.safetypin.authentication.service.AuthenticationService;
 import org.springframework.http.HttpStatus;
@@ -24,14 +26,28 @@ public class AuthenticationController {
 
     // Endpoint for email registration
     @PostMapping("/register-email")
-    public User registerEmail(@Valid @RequestBody RegistrationRequest request) {
-        return authenticationService.registerUser(request);
+    public ResponseEntity<AuthResponse> registerEmail(@Valid @RequestBody RegistrationRequest request) {
+        User user;
+        try {
+            user = authenticationService.registerUser(request);
+        } catch (IllegalArgumentException | UserAlreadyExistsException e) {
+            AuthResponse response = new AuthResponse(false, e.getMessage(), null);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+        return ResponseEntity.ok().body(new AuthResponse(true, "OK", user));
     }
 
     // Endpoint for social registration/login
     @PostMapping("/register-social")
-    public User registerSocial(@Valid @RequestBody SocialLoginRequest request) {
-        return authenticationService.socialLogin(request);
+    public ResponseEntity<AuthResponse> registerSocial(@Valid @RequestBody SocialLoginRequest request) {
+        User user;
+        try {
+            user = authenticationService.socialLogin(request);
+        } catch (IllegalArgumentException | UserAlreadyExistsException e) {
+            AuthResponse response = new AuthResponse(false, e.getMessage(), null);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+        return ResponseEntity.ok().body(new AuthResponse(true, "OK", user));
     }
 
     // OTP verification endpoint
@@ -45,7 +61,7 @@ public class AuthenticationController {
 
     // Endpoint for email login
     @PostMapping("/login-email")
-    public ResponseEntity<?> loginEmail(@RequestParam String email, @RequestParam String password) {
+    public ResponseEntity<Object> loginEmail(@RequestParam String email, @RequestParam String password) {
         try {
             return ResponseEntity.ok(authenticationService.loginUser(email, password));
         } catch (InvalidCredentialsException e){

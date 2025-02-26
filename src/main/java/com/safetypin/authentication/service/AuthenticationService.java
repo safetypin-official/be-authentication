@@ -15,6 +15,7 @@ import java.time.Period;
 
 @Service
 public class AuthenticationService {
+    private static final String EMAIL_PROVIDER = "EMAIL";
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -37,7 +38,7 @@ public class AuthenticationService {
         }
         String encodedPassword = passwordEncoder.encode(request.getPassword());
         User user = new User(request.getEmail(), encodedPassword, request.getName(), false, "USER",
-                request.getBirthdate(), "EMAIL", null);
+                request.getBirthdate(), EMAIL_PROVIDER, null);
         user = userRepository.save(user);
         otpService.generateOTP(request.getEmail());
         logger.info("OTP generated for {} at {}", request.getEmail(), java.time.LocalDateTime.now());
@@ -51,8 +52,8 @@ public class AuthenticationService {
         }
         User existing = userRepository.findByEmail(request.getEmail());
         if (existing != null) {
-            if ("EMAIL".equals(existing.getProvider())) {
-                throw new IllegalArgumentException("An account with this email exists. Please sign in using your email and password.");
+            if (EMAIL_PROVIDER.equals(existing.getProvider())) {
+                throw new UserAlreadyExistsException("An account with this email exists. Please sign in using your email and password.");
             }
             return existing;
         }
@@ -109,7 +110,7 @@ public class AuthenticationService {
     // Forgot password – only applicable for email-registered users
     public void forgotPassword(String email) {
         User user = userRepository.findByEmail(email);
-        if (user == null || !"EMAIL".equals(user.getProvider())) {
+        if (user == null || !EMAIL_PROVIDER.equals(user.getProvider())) {
             throw new IllegalArgumentException("Password reset is only available for email-registered users.");
         }
         // In production, send a reset token via email.
@@ -125,6 +126,7 @@ public class AuthenticationService {
         if (!user.isVerified()) {
             return "Your account is not verified. Please complete OTP verification. You may request a new OTP after 2 minutes.";
         }
+        logger.info("AuthenticationService.postContent :: Content posted: {}", content);
         // For demo purposes, we assume the post is successful.
         return "Content posted successfully";
     }
