@@ -65,16 +65,22 @@ public class AuthenticationController {
         try {
             return ResponseEntity.ok(authenticationService.loginUser(email, password));
         } catch (InvalidCredentialsException e){
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(e.getMessage());
+            AuthResponse response = new AuthResponse(false, e.getMessage(), null);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
 
     }
 
     // Endpoint for social login
     @PostMapping("/login-social")
-    public User loginSocial(@RequestParam String email) {
-        return authenticationService.loginSocial(email);
+    public ResponseEntity<Object> loginSocial(@RequestParam String email) {
+        try {
+            return ResponseEntity.ok(authenticationService.loginSocial(email));
+        } catch (InvalidCredentialsException e){
+            AuthResponse response = new AuthResponse(false, e.getMessage(), null);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+
     }
 
 
