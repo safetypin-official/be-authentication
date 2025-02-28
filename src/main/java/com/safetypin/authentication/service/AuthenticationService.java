@@ -15,7 +15,7 @@ import java.time.Period;
 
 @Service
 public class AuthenticationService {
-    private static final String EMAIL_PROVIDER = "EMAIL";
+    public static final String EMAIL_PROVIDER = "EMAIL";
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;

@@ -2,6 +2,9 @@ package com.safetypin.authentication.seeder;
 
 import com.safetypin.authentication.model.User;
 import com.safetypin.authentication.repository.UserRepository;
+import static com.safetypin.authentication.service.AuthenticationService.EMAIL_PROVIDER;
+
+import com.safetypin.authentication.service.AuthenticationService;
 import jakarta.annotation.PostConstruct;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -36,7 +39,7 @@ public class DevDataSeeder implements Runnable {
                     true,
                     "user",
                     LocalDate.of(1990, 1, 1),
-                    "EMAIL",
+                    EMAIL_PROVIDER,
                     "social1"));
 
             userRepository.save(new User("user2@example.com",
@@ -45,7 +48,7 @@ public class DevDataSeeder implements Runnable {
                     true,
                     "user",
                     LocalDate.of(1991, 2, 2),
-                    "EMAIL",
+                    EMAIL_PROVIDER,
                     "social2"));
 
             userRepository.save(new User("user3@example.com",
@@ -54,7 +57,7 @@ public class DevDataSeeder implements Runnable {
                     true,
                     "user",
                     LocalDate.of(1992, 3, 3),
-                    "EMAIL",
+                    EMAIL_PROVIDER,
                     "social3"));
 
             userRepository.save(new User("user4@example.com",
@@ -63,7 +66,7 @@ public class DevDataSeeder implements Runnable {
                     true,
                     "user",
                     LocalDate.of(1993, 4, 4),
-                    "EMAIL",
+                    EMAIL_PROVIDER,
                     "social4"));
 
             userRepository.save(new User("user5@example.com",
@@ -72,7 +75,7 @@ public class DevDataSeeder implements Runnable {
                     true,
                     "user",
                     LocalDate.of(1994, 5, 5),
-                    "EMAIL",
+                    EMAIL_PROVIDER,
                     "social5"));
         }
     }
