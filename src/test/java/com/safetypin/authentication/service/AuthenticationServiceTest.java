@@ -43,12 +43,12 @@ class AuthenticationServiceTest {
         request.setPassword("password");
         request.setName("Test User");
         // set birthdate to 17 years old
-        request.setBirthdate(LocalDate.now().minusYears(17));
+        request.setBirthdate(LocalDate.now().minusYears(15));
 
         Exception exception = assertThrows(IllegalArgumentException.class, () ->
                 authenticationService.registerUser(request)
         );
-        assertEquals("User must be at least 18 years old", exception.getMessage());
+        assertEquals("User must be at least 16 years old", exception.getMessage());
     }
 
     @Test
@@ -64,7 +64,7 @@ class AuthenticationServiceTest {
         Exception exception = assertThrows(UserAlreadyExistsException.class, () ->
                 authenticationService.registerUser(request)
         );
-        assertTrue(exception.getMessage().contains("User already exists with this email"));
+        assertTrue(exception.getMessage().contains("Email address is already registered"));
     }
 
     @Test
@@ -104,7 +104,7 @@ class AuthenticationServiceTest {
         SocialLoginRequest request = new SocialLoginRequest();
         request.setEmail("social@example.com");
         request.setName("Social User");
-        request.setBirthdate(LocalDate.now().minusYears(17));
+        request.setBirthdate(LocalDate.now().minusYears(15));
         request.setProvider("GOOGLE");
         request.setSocialId("social123");
         request.setSocialToken("token");
@@ -112,7 +112,7 @@ class AuthenticationServiceTest {
         Exception exception = assertThrows(IllegalArgumentException.class, () ->
                 authenticationService.socialLogin(request)
         );
-        assertEquals("User must be at least 18 years old", exception.getMessage());
+        assertEquals("User must be at least 16 years old", exception.getMessage());
     }
 
     @Test
