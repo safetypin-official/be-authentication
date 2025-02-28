@@ -40,16 +40,39 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Install the gcloud CLI
-        uses: google-github-actions/setup-gcloud@v0
+        uses: google-github-actions/setup-gcloud@v2
         with:
           project_id: ${{ secrets.GOOGLE_PROJECT }}
           service_account_key: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
           export_default_credentials: true
 
+      - name: Authenticate with GCP
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+
       - name: Build and Push Docker Image
         env:
+          PRODUCTION: staging
           GOOGLE_PROJECT: ${{ secrets.GOOGLE_PROJECT }}
+          JDBC_STAGING_DATABASE_PASSWORD: ${{ secrets.JDBC_STAGING_DATABASE_PASSWORD }}
+          JDBC_STAGING_DATABASE_URL: ${{ secrets.JDBC_STAGING_DATABASE_URL }}
+          JDBC_STAGING_DATABASE_USERNAME: ${{ secrets.JDBC_STAGING_DATABASE_USERNAME }}
         run: |
           gcloud auth configure-docker us-central1-docker.pkg.dev
-          docker build -t us-central1-docker.pkg.dev/$GOOGLE_PROJECT/my-repository/authentication:latest .
-          docker push us-central1-docker.pkg.dev/$GOOGLE_PROJECT/my-repository/authentication:latest
+          docker build --build-arg PRODUCTION=$PRODUCTION --build-arg JDBC_STAGING_DATABASE_PASSWORD=$JDBC_STAGING_DATABASE_PASSWORD --build-arg JDBC_STAGING_DATABASE_URL=$JDBC_STAGING_DATABASE_URL --build-arg JDBC_STAGING_DATABASE_USERNAME=$JDBC_STAGING_DATABASE_USERNAME -t us-central1-docker.pkg.dev/$GOOGLE_PROJECT/staging-repository/authentication:latest .
+          docker push us-central1-docker.pkg.dev/$GOOGLE_PROJECT/staging-repository/authentication:latest
+
+      - name: Install required components
+        run: |
+          gcloud components update
+          gcloud components install gke-gcloud-auth-plugin
+
+      - name: Deploy to GKE
+        env:
+          GOOGLE_PROJECT: ${{ secrets.GOOGLE_PROJECT }}
+          GOOGLE_REPOSiTORY: staging-repository
+        run: |
+          gcloud container clusters get-credentials safetypin-staging --region asia-southeast2
+          sed -i "s/GOOGLE_PROJECT/$GOOGLE_PROJECT/g" staging.yaml
+          kubectl apply -f staging.yaml
