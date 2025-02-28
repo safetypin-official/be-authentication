@@ -430,7 +430,7 @@ class AuthenticationServiceTest {
         user.setSocialId(null);
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(user);
-        String response = authenticationService.postContent("test@example.com", "ThisIsAContent");
-        assertEquals("Content 'ThisIsAContent' posted successfully.", response);
+        String response = authenticationService.postContent("test@example.com", "Content");
+        assertEquals("Content posted successfully", response);
     }
 }
