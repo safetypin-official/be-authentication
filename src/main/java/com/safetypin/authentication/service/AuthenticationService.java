@@ -30,11 +30,12 @@ public class AuthenticationService {
 
     // Registration using email – includes birthdate and OTP generation
     public User registerUser(RegistrationRequest request) {
-        if (calculateAge(request.getBirthdate()) < 18) {
-            throw new IllegalArgumentException("User must be at least 18 years old");
+        if (calculateAge(request.getBirthdate()) < 16) {
+            throw new IllegalArgumentException("User must be at least 16 years old");
         }
-        if (userRepository.findByEmail(request.getEmail()) != null) {
-            throw new UserAlreadyExistsException("User already exists with this email. If you registered using social login, please sign in with Google/Apple.");
+        User existingUser = userRepository.findByEmail(request.getEmail());
+        if (existingUser != null) {
+            throw new UserAlreadyExistsException("Email address is already registered. If you previously used social login (Google/Apple), please use that method to sign in.");
         }
         String encodedPassword = passwordEncoder.encode(request.getPassword());
 
@@ -49,14 +50,14 @@ public class AuthenticationService {
         user.setSocialId(null);
         user = userRepository.save(user);
         otpService.generateOTP(request.getEmail());
-        logger.info("OTP generated for {} at {}", request.getEmail(), java.time.LocalDateTime.now());
+        logger.info("OTP generated for user at {}", java.time.LocalDateTime.now());
         return user;
     }
 
     // Social registration/login – simulating data fetched from Google/Apple
     public User socialLogin(SocialLoginRequest request) {
-        if (calculateAge(request.getBirthdate()) < 18) {
-            throw new IllegalArgumentException("User must be at least 18 years old");
+        if (calculateAge(request.getBirthdate()) < 16) {
+            throw new IllegalArgumentException("User must be at least 16 years old");
         }
         User existing = userRepository.findByEmail(request.getEmail());
         if (existing != null) {
@@ -76,7 +77,7 @@ public class AuthenticationService {
         user.setSocialId(request.getSocialId());
 
         user = userRepository.save(user);
-        logger.info("User registered via {}: {} at {}", request.getProvider(), request.getEmail(), java.time.LocalDateTime.now());
+        logger.info("User registered via social login at {}", java.time.LocalDateTime.now());
         return user;
     }
 
@@ -85,12 +86,12 @@ public class AuthenticationService {
         User user = userRepository.findByEmail(email);
         if (user == null) {
             // email not exists
-            logger.warn("Login failed: Email not found for {}", email);
+            logger.warn("Login failed: Email not found");
             throw new InvalidCredentialsException("Invalid email");
         }
         if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
             // incorrect password
-            logger.warn("Login failed: Incorrect password for {}", email);
+            logger.warn("Login failed: Incorrect password attempt");
             throw new InvalidCredentialsException("Invalid password");
         }
         logger.info("User logged in: {} at {}", email, java.time.LocalDateTime.now());
@@ -103,7 +104,7 @@ public class AuthenticationService {
         if (user == null) {
             throw new InvalidCredentialsException("Social login failed: Email not found");
         }
-        logger.info("User logged in via social: {} at {}", email, java.time.LocalDateTime.now());
+        logger.info("User logged in via social authentication at {}", java.time.LocalDateTime.now());
         return user;
     }
 
@@ -115,10 +116,10 @@ public class AuthenticationService {
             if (user != null) {
                 user.setVerified(true);
                 userRepository.save(user);
-                logger.info("OTP verified for {} at {}", email, java.time.LocalDateTime.now());
+                logger.info("OTP successfully verified at {}", java.time.LocalDateTime.now());
             }
         } else {
-            logger.warn("OTP verification failed for {} at {}", email, java.time.LocalDateTime.now());
+            logger.warn("OTP verification failed at {}", java.time.LocalDateTime.now());
         }
         return result;
     }
@@ -130,7 +131,7 @@ public class AuthenticationService {
             throw new IllegalArgumentException("Password reset is only available for email-registered users.");
         }
         // In production, send a reset token via email.
-        logger.info("Password reset requested for {} at {}", email, java.time.LocalDateTime.now());
+        logger.info("Password reset requested at {}", java.time.LocalDateTime.now());
     }
 
     // Example method representing posting content that requires a verified account
