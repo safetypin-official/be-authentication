@@ -143,7 +143,7 @@ public class AuthenticationService {
         if (!user.isVerified()) {
             return "Your account is not verified. Please complete OTP verification. You may request a new OTP after 2 minutes.";
         }
-        logger.info("AuthenticationService.postContent :: Content posted by user with email: {}", email);
+        logger.info("AuthenticationService.postContent :: Content {} posted by user with email: {}", content, email);
         // For demo purposes, we assume the post is successful.
         return "Content posted successfully";
     }
