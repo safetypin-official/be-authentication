@@ -4,7 +4,6 @@ import com.safetypin.authentication.model.User;
 import com.safetypin.authentication.repository.UserRepository;
 import static com.safetypin.authentication.service.AuthenticationService.EMAIL_PROVIDER;
 
-import com.safetypin.authentication.service.AuthenticationService;
 import jakarta.annotation.PostConstruct;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
