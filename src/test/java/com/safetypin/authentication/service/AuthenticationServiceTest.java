@@ -77,8 +77,16 @@ class AuthenticationServiceTest {
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(null);
         when(passwordEncoder.encode("password")).thenReturn("encodedPassword");
-        User savedUser = new User("test@example.com", "encodedPassword", "Test User", false, "USER",
-                request.getBirthdate(), "EMAIL", null);
+        User savedUser = new User();
+        savedUser.setEmail("test@example.com");
+        savedUser.setPassword("encodedPassword");
+        savedUser.setName("Test User");
+        savedUser.setVerified(false);
+        savedUser.setRole("USER");
+        savedUser.setBirthdate(request.getBirthdate());
+        savedUser.setProvider("EMAIL");
+        savedUser.setSocialId(null);
+
         savedUser.setId(1L);
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
 
@@ -117,8 +125,16 @@ class AuthenticationServiceTest {
         request.setSocialId("social123");
         request.setSocialToken("token");
 
-        User existingUser = new User("social@example.com", "encodedPassword", "Existing User", false, "USER",
-                LocalDate.now().minusYears(30), "EMAIL", null);
+        User existingUser = new User();
+        existingUser.setEmail("social@example.com");
+        existingUser.setPassword("encodedPassword");
+        existingUser.setName("Existing User");
+        existingUser.setVerified(false);
+        existingUser.setRole("USER");
+        existingUser.setBirthdate(LocalDate.now().minusYears(30));
+        existingUser.setProvider("EMAIL");
+        existingUser.setSocialId(null);
+
         when(userRepository.findByEmail("social@example.com")).thenReturn(existingUser);
 
         Exception exception = assertThrows(UserAlreadyExistsException.class, () ->
@@ -137,8 +153,16 @@ class AuthenticationServiceTest {
         request.setSocialId("social123");
         request.setSocialToken("token");
 
-        User existingUser = new User("social@example.com", null, "Social User", true, "USER",
-                LocalDate.now().minusYears(25), "GOOGLE", "social123");
+        User existingUser = new User();
+        existingUser.setEmail("social@example.com");
+        existingUser.setPassword(null);
+        existingUser.setName("Social User");
+        existingUser.setVerified(true);
+        existingUser.setRole("USER");
+        existingUser.setBirthdate(LocalDate.now().minusYears(25));
+        existingUser.setProvider("GOOGLE");
+        existingUser.setSocialId("social123");
+
         when(userRepository.findByEmail("social@example.com")).thenReturn(existingUser);
 
         User result = authenticationService.socialLogin(request);
@@ -157,8 +181,16 @@ class AuthenticationServiceTest {
         request.setSocialToken("token");
 
         when(userRepository.findByEmail("social@example.com")).thenReturn(null);
-        User savedUser = new User("social@example.com", null, "Social User", true, "USER",
-                request.getBirthdate(), "GOOGLE", "social123");
+        User savedUser = new User();
+        savedUser.setEmail("social@example.com");
+        savedUser.setPassword(null);
+        savedUser.setName("Social User");
+        savedUser.setVerified(true);
+        savedUser.setRole("USER");
+        savedUser.setBirthdate(request.getBirthdate());
+        savedUser.setProvider("GOOGLE");
+        savedUser.setSocialId("social123");
+
         savedUser.setId(2L);
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
 
@@ -180,8 +212,16 @@ class AuthenticationServiceTest {
 
     @Test
     void testLoginUser_InvalidPassword_NullPassword() {
-        User user = new User("test@example.com", null, "Test User", true, "USER",
-                LocalDate.now().minusYears(20), "EMAIL", null);
+        User user = new User();
+        user.setEmail("test@example.com");
+        user.setPassword(null);
+        user.setName("Test User");
+        user.setVerified(true);
+        user.setRole("USER");
+        user.setBirthdate(LocalDate.now().minusYears(20));
+        user.setProvider("EMAIL");
+        user.setSocialId(null);
+
         when(userRepository.findByEmail("test@example.com")).thenReturn(user);
 
         Exception exception = assertThrows(InvalidCredentialsException.class, () ->
@@ -192,8 +232,16 @@ class AuthenticationServiceTest {
 
     @Test
     void testLoginUser_InvalidPassword_WrongMatch() {
-        User user = new User("test@example.com", "encodedPassword", "Test User", true, "USER",
-                LocalDate.now().minusYears(20), "EMAIL", null);
+        User user = new User();
+        user.setEmail("test@example.com");
+        user.setPassword("encodedPassword");
+        user.setName("Test User");
+        user.setVerified(true);
+        user.setRole("USER");
+        user.setBirthdate(LocalDate.now().minusYears(20));
+        user.setProvider("EMAIL");
+        user.setSocialId(null);
+
         when(userRepository.findByEmail("test@example.com")).thenReturn(user);
         when(passwordEncoder.matches("wrongPassword", "encodedPassword")).thenReturn(false);
 
@@ -205,8 +253,16 @@ class AuthenticationServiceTest {
 
     @Test
     void testLoginUser_Success() {
-        User user = new User("test@example.com", "encodedPassword", "Test User", true, "USER",
-                LocalDate.now().minusYears(20), "EMAIL", null);
+        User user = new User();
+        user.setEmail("test@example.com");
+        user.setPassword("encodedPassword");
+        user.setName("Test User");
+        user.setVerified(true);
+        user.setRole("USER");
+        user.setBirthdate(LocalDate.now().minusYears(20));
+        user.setProvider("EMAIL");
+        user.setSocialId(null);
+
         when(userRepository.findByEmail("test@example.com")).thenReturn(user);
         when(passwordEncoder.matches("password", "encodedPassword")).thenReturn(true);
 
@@ -228,8 +284,16 @@ class AuthenticationServiceTest {
 
     @Test
     void testLoginSocial_Success() {
-        User user = new User("social@example.com", null, "Social User", true, "USER",
-                LocalDate.now().minusYears(25), "GOOGLE", "social123");
+        User user = new User();
+        user.setEmail("social@example.com");
+        user.setPassword(null);
+        user.setName("Social User");
+        user.setVerified(true);
+        user.setRole("USER");
+        user.setBirthdate(LocalDate.now().minusYears(25));
+        user.setProvider("GOOGLE");
+        user.setSocialId("social123");
+
         when(userRepository.findByEmail("social@example.com")).thenReturn(user);
 
         User result = authenticationService.loginSocial("social@example.com");
@@ -243,8 +307,16 @@ class AuthenticationServiceTest {
     void testVerifyOTP_Success() {
         // OTPService returns true and user is found
         when(otpService.verifyOTP("test@example.com", "123456")).thenReturn(true);
-        User user = new User("test@example.com", "encodedPassword", "Test User", false, "USER",
-                LocalDate.now().minusYears(20), "EMAIL", null);
+        User user = new User();
+        user.setEmail("test@example.com");
+        user.setPassword("encodedPassword");
+        user.setName("Test User");
+        user.setVerified(false);
+        user.setRole("USER");
+        user.setBirthdate(LocalDate.now().minusYears(20));
+        user.setProvider("EMAIL");
+        user.setSocialId(null);
+
         when(userRepository.findByEmail("test@example.com")).thenReturn(user);
         when(userRepository.save(any(User.class))).thenReturn(user);
 
@@ -277,8 +349,16 @@ class AuthenticationServiceTest {
 
     @Test
     void testForgotPassword_Success() {
-        User user = new User("test@example.com", "encodedPassword", "Test User", true, "USER",
-                LocalDate.now().minusYears(20), "EMAIL", null);
+        User user = new User();
+        user.setEmail("test@example.com");
+        user.setPassword("encodedPassword");
+        user.setName("Test User");
+        user.setVerified(true);
+        user.setRole("USER");
+        user.setBirthdate(LocalDate.now().minusYears(20));
+        user.setProvider("EMAIL");
+        user.setSocialId(null);
+
         when(userRepository.findByEmail("test@example.com")).thenReturn(user);
 
         assertDoesNotThrow(() -> authenticationService.forgotPassword("test@example.com"));
@@ -294,8 +374,16 @@ class AuthenticationServiceTest {
         assertTrue(exception1.getMessage().contains("Password reset is only available for email-registered users."));
 
         // Case 2: user exists but provider is not EMAIL
-        User user = new User("social@example.com", null, "Social User", true, "USER",
-                LocalDate.now().minusYears(25), "GOOGLE", "social123");
+        User user = new User();
+        user.setEmail("social@example.com");
+        user.setPassword(null);
+        user.setName("Social User");
+        user.setVerified(true);
+        user.setRole("USER");
+        user.setBirthdate(LocalDate.now().minusYears(25));
+        user.setProvider("GOOGLE");
+        user.setSocialId("social123");
+
         when(userRepository.findByEmail("social@example.com")).thenReturn(user);
         Exception exception2 = assertThrows(IllegalArgumentException.class, () ->
                 authenticationService.forgotPassword("social@example.com")
@@ -314,8 +402,16 @@ class AuthenticationServiceTest {
 
     @Test
     void testPostContent_UserNotVerified() {
-        User user = new User("test@example.com", "encodedPassword", "Test User", false, "USER",
-                LocalDate.now().minusYears(20), "EMAIL", null);
+        User user = new User();
+        user.setEmail("test@example.com");
+        user.setPassword("encodedPassword");
+        user.setName("Test User");
+        user.setVerified(false);
+        user.setRole("USER");
+        user.setBirthdate(LocalDate.now().minusYears(20));
+        user.setProvider("EMAIL");
+        user.setSocialId(null);
+
         when(userRepository.findByEmail("test@example.com")).thenReturn(user);
         String response = authenticationService.postContent("test@example.com", "Content");
         assertTrue(response.contains("not verified"));
@@ -323,8 +419,16 @@ class AuthenticationServiceTest {
 
     @Test
     void testPostContent_UserVerified() {
-        User user = new User("test@example.com", "encodedPassword", "Test User", true, "USER",
-                LocalDate.now().minusYears(20), "EMAIL", null);
+        User user = new User();
+        user.setEmail("test@example.com");
+        user.setPassword("encodedPassword");
+        user.setName("Test User");
+        user.setVerified(true);
+        user.setRole("USER");
+        user.setBirthdate(LocalDate.now().minusYears(20));
+        user.setProvider("EMAIL");
+        user.setSocialId(null);
+
         when(userRepository.findByEmail("test@example.com")).thenReturn(user);
         String response = authenticationService.postContent("test@example.com", "Content");
         assertEquals("Content posted successfully", response);

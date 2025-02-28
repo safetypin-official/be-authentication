@@ -68,7 +68,16 @@ class UserTest {
         String provider = "EMAIL";
         String socialId = null;
 
-        User user = new User(email, password, name, verified, role, birthdate, provider, socialId);
+        User user = new User();
+        user.setEmail(email);
+        user.setPassword(password);
+        user.setName(name);
+        user.setVerified(verified);
+        user.setRole(role);
+        user.setBirthdate(birthdate);
+        user.setProvider(provider);
+        user.setSocialId(socialId);
+
 
         // id remains null until set (by the persistence layer)
         assertNull(user.getId(), "Id should be null when not set");

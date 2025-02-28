@@ -67,8 +67,14 @@ class AuthenticationControllerTest {
         request.setName("Test User");
         request.setBirthdate(LocalDate.now().minusYears(20));
 
-        User user = new User("email@example.com", "encodedPassword", "Test User", false, "USER",
-                request.getBirthdate(), "EMAIL", null);
+        User user = new User();
+        user.setEmail("email@example.com");
+        user.setPassword("encodedPassword");
+        user.setName("Test User");
+        user.setRole("USER");
+        user.setBirthdate(request.getBirthdate());
+        user.setProvider("EMAIL");
+
         user.setId(1L);
         Mockito.when(authenticationService.registerUser(any(RegistrationRequest.class))).thenReturn(user);
 
@@ -90,8 +96,15 @@ class AuthenticationControllerTest {
         request.setBirthdate(LocalDate.now().minusYears(25));
         request.setSocialId("social123");
 
-        User user = new User("social@example.com", null, "Social User", true, "USER",
-                request.getBirthdate(), "GOOGLE", "social123");
+        User user = new User();
+        user.setEmail("social@example.com");
+        user.setPassword(null);
+        user.setName("Social User");
+        user.setVerified(true);
+        user.setRole("USER");
+        user.setBirthdate(request.getBirthdate());
+        user.setProvider("GOOGLE");
+        user.setSocialId("social123");
         user.setId(2L);
         Mockito.when(authenticationService.socialLogin(any(SocialLoginRequest.class))).thenReturn(user);
 
@@ -105,8 +118,16 @@ class AuthenticationControllerTest {
 
     @Test
     void testLoginEmail() throws Exception {
-        User user = new User("email@example.com", "encodedPassword", "Test User", true, "USER",
-                LocalDate.now().minusYears(20), "EMAIL", null);
+        User user = new User();
+        user.setEmail("email@example.com");
+        user.setPassword("encodedPassword");
+        user.setName("Test User");
+        user.setVerified(true);
+        user.setRole("USER");
+        user.setBirthdate(LocalDate.now().minusYears(20));
+        user.setProvider("EMAIL");
+        user.setSocialId(null);
+
         user.setId(1L);
         Mockito.when(authenticationService.loginUser(eq("email@example.com"), eq("password"))).thenReturn(user);
 
@@ -120,8 +141,15 @@ class AuthenticationControllerTest {
 
     @Test
     void testLoginSocial() throws Exception {
-        User user = new User("social@example.com", null, "Social User", true, "USER",
-                LocalDate.now().minusYears(25), "GOOGLE", "social123");
+        User user = new User();
+        user.setEmail("social@example.com");
+        user.setPassword(null);
+        user.setName("Social User");
+        user.setVerified(true);
+        user.setRole("USER");
+        user.setBirthdate(LocalDate.now().minusYears(25));
+        user.setProvider("GOOGLE");
+        user.setSocialId("social123");
         user.setId(2L);
         Mockito.when(authenticationService.loginSocial(eq("social@example.com"))).thenReturn(user);
 

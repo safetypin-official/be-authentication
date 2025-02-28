@@ -10,59 +10,42 @@ import java.time.LocalDate;
 @Table(name = "users")
 public class User {
 
-    @Setter
-    @Getter
     @Id
+    @Setter @Getter
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Setter
-    @Getter
+    @Setter @Getter
     @Column(nullable = false, unique = true)
     private String email;
 
     // May be null for social login users
-    @Setter
-    @Getter
+    @Setter @Getter
     @Column(nullable = false)
     private String password;
 
-    @Setter
-    @Getter
+    @Setter @Getter
     @Column(nullable = false)
     private String name;
 
     @Column(nullable = false)
     private boolean isVerified = false;
 
-    @Setter
-    @Getter
+    @Setter @Getter
     private String role;
 
     // New fields
-    @Setter
-    @Getter
+    @Setter @Getter
     private LocalDate birthdate;
-    @Setter
-    @Getter
+
+    @Setter  @Getter
     private String provider;  // "EMAIL", "GOOGLE", "APPLE"
-    @Setter
-    @Getter
+
+    @Setter @Getter
     private String socialId;  // For social login users
 
     public User() {}
 
-    public User(String email, String password, String name, boolean isVerified, String role,
-                LocalDate birthdate, String provider, String socialId) {
-        this.email = email;
-        this.password = password;
-        this.name = name;
-        this.isVerified = isVerified;
-        this.role = role;
-        this.birthdate = birthdate;
-        this.provider = provider;
-        this.socialId = socialId;
-    }
 
     // Getters and setters
 

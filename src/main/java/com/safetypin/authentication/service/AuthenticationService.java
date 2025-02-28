@@ -37,8 +37,16 @@ public class AuthenticationService {
             throw new UserAlreadyExistsException("User already exists with this email. If you registered using social login, please sign in with Google/Apple.");
         }
         String encodedPassword = passwordEncoder.encode(request.getPassword());
-        User user = new User(request.getEmail(), encodedPassword, request.getName(), false, "USER",
-                request.getBirthdate(), EMAIL_PROVIDER, null);
+
+        User user = new User();
+        user.setEmail(request.getEmail());
+        user.setPassword(encodedPassword);
+        user.setName(request.getName());
+        user.setVerified(false);
+        user.setRole("USER");
+        user.setBirthdate(request.getBirthdate());
+        user.setProvider(EMAIL_PROVIDER);
+        user.setSocialId(null);
         user = userRepository.save(user);
         otpService.generateOTP(request.getEmail());
         logger.info("OTP generated for {} at {}", request.getEmail(), java.time.LocalDateTime.now());
@@ -57,8 +65,16 @@ public class AuthenticationService {
             }
             return existing;
         }
-        User user = new User(request.getEmail(), null, request.getName(), true, "USER",
-                request.getBirthdate(), request.getProvider().toUpperCase(), request.getSocialId());
+        User user = new User();
+        user.setEmail(request.getEmail());
+        user.setPassword(null);
+        user.setName(request.getName());
+        user.setVerified(true);
+        user.setRole("USER");
+        user.setBirthdate(request.getBirthdate());
+        user.setProvider(request.getProvider().toUpperCase());
+        user.setSocialId(request.getSocialId());
+
         user = userRepository.save(user);
         logger.info("User registered via {}: {} at {}", request.getProvider(), request.getEmail(), java.time.LocalDateTime.now());
         return user;
