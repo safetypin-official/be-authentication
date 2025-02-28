@@ -22,7 +22,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.LocalDate;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -129,7 +128,7 @@ class AuthenticationControllerTest {
         user.setSocialId(null);
 
         user.setId(1L);
-        Mockito.when(authenticationService.loginUser(eq("email@example.com"), eq("password"))).thenReturn(user);
+        Mockito.when(authenticationService.loginUser("email@example.com", "password")).thenReturn(user);
 
         mockMvc.perform(post("/api/auth/login-email")
                         .param("email", "email@example.com")
@@ -151,7 +150,7 @@ class AuthenticationControllerTest {
         user.setProvider("GOOGLE");
         user.setSocialId("social123");
         user.setId(2L);
-        Mockito.when(authenticationService.loginSocial(eq("social@example.com"))).thenReturn(user);
+        Mockito.when(authenticationService.loginSocial("social@example.com")).thenReturn(user);
 
         mockMvc.perform(post("/api/auth/login-social")
                         .param("email", "social@example.com"))
@@ -162,7 +161,7 @@ class AuthenticationControllerTest {
 
     @Test
     void testVerifyOTP_Success() throws Exception {
-        Mockito.when(authenticationService.verifyOTP(eq("email@example.com"), eq("123456"))).thenReturn(true);
+        Mockito.when(authenticationService.verifyOTP("email@example.com", "123456")).thenReturn(true);
 
         mockMvc.perform(post("/api/auth/verify-otp")
                         .param("email", "email@example.com")
@@ -173,7 +172,7 @@ class AuthenticationControllerTest {
 
     @Test
     void testVerifyOTP_Failure() throws Exception {
-        Mockito.when(authenticationService.verifyOTP(eq("email@example.com"), eq("000000"))).thenReturn(false);
+        Mockito.when(authenticationService.verifyOTP("email@example.com", "000000")).thenReturn(false);
 
         mockMvc.perform(post("/api/auth/verify-otp")
                         .param("email", "email@example.com")
@@ -198,7 +197,7 @@ class AuthenticationControllerTest {
 
     @Test
     void testPostContent() throws Exception {
-        Mockito.when(authenticationService.postContent(eq("email@example.com"), eq("Test Content")))
+        Mockito.when(authenticationService.postContent("email@example.com", "Test Content"))
                 .thenReturn("Content posted successfully");
 
         mockMvc.perform(post("/api/auth/post")
