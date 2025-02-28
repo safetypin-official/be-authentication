@@ -2,12 +2,14 @@ package com.safetypin.authentication.model;
 
 import jakarta.persistence.*;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
 
 @Entity
 @Table(name = "users")
+@NoArgsConstructor
 public class User {
 
     @Id
@@ -43,8 +45,6 @@ public class User {
 
     @Setter @Getter
     private String socialId;  // For social login users
-
-    public User() {}
 
 
     // Getters and setters
