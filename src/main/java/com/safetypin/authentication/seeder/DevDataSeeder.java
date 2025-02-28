@@ -35,7 +35,7 @@ public class DevDataSeeder implements Runnable {
 
             User user1 = new User();
             user1.setEmail("user1@example.com");
-            user1.setPassword(passwordEncoder.encode("password1"));
+            user1.setPassword(passwordEncoder.encode("password1")); //NOSONAR
             user1.setName("User One");
             user1.setVerified(true);
             user1.setRole("user");
@@ -46,7 +46,7 @@ public class DevDataSeeder implements Runnable {
 
             User user2 = new User();
             user2.setEmail("user2@example.com");
-            user2.setPassword(passwordEncoder.encode("password2"));
+            user2.setPassword(passwordEncoder.encode("password2")); //NOSONAR
             user2.setName("User Two");
             user2.setVerified(true);
             user2.setRole("user");
@@ -58,7 +58,7 @@ public class DevDataSeeder implements Runnable {
 
             User user3 = new User();
             user3.setEmail("user3@example.com");
-            user3.setPassword(passwordEncoder.encode("password3"));
+            user3.setPassword(passwordEncoder.encode("password3")); //NOSONAR
             user3.setName("User Three");
             user3.setVerified(true);
             user3.setRole("user");
@@ -69,7 +69,7 @@ public class DevDataSeeder implements Runnable {
 
             User user4 = new User();
             user4.setEmail("user4@example.com");
-            user4.setPassword(passwordEncoder.encode("password4"));
+            user4.setPassword(passwordEncoder.encode("password4")); //NOSONAR
             user4.setName("User Four");
             user4.setVerified(true);
             user4.setRole("user");
@@ -80,7 +80,7 @@ public class DevDataSeeder implements Runnable {
 
             User user5 = new User();
             user5.setEmail("user5@example.com");
-            user5.setPassword(passwordEncoder.encode("password5"));
+            user5.setPassword(passwordEncoder.encode("password5")); //NOSONAR
             user5.setName("User Five");
             user5.setVerified(true);
             user5.setRole("user");
