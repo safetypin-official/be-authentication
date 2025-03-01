@@ -1,13 +1,13 @@
 package com.safetypin.authentication;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
-@SpringBootTest
-class AuthenticationApplicationTests {
+class AuthenticationApplicationTest {
 
 	@Test
-	void contextLoads() {
+	void testMainDoesNotThrowException() {
+		// Calling the main method should load the context without throwing an exception.
+		assertDoesNotThrow(() -> AuthenticationApplication.main(new String[] {}));
 	}
-
 }

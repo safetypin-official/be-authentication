@@ -49,5 +49,5 @@ jobs:
           GOOGLE_PROJECT: ${{ secrets.GOOGLE_PROJECT }}
         run: |
           gcloud container clusters get-credentials safetypin-cluster --region asia-southeast2
-          sed -i "s/GOOGLE_PROJECT/$GOOGLE_PROJECT/g" resources.yaml
-          kubectl apply -f resources.yaml
+          sed -i "s/GOOGLE_PROJECT/$GOOGLE_PROJECT/g" production.yaml
+          kubectl apply -f production.yaml
