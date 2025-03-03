@@ -174,7 +174,8 @@ class AuthenticationControllerTest {
                         .param("email", "email@example.com")
                         .param("otp", "123456"))
                 .andExpect(status().isOk())
-                .andExpect(content().string("User verified successfully"));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("User verified successfully"));
     }
 
     @Test
@@ -185,7 +186,8 @@ class AuthenticationControllerTest {
                         .param("email", "email@example.com")
                         .param("otp", "000000"))
                 .andExpect(status().isOk())
-                .andExpect(content().string("OTP verification failed"));
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("OTP verification failed"));
     }
 
     @Test

@@ -26,7 +26,6 @@ public class AuthenticationController {
         try {
             String jwt = authenticationService.registerUser(request);
             return ResponseEntity.ok().body(new AuthResponse(true, "OK", new Token(jwt)));
-
         } catch (IllegalArgumentException | UserAlreadyExistsException e) {
             AuthResponse response = new AuthResponse(false, e.getMessage(), null);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
@@ -49,16 +48,21 @@ public class AuthenticationController {
 
     // OTP verification endpoint
     @PostMapping("/verify-otp")
-    public String verifyOTP(@RequestParam String email, @RequestParam String otp) {
+    public ResponseEntity<AuthResponse> verifyOTP(@RequestParam String email, @RequestParam String otp) {
         boolean verified = authenticationService.verifyOTP(email, otp);
-        return verified ? "User verified successfully" : "OTP verification failed";
+        if (verified) {
+            return ResponseEntity.ok().body(new AuthResponse(true, "User verified successfully", null));
+        } else {
+            return ResponseEntity.ok().body(new AuthResponse(false, "OTP verification failed", null));
+        }
+
     }
 
 
 
     // Endpoint for email login
     @PostMapping("/login-email")
-    public ResponseEntity<Object> loginEmail(@RequestParam String email, @RequestParam String password) {
+    public ResponseEntity<AuthResponse> loginEmail(@RequestParam String email, @RequestParam String password) {
         try {
             String jwt = authenticationService.loginUser(email, password);
             return ResponseEntity.ok(new AuthResponse(true, "OK", new Token(jwt)));
@@ -71,7 +75,7 @@ public class AuthenticationController {
 
     // Endpoint for social login (DEPRECATED, use regis-social instead)
     @PostMapping("/login-social")
-    public ResponseEntity<Object> loginSocial(@RequestParam String email) {
+    public ResponseEntity<AuthResponse> loginSocial(@RequestParam String email) {
         try {
             String jwt = authenticationService.loginSocial(email);
             return ResponseEntity.ok(new AuthResponse(true, "OK", new Token(jwt)));
@@ -117,4 +121,5 @@ public class AuthenticationController {
     public String dashboard() {
         return "{}";
     }
+
 }
