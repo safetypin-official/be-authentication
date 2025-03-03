@@ -3,10 +3,10 @@ name: CI - Development
 on:
   push:
     branches:
-      - dev
+      - login-registration
   pull_request:
     branches:
-      - dev
+      - login-registration
 
 jobs:
   build:
