@@ -33,7 +33,6 @@ public class AuthenticationService {
     private static final Logger logger = LoggerFactory.getLogger(AuthenticationService.class);
 
     private final String JWT_SECRET_KEY = "5047c55bfe120155fd4e884845682bb8b8815c0048a686cc664d1ea6c8e094da";
-    private final long EXPIRATION_TIME = 86400000; // 1 day
 
     public AuthenticationService(UserRepository userRepository, PasswordEncoder passwordEncoder, OTPService otpService) {
         this.userRepository = userRepository;
@@ -175,12 +174,42 @@ public class AuthenticationService {
         return Period.between(birthdate, LocalDate.now()).getYears();
     }
 
+
+
     public String generateJwtToken(Long userId){
-        return null;
+        Key key = Keys.hmacShaKeyFor(JWT_SECRET_KEY.getBytes());
+        // 1 day
+        long EXPIRATION_TIME = 86400000;
+        return Jwts
+                .builder()
+                .setSubject(userId.toString())
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
     }
 
     public UserResponse getUserFromJwtToken(String token) {
-        return null;
+        Key key = Keys.hmacShaKeyFor(JWT_SECRET_KEY.getBytes());
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+
+        boolean isExpired = claims.getExpiration().before(new Date(System.currentTimeMillis()));
+        Long userId = Long.decode(claims.getSubject());
+
+        if (isExpired) {
+            throw new InvalidCredentialsException("Token expired");
+        } else {
+            Optional<User> user = userRepository.findById(userId);
+            if (user.isEmpty()) {
+                throw new InvalidCredentialsException("User not found");
+            }
+            return user.get().generateUserResponse();
+        }
     }
+
 
 }
