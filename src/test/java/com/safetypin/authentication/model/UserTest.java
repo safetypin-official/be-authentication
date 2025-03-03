@@ -3,6 +3,7 @@ package com.safetypin.authentication.model;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -26,7 +27,7 @@ class UserTest {
     @Test
     void testSettersAndGetters() {
         User user = new User();
-        Long id = 123L;
+        UUID id = UUID.randomUUID();
         String email = "test@example.com";
         String password = "secret";
         String name = "Test User";

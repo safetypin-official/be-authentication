@@ -15,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDate;
+import java.util.UUID;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -92,9 +93,10 @@ class AuthenticationServiceTest {
         savedUser.setProvider("EMAIL");
         savedUser.setSocialId(null);
 
-        savedUser.setId(1L);
+        UUID id = UUID.randomUUID();
+        savedUser.setId(id);
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
-        when(userRepository.findById(1L)).thenReturn(Optional.of(savedUser));
+        when(userRepository.findById(id)).thenReturn(Optional.of(savedUser));
 
         String token = authenticationService.registerUser(request);
         assertNotNull(token);
@@ -169,10 +171,11 @@ class AuthenticationServiceTest {
         existingUser.setBirthdate(LocalDate.now().minusYears(25));
         existingUser.setProvider("GOOGLE");
         existingUser.setSocialId("social123");
-        existingUser.setId(2L);
+        UUID id = UUID.randomUUID();
+        existingUser.setId(id);
 
         when(userRepository.findByEmail("social@example.com")).thenReturn(existingUser);
-        when(userRepository.findById(2L)).thenReturn(Optional.of(existingUser));
+        when(userRepository.findById(id)).thenReturn(Optional.of(existingUser));
         when(userRepository.save(any(User.class))).thenReturn(existingUser);
 
         String token = authenticationService.socialLogin(request);
@@ -203,10 +206,10 @@ class AuthenticationServiceTest {
         savedUser.setProvider("GOOGLE");
         savedUser.setSocialId("social123");
 
-        savedUser.setId(2L);
+        UUID id = UUID.randomUUID();
+        savedUser.setId(id);
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
-
-        when(userRepository.findById(2L)).thenReturn(Optional.of(savedUser));
+        when(userRepository.findById(id)).thenReturn(Optional.of(savedUser));
 
         String token = authenticationService.socialLogin(request);
         assertNotNull(token);
@@ -277,11 +280,13 @@ class AuthenticationServiceTest {
         user.setBirthdate(LocalDate.now().minusYears(20));
         user.setProvider("EMAIL");
         user.setSocialId(null);
-        user.setId(2L);
 
+        UUID id = UUID.randomUUID();
+        user.setId(id
+        );
         when(userRepository.findByEmail("test@example.com")).thenReturn(user);
         when(passwordEncoder.matches("password", "encodedPassword")).thenReturn(true);
-        when(userRepository.findById(2L)).thenReturn(Optional.of(user));
+        when(userRepository.findById(id)).thenReturn(Optional.of(user));
 
         String token = authenticationService.loginUser("test@example.com", "password");
         assertNotNull(token);
@@ -311,10 +316,12 @@ class AuthenticationServiceTest {
         user.setBirthdate(LocalDate.now().minusYears(25));
         user.setProvider("GOOGLE");
         user.setSocialId("social123");
-        user.setId(2L);
+
+        UUID id = UUID.randomUUID();
+        user.setId(id);
 
         when(userRepository.findByEmail("social@example.com")).thenReturn(user);
-        when(userRepository.findById(2L)).thenReturn(Optional.of(user));
+        when(userRepository.findById(id)).thenReturn(Optional.of(user));
 
         String token =authenticationService.loginSocial("social@example.com");
         assertNotNull(token);

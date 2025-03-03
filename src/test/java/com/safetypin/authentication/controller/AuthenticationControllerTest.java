@@ -20,6 +20,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -74,7 +75,8 @@ class AuthenticationControllerTest {
         user.setBirthdate(request.getBirthdate());
         user.setProvider("EMAIL");
 
-        user.setId(1L);
+        UUID id = UUID.randomUUID();
+        user.setId(id);
         String token = authenticationService.generateJwtToken(user.getId());
         Mockito.when(authenticationService.registerUser(any(RegistrationRequest.class))).thenReturn(token);
 
@@ -104,7 +106,9 @@ class AuthenticationControllerTest {
         user.setBirthdate(request.getBirthdate());
         user.setProvider("GOOGLE");
         user.setSocialId("social123");
-        user.setId(2L);
+
+        UUID id = UUID.randomUUID();
+        user.setId(id);
         String token = authenticationService.generateJwtToken(user.getId());
         Mockito.when(authenticationService.socialLogin(any(SocialLoginRequest.class))).thenReturn(token);
 
@@ -127,7 +131,8 @@ class AuthenticationControllerTest {
         user.setProvider("EMAIL");
         user.setSocialId(null);
 
-        user.setId(1L);
+        UUID id = UUID.randomUUID();
+        user.setId(id);
         String token = authenticationService.generateJwtToken(user.getId());
         Mockito.when(authenticationService.loginUser("email@example.com", "password")).thenReturn(token);
 
@@ -149,7 +154,9 @@ class AuthenticationControllerTest {
         user.setBirthdate(LocalDate.now().minusYears(25));
         user.setProvider("GOOGLE");
         user.setSocialId("social123");
-        user.setId(2L);
+
+        UUID id = UUID.randomUUID();
+        user.setId(id);
         String token = authenticationService.generateJwtToken(user.getId());
         Mockito.when(authenticationService.loginSocial("social@example.com")).thenReturn(token);
 
