@@ -97,7 +97,7 @@ public class AuthenticationController {
     }
 
     @PostMapping("/verify-jwt")
-    public ResponseEntity<Object> verifyJwtToken(@RequestParam String token) {
+    public ResponseEntity<AuthResponse> verifyJwtToken(@RequestParam String token) {
         try {
             UserResponse userResponse = authenticationService.getUserFromJwtToken(token);
             return ResponseEntity.ok(new AuthResponse(true, "OK", userResponse));
