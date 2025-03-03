@@ -3,13 +3,14 @@ package com.safetypin.authentication.dto;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 @Data
 @Getter
 @Setter
 @Builder
 public class UserResponse {
-    private Long id;
+    private UUID id;
 
     private String email;
 

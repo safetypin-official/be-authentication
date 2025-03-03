@@ -21,6 +21,7 @@ import java.time.LocalDate;
 import java.time.Period;
 import java.util.Date;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class AuthenticationService {
@@ -176,7 +177,7 @@ public class AuthenticationService {
 
 
 
-    public String generateJwtToken(Long userId){
+    public String generateJwtToken(UUID userId){
         Key key = Keys.hmacShaKeyFor(JWT_SECRET_KEY.getBytes());
         // 1 day
         long EXPIRATION_TIME = 86400000;
@@ -198,7 +199,7 @@ public class AuthenticationService {
                 .getBody();
 
         boolean isExpired = claims.getExpiration().before(new Date(System.currentTimeMillis()));
-        Long userId = Long.decode(claims.getSubject());
+        UUID userId = UUID.fromString(claims.getSubject());
 
         if (isExpired) {
             throw new InvalidCredentialsException("Token expired");
