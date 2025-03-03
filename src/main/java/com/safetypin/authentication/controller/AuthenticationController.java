@@ -1,12 +1,8 @@
 package com.safetypin.authentication.controller;
 
-import com.safetypin.authentication.dto.AuthResponse;
-import com.safetypin.authentication.dto.PasswordResetRequest;
-import com.safetypin.authentication.dto.RegistrationRequest;
-import com.safetypin.authentication.dto.SocialLoginRequest;
+import com.safetypin.authentication.dto.*;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.UserAlreadyExistsException;
-import com.safetypin.authentication.model.User;
 import com.safetypin.authentication.service.AuthenticationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,7 +23,7 @@ public class AuthenticationController {
     // Endpoint for email registration
     @PostMapping("/register-email")
     public ResponseEntity<AuthResponse> registerEmail(@Valid @RequestBody RegistrationRequest request) {
-        User user;
+        UserResponse user;
         try {
             user = authenticationService.registerUser(request);
         } catch (IllegalArgumentException | UserAlreadyExistsException e) {
@@ -40,7 +36,7 @@ public class AuthenticationController {
     // Endpoint for social registration/login
     @PostMapping("/register-social")
     public ResponseEntity<AuthResponse> registerSocial(@Valid @RequestBody SocialLoginRequest request) {
-        User user;
+        UserResponse user;
         try {
             user = authenticationService.socialLogin(request);
         } catch (IllegalArgumentException | UserAlreadyExistsException e) {

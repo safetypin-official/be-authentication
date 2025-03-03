@@ -1,5 +1,6 @@
 package com.safetypin.authentication.model;
 
+import com.safetypin.authentication.dto.UserResponse;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -54,6 +55,18 @@ public class User {
     }
     public void setVerified(boolean verified) {
         isVerified = verified;
+    }
+
+    public UserResponse generateUserResponse(){
+        return UserResponse.builder()
+                .email(email)
+                .id(id)
+                .provider(provider)
+                .birthdate(birthdate)
+                .role(role)
+                .name(name)
+                .isVerified(isVerified)
+                .build();
     }
 
 }

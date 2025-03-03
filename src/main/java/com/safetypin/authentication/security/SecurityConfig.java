@@ -17,6 +17,8 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 // CSRF protection is enabled by default, so we don't disable it here
+                // disable CSRF
+                .csrf().disable()
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/**").permitAll() // Allow all requests
                 )
