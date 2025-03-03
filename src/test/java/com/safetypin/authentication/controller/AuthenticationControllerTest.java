@@ -75,7 +75,7 @@ class AuthenticationControllerTest {
         user.setProvider("EMAIL");
 
         user.setId(1L);
-        Mockito.when(authenticationService.registerUser(any(RegistrationRequest.class))).thenReturn(user);
+        Mockito.when(authenticationService.registerUser(any(RegistrationRequest.class))).thenReturn(user.generateUserResponse());
 
         mockMvc.perform(post("/api/auth/register-email")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -105,7 +105,7 @@ class AuthenticationControllerTest {
         user.setProvider("GOOGLE");
         user.setSocialId("social123");
         user.setId(2L);
-        Mockito.when(authenticationService.socialLogin(any(SocialLoginRequest.class))).thenReturn(user);
+        Mockito.when(authenticationService.socialLogin(any(SocialLoginRequest.class))).thenReturn(user.generateUserResponse());
 
         mockMvc.perform(post("/api/auth/register-social")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -128,7 +128,7 @@ class AuthenticationControllerTest {
         user.setSocialId(null);
 
         user.setId(1L);
-        Mockito.when(authenticationService.loginUser("email@example.com", "password")).thenReturn(user);
+        Mockito.when(authenticationService.loginUser("email@example.com", "password")).thenReturn(user.generateUserResponse());
 
         mockMvc.perform(post("/api/auth/login-email")
                         .param("email", "email@example.com")
@@ -150,7 +150,7 @@ class AuthenticationControllerTest {
         user.setProvider("GOOGLE");
         user.setSocialId("social123");
         user.setId(2L);
-        Mockito.when(authenticationService.loginSocial("social@example.com")).thenReturn(user);
+        Mockito.when(authenticationService.loginSocial("social@example.com")).thenReturn(user.generateUserResponse());
 
         mockMvc.perform(post("/api/auth/login-social")
                         .param("email", "social@example.com"))

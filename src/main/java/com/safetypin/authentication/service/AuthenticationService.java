@@ -2,6 +2,7 @@ package com.safetypin.authentication.service;
 
 import com.safetypin.authentication.dto.RegistrationRequest;
 import com.safetypin.authentication.dto.SocialLoginRequest;
+import com.safetypin.authentication.dto.UserResponse;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.UserAlreadyExistsException;
 import com.safetypin.authentication.model.User;
@@ -29,7 +30,7 @@ public class AuthenticationService {
     }
 
     // Registration using email – includes birthdate and OTP generation
-    public User registerUser(RegistrationRequest request) {
+    public UserResponse registerUser(RegistrationRequest request) {
         if (calculateAge(request.getBirthdate()) < 16) {
             throw new IllegalArgumentException("User must be at least 16 years old");
         }
@@ -51,11 +52,11 @@ public class AuthenticationService {
         user = userRepository.save(user);
         otpService.generateOTP(request.getEmail());
         logger.info("OTP generated for user at {}", java.time.LocalDateTime.now());
-        return user;
+        return user.generateUserResponse();
     }
 
     // Social registration/login – simulating data fetched from Google/Apple
-    public User socialLogin(SocialLoginRequest request) {
+    public UserResponse socialLogin(SocialLoginRequest request) {
         if (calculateAge(request.getBirthdate()) < 16) {
             throw new IllegalArgumentException("User must be at least 16 years old");
         }
@@ -64,7 +65,7 @@ public class AuthenticationService {
             if (EMAIL_PROVIDER.equals(existing.getProvider())) {
                 throw new UserAlreadyExistsException("An account with this email exists. Please sign in using your email and password.");
             }
-            return existing;
+            return existing.generateUserResponse();
         }
         User user = new User();
         user.setEmail(request.getEmail());
@@ -78,11 +79,11 @@ public class AuthenticationService {
 
         user = userRepository.save(user);
         logger.info("User registered via social login at {}", java.time.LocalDateTime.now());
-        return user;
+        return user.generateUserResponse();
     }
 
     // Email login with detailed error messages
-    public User loginUser(String email, String rawPassword) {
+    public UserResponse loginUser(String email, String rawPassword) {
         User user = userRepository.findByEmail(email);
         if (user == null) {
             // email not exists
@@ -95,17 +96,17 @@ public class AuthenticationService {
             throw new InvalidCredentialsException("Invalid password");
         }
         logger.info("User logged in at {}", java.time.LocalDateTime.now());
-        return user;
+        return user.generateUserResponse();
     }
 
     // Social login verification (assumed to be pre-verified externally)
-    public User loginSocial(String email) {
+    public UserResponse loginSocial(String email) {
         User user = userRepository.findByEmail(email);
         if (user == null) {
             throw new InvalidCredentialsException("Social login failed: Email not found");
         }
         logger.info("User logged in via social authentication at {}", java.time.LocalDateTime.now());
-        return user;
+        return user.generateUserResponse();
     }
 
     // OTP verification – marks user as verified upon success

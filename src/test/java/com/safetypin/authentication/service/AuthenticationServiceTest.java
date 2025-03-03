@@ -2,6 +2,7 @@ package com.safetypin.authentication.service;
 
 import com.safetypin.authentication.dto.RegistrationRequest;
 import com.safetypin.authentication.dto.SocialLoginRequest;
+import com.safetypin.authentication.dto.UserResponse;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.UserAlreadyExistsException;
 import com.safetypin.authentication.model.User;
@@ -90,7 +91,7 @@ class AuthenticationServiceTest {
         savedUser.setId(1L);
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
 
-        User result = authenticationService.registerUser(request);
+        UserResponse result = authenticationService.registerUser(request);
         assertNotNull(result);
         assertEquals("test@example.com", result.getEmail());
         // OTPService should be invoked to generate OTP.
@@ -165,7 +166,7 @@ class AuthenticationServiceTest {
 
         when(userRepository.findByEmail("social@example.com")).thenReturn(existingUser);
 
-        User result = authenticationService.socialLogin(request);
+        UserResponse result = authenticationService.socialLogin(request);
         assertNotNull(result);
         assertEquals("social@example.com", result.getEmail());
     }
@@ -194,7 +195,7 @@ class AuthenticationServiceTest {
         savedUser.setId(2L);
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
 
-        User result = authenticationService.socialLogin(request);
+        UserResponse result = authenticationService.socialLogin(request);
         assertNotNull(result);
         assertEquals("social@example.com", result.getEmail());
     }
@@ -266,7 +267,7 @@ class AuthenticationServiceTest {
         when(userRepository.findByEmail("test@example.com")).thenReturn(user);
         when(passwordEncoder.matches("password", "encodedPassword")).thenReturn(true);
 
-        User result = authenticationService.loginUser("test@example.com", "password");
+        UserResponse result = authenticationService.loginUser("test@example.com", "password");
         assertNotNull(result);
         assertEquals("test@example.com", result.getEmail());
     }
@@ -296,7 +297,7 @@ class AuthenticationServiceTest {
 
         when(userRepository.findByEmail("social@example.com")).thenReturn(user);
 
-        User result = authenticationService.loginSocial("social@example.com");
+        UserResponse result = authenticationService.loginSocial("social@example.com");
         assertNotNull(result);
         assertEquals("social@example.com", result.getEmail());
     }
