@@ -23,27 +23,28 @@ public class AuthenticationController {
     // Endpoint for email registration
     @PostMapping("/register-email")
     public ResponseEntity<AuthResponse> registerEmail(@Valid @RequestBody RegistrationRequest request) {
-        UserResponse user;
         try {
-            user = authenticationService.registerUser(request);
+            String jwt = authenticationService.registerUser(request);
+            return ResponseEntity.ok().body(new AuthResponse(true, "OK", new Token(jwt)));
+
         } catch (IllegalArgumentException | UserAlreadyExistsException e) {
             AuthResponse response = new AuthResponse(false, e.getMessage(), null);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
-        return ResponseEntity.ok().body(new AuthResponse(true, "OK", user));
+
     }
 
     // Endpoint for social registration/login
     @PostMapping("/register-social")
     public ResponseEntity<AuthResponse> registerSocial(@Valid @RequestBody SocialLoginRequest request) {
-        UserResponse user;
         try {
-            user = authenticationService.socialLogin(request);
+            String jwt = authenticationService.socialLogin(request);
+            return ResponseEntity.ok().body(new AuthResponse(true, "OK", new Token(jwt)));
         } catch (IllegalArgumentException | UserAlreadyExistsException e) {
             AuthResponse response = new AuthResponse(false, e.getMessage(), null);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
-        return ResponseEntity.ok().body(new AuthResponse(true, "OK", user));
+
     }
 
     // OTP verification endpoint
@@ -59,7 +60,8 @@ public class AuthenticationController {
     @PostMapping("/login-email")
     public ResponseEntity<Object> loginEmail(@RequestParam String email, @RequestParam String password) {
         try {
-            return ResponseEntity.ok(authenticationService.loginUser(email, password));
+            String jwt = authenticationService.loginUser(email, password);
+            return ResponseEntity.ok(new AuthResponse(true, "OK", new Token(jwt)));
         } catch (InvalidCredentialsException e){
             AuthResponse response = new AuthResponse(false, e.getMessage(), null);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
@@ -67,11 +69,12 @@ public class AuthenticationController {
 
     }
 
-    // Endpoint for social login
+    // Endpoint for social login (DEPRECATED, use regis-social instead)
     @PostMapping("/login-social")
     public ResponseEntity<Object> loginSocial(@RequestParam String email) {
         try {
-            return ResponseEntity.ok(authenticationService.loginSocial(email));
+            String jwt = authenticationService.loginSocial(email);
+            return ResponseEntity.ok(new AuthResponse(true, "OK", new Token(jwt)));
         } catch (InvalidCredentialsException e){
             AuthResponse response = new AuthResponse(false, e.getMessage(), null);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
@@ -89,10 +92,21 @@ public class AuthenticationController {
         return "Password reset instructions have been sent to your email (simulated)";
     }
 
+    @PostMapping("/verify-jwt")
+    public ResponseEntity<Object> verifyJwtToken(@RequestParam String token) {
+        try {
+            UserResponse userResponse = authenticationService.getUserFromJwtToken(token);
+            return ResponseEntity.ok(new AuthResponse(true, "OK", userResponse));
+        } catch (InvalidCredentialsException e) {
+            AuthResponse response = new AuthResponse(false, e.getMessage(), null);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+    }
 
 
 
-    // Endpoint simulating a content post that requires a verified account
+
+    // Endpoint simulating a content post that requires a verified account (DEPRECATED, use be-post instead)
     @PostMapping("/post")
     public String postContent(@RequestParam String email, @RequestParam String content) {
         return authenticationService.postContent(email, content);

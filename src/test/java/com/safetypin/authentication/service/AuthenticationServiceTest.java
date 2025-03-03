@@ -15,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDate;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -34,6 +35,9 @@ class AuthenticationServiceTest {
 
     @InjectMocks
     private AuthenticationService authenticationService;
+
+    private final String JWT_SECRET_KEY = "5047c55bfe120155fd4e884845682bb8b8815c0048a686cc664d1ea6c8e094da";
+    private final long EXPIRATION_TIME = 86400000;
 
     // registerUser tests
 
@@ -90,10 +94,12 @@ class AuthenticationServiceTest {
 
         savedUser.setId(1L);
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(savedUser));
 
-        UserResponse result = authenticationService.registerUser(request);
-        assertNotNull(result);
-        assertEquals("test@example.com", result.getEmail());
+        String token = authenticationService.registerUser(request);
+        assertNotNull(token);
+        UserResponse userResponse = authenticationService.getUserFromJwtToken(token);
+        assertEquals("test@example.com", userResponse.getEmail());
         // OTPService should be invoked to generate OTP.
         verify(otpService, times(1)).generateOTP("test@example.com");
     }
@@ -163,12 +169,17 @@ class AuthenticationServiceTest {
         existingUser.setBirthdate(LocalDate.now().minusYears(25));
         existingUser.setProvider("GOOGLE");
         existingUser.setSocialId("social123");
+        existingUser.setId(2L);
 
         when(userRepository.findByEmail("social@example.com")).thenReturn(existingUser);
+        when(userRepository.findById(2L)).thenReturn(Optional.of(existingUser));
+        when(userRepository.save(any(User.class))).thenReturn(existingUser);
 
-        UserResponse result = authenticationService.socialLogin(request);
-        assertNotNull(result);
-        assertEquals("social@example.com", result.getEmail());
+        String token = authenticationService.socialLogin(request);
+        assertNotNull(token);
+        UserResponse userResponse = authenticationService.getUserFromJwtToken(token);
+
+        assertEquals("social@example.com", userResponse.getEmail());
     }
 
     @Test
@@ -195,9 +206,12 @@ class AuthenticationServiceTest {
         savedUser.setId(2L);
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
 
-        UserResponse result = authenticationService.socialLogin(request);
-        assertNotNull(result);
-        assertEquals("social@example.com", result.getEmail());
+        when(userRepository.findById(2L)).thenReturn(Optional.of(savedUser));
+
+        String token = authenticationService.socialLogin(request);
+        assertNotNull(token);
+        UserResponse userResponse = authenticationService.getUserFromJwtToken(token);
+        assertEquals("social@example.com", userResponse.getEmail());
     }
 
     // loginUser tests
@@ -263,13 +277,16 @@ class AuthenticationServiceTest {
         user.setBirthdate(LocalDate.now().minusYears(20));
         user.setProvider("EMAIL");
         user.setSocialId(null);
+        user.setId(2L);
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(user);
         when(passwordEncoder.matches("password", "encodedPassword")).thenReturn(true);
+        when(userRepository.findById(2L)).thenReturn(Optional.of(user));
 
-        UserResponse result = authenticationService.loginUser("test@example.com", "password");
-        assertNotNull(result);
-        assertEquals("test@example.com", result.getEmail());
+        String token = authenticationService.loginUser("test@example.com", "password");
+        assertNotNull(token);
+        UserResponse userResponse = authenticationService.getUserFromJwtToken(token);
+        assertEquals("test@example.com", userResponse.getEmail());
     }
 
     // loginSocial tests
@@ -294,12 +311,16 @@ class AuthenticationServiceTest {
         user.setBirthdate(LocalDate.now().minusYears(25));
         user.setProvider("GOOGLE");
         user.setSocialId("social123");
+        user.setId(2L);
 
         when(userRepository.findByEmail("social@example.com")).thenReturn(user);
+        when(userRepository.findById(2L)).thenReturn(Optional.of(user));
 
-        UserResponse result = authenticationService.loginSocial("social@example.com");
-        assertNotNull(result);
-        assertEquals("social@example.com", result.getEmail());
+        String token =authenticationService.loginSocial("social@example.com");
+        assertNotNull(token);
+        UserResponse userResponse = authenticationService.getUserFromJwtToken(token);
+        assertEquals("social@example.com", userResponse.getEmail());
+
     }
 
     // verifyOTP tests

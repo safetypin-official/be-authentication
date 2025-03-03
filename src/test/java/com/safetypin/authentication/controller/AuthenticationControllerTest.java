@@ -75,14 +75,14 @@ class AuthenticationControllerTest {
         user.setProvider("EMAIL");
 
         user.setId(1L);
-        Mockito.when(authenticationService.registerUser(any(RegistrationRequest.class))).thenReturn(user.generateUserResponse());
+        String token = authenticationService.generateJwtToken(user.getId());
+        Mockito.when(authenticationService.registerUser(any(RegistrationRequest.class))).thenReturn(token);
 
         mockMvc.perform(post("/api/auth/register-email")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.id").value(1L))
-                .andExpect(jsonPath("$.data.email").value("email@example.com"));
+                .andExpect(jsonPath("$.data.token").value(token));
     }
 
     @Test
@@ -105,14 +105,14 @@ class AuthenticationControllerTest {
         user.setProvider("GOOGLE");
         user.setSocialId("social123");
         user.setId(2L);
-        Mockito.when(authenticationService.socialLogin(any(SocialLoginRequest.class))).thenReturn(user.generateUserResponse());
+        String token = authenticationService.generateJwtToken(user.getId());
+        Mockito.when(authenticationService.socialLogin(any(SocialLoginRequest.class))).thenReturn(token);
 
         mockMvc.perform(post("/api/auth/register-social")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.id").value(2L))
-                .andExpect(jsonPath("$.data.email").value("social@example.com"));
+                .andExpect(jsonPath("$.data.token").value(token));
     }
 
     @Test
@@ -128,14 +128,14 @@ class AuthenticationControllerTest {
         user.setSocialId(null);
 
         user.setId(1L);
-        Mockito.when(authenticationService.loginUser("email@example.com", "password")).thenReturn(user.generateUserResponse());
+        String token = authenticationService.generateJwtToken(user.getId());
+        Mockito.when(authenticationService.loginUser("email@example.com", "password")).thenReturn(token);
 
         mockMvc.perform(post("/api/auth/login-email")
                         .param("email", "email@example.com")
                         .param("password", "password"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1L))
-                .andExpect(jsonPath("$.email").value("email@example.com"));
+                .andExpect(jsonPath("$.data.token").value(token));
     }
 
     @Test
@@ -150,13 +150,13 @@ class AuthenticationControllerTest {
         user.setProvider("GOOGLE");
         user.setSocialId("social123");
         user.setId(2L);
-        Mockito.when(authenticationService.loginSocial("social@example.com")).thenReturn(user.generateUserResponse());
+        String token = authenticationService.generateJwtToken(user.getId());
+        Mockito.when(authenticationService.loginSocial("social@example.com")).thenReturn(token);
 
         mockMvc.perform(post("/api/auth/login-social")
                         .param("email", "social@example.com"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(2L))
-                .andExpect(jsonPath("$.email").value("social@example.com"));
+                .andExpect(jsonPath("$.data.token").value(token));
     }
 
     @Test

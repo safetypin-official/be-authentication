@@ -7,21 +7,32 @@ import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.UserAlreadyExistsException;
 import com.safetypin.authentication.model.User;
 import com.safetypin.authentication.repository.UserRepository;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.security.Key;
 import java.time.LocalDate;
 import java.time.Period;
+import java.util.Date;
+import java.util.Optional;
 
 @Service
 public class AuthenticationService {
     public static final String EMAIL_PROVIDER = "EMAIL";
 
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final OTPService otpService;
     private static final Logger logger = LoggerFactory.getLogger(AuthenticationService.class);
+
+    private final String JWT_SECRET_KEY = "5047c55bfe120155fd4e884845682bb8b8815c0048a686cc664d1ea6c8e094da";
 
     public AuthenticationService(UserRepository userRepository, PasswordEncoder passwordEncoder, OTPService otpService) {
         this.userRepository = userRepository;
@@ -30,7 +41,7 @@ public class AuthenticationService {
     }
 
     // Registration using email – includes birthdate and OTP generation
-    public UserResponse registerUser(RegistrationRequest request) {
+    public String registerUser(RegistrationRequest request) {
         if (calculateAge(request.getBirthdate()) < 16) {
             throw new IllegalArgumentException("User must be at least 16 years old");
         }
@@ -40,6 +51,7 @@ public class AuthenticationService {
         }
         String encodedPassword = passwordEncoder.encode(request.getPassword());
 
+        // save user to repository
         User user = new User();
         user.setEmail(request.getEmail());
         user.setPassword(encodedPassword);
@@ -50,23 +62,30 @@ public class AuthenticationService {
         user.setProvider(EMAIL_PROVIDER);
         user.setSocialId(null);
         user = userRepository.save(user);
+
         otpService.generateOTP(request.getEmail());
         logger.info("OTP generated for user at {}", java.time.LocalDateTime.now());
-        return user.generateUserResponse();
+
+        return generateJwtToken(user.getId());
     }
 
     // Social registration/login – simulating data fetched from Google/Apple
-    public UserResponse socialLogin(SocialLoginRequest request) {
+    public String socialLogin(SocialLoginRequest request) {
         if (calculateAge(request.getBirthdate()) < 16) {
             throw new IllegalArgumentException("User must be at least 16 years old");
         }
         User existing = userRepository.findByEmail(request.getEmail());
+
+        // login (if email is found)
         if (existing != null) {
             if (EMAIL_PROVIDER.equals(existing.getProvider())) {
+                // already logged in using email instead of social
                 throw new UserAlreadyExistsException("An account with this email exists. Please sign in using your email and password.");
             }
-            return existing.generateUserResponse();
+            generateJwtToken(existing.getId());
         }
+
+        // register
         User user = new User();
         user.setEmail(request.getEmail());
         user.setPassword(null);
@@ -79,11 +98,12 @@ public class AuthenticationService {
 
         user = userRepository.save(user);
         logger.info("User registered via social login at {}", java.time.LocalDateTime.now());
-        return user.generateUserResponse();
+
+        return generateJwtToken(user.getId());
     }
 
     // Email login with detailed error messages
-    public UserResponse loginUser(String email, String rawPassword) {
+    public String loginUser(String email, String rawPassword) {
         User user = userRepository.findByEmail(email);
         if (user == null) {
             // email not exists
@@ -96,17 +116,18 @@ public class AuthenticationService {
             throw new InvalidCredentialsException("Invalid password");
         }
         logger.info("User logged in at {}", java.time.LocalDateTime.now());
-        return user.generateUserResponse();
+        return generateJwtToken(user.getId());
     }
 
     // Social login verification (assumed to be pre-verified externally)
-    public UserResponse loginSocial(String email) {
+    public String loginSocial(String email) {
         User user = userRepository.findByEmail(email);
         if (user == null) {
             throw new InvalidCredentialsException("Social login failed: Email not found");
         }
         logger.info("User logged in via social authentication at {}", java.time.LocalDateTime.now());
-        return user.generateUserResponse();
+
+        return generateJwtToken(user.getId());
     }
 
     // OTP verification – marks user as verified upon success
@@ -152,4 +173,43 @@ public class AuthenticationService {
     private int calculateAge(LocalDate birthdate) {
         return Period.between(birthdate, LocalDate.now()).getYears();
     }
+
+
+
+    public String generateJwtToken(Long userId){
+        Key key = Keys.hmacShaKeyFor(JWT_SECRET_KEY.getBytes());
+        // 1 day
+        long EXPIRATION_TIME = 86400000;
+        return Jwts
+                .builder()
+                .setSubject(userId.toString())
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    public UserResponse getUserFromJwtToken(String token) {
+        Key key = Keys.hmacShaKeyFor(JWT_SECRET_KEY.getBytes());
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+
+        boolean isExpired = claims.getExpiration().before(new Date(System.currentTimeMillis()));
+        Long userId = Long.decode(claims.getSubject());
+
+        if (isExpired) {
+            throw new InvalidCredentialsException("Token expired");
+        } else {
+            Optional<User> user = userRepository.findById(userId);
+            if (user.isEmpty()) {
+                throw new InvalidCredentialsException("User not found");
+            }
+            return user.get().generateUserResponse();
+        }
+    }
+
+
 }
