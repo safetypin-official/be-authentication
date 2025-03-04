@@ -1,6 +1,7 @@
 package com.safetypin.authentication.service;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
 
 import java.lang.reflect.Constructor;
 import java.time.LocalDateTime;
@@ -9,10 +10,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import static org.junit.jupiter.api.Assertions.*;
 
 class OTPServiceTest {
+    @InjectMocks
+    private OTPService otpService;
 
     @Test
     void testGenerateOTP() {
-        OTPService otpService = new OTPService();
         String email = "user@example.com";
         String otp = otpService.generateOTP(email);
         assertNotNull(otp, "OTP should not be null");
@@ -22,7 +24,6 @@ class OTPServiceTest {
 
     @Test
     void testVerifyOTPSuccess() {
-        OTPService otpService = new OTPService();
         String email = "user@example.com";
         String otp = otpService.generateOTP(email);
         // Immediately verify the generated OTP; it should succeed.
@@ -32,7 +33,6 @@ class OTPServiceTest {
 
     @Test
     void testVerifyOTPWrongOtp() {
-        OTPService otpService = new OTPService();
         String email = "user@example.com";
         otpService.generateOTP(email);
         // Try verifying with an incorrect OTP.
@@ -42,7 +42,6 @@ class OTPServiceTest {
 
     @Test
     void testVerifyOTPExpired() throws Exception {
-        OTPService otpService = new OTPService();
         String email = "user@example.com";
         String otp = otpService.generateOTP(email);
 
@@ -72,7 +71,6 @@ class OTPServiceTest {
 
     @Test
     void testVerifyOTPWhenNotGenerated() {
-        OTPService otpService = new OTPService();
         // No OTP was generated for this email, so verification should return false.
         boolean result = otpService.verifyOTP("nonexistent@example.com", "123456");
         assertFalse(result, "Verification should fail when no OTP is generated for the given email");
