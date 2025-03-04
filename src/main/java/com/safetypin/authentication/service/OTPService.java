@@ -1,7 +1,9 @@
 package com.safetypin.authentication.service;
 
+import com.safetypin.authentication.exception.OTPException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
@@ -10,17 +12,28 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class OTPService {
+    private final EmailService emailService;
 
     private static final long OTP_EXPIRATION_SECONDS = 120; // 2 minutes expiration
     private static final Logger log = LoggerFactory.getLogger(OTPService.class);
     private final ConcurrentHashMap<String, OTPDetails> otpStorage = new ConcurrentHashMap<>();
     private final SecureRandom random = new SecureRandom();
 
+    @Autowired
+    public OTPService(EmailService emailService) {
+        this.emailService = emailService;
+    }
+
     public String generateOTP(String email) {
         String otp = String.format("%06d", random.nextInt(1000000));
         OTPDetails details = new OTPDetails(otp, LocalDateTime.now());
         otpStorage.put(email, details);
-        // Simulate sending OTP via email (in production, integrate with an email service)
+
+        boolean status = emailService.sendOTPMail(email, otp);
+        if (!status) {
+            throw new OTPException("Failed to send OTP");
+        }
+
         log.info("Sending OTP {} to {}", otp, email);
         return otp;
     }
