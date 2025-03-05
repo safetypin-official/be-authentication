@@ -24,7 +24,7 @@ class OTPServiceTest {
     @Test
     void testGenerateOTP() {
         // Assume email service works
-        when(emailService.sendOTPMail(any(), any())).thenReturn(true);
+        when(emailService.sendOTPMail(anyString(), anyString())).thenReturn(true);
 
         String email = "user@example.com";
         String otp = otpService.generateOTP(email);
@@ -38,7 +38,7 @@ class OTPServiceTest {
 
     @Test
     void testVerifyOTPSuccess() {
-        when(emailService.sendOTPMail(any(), any())).thenReturn(true);
+        when(emailService.sendOTPMail(anyString(), anyString())).thenReturn(true);
 
         String email = "user@example.com";
         String otp = otpService.generateOTP(email);
@@ -50,7 +50,7 @@ class OTPServiceTest {
     // TODO: Test has a 1/1,000,000 chance to fail because OTP can generate all 0's.
     @Test
     void testVerifyOTPWrongOtp() {
-        when(emailService.sendOTPMail(any(), any())).thenReturn(true);
+        when(emailService.sendOTPMail(anyString(), anyString())).thenReturn(true);
 
         String email = "user@example.com";
         otpService.generateOTP(email);
@@ -61,7 +61,7 @@ class OTPServiceTest {
 
     @Test
     void testVerifyOTPExpired() throws Exception {
-        when(emailService.sendOTPMail(any(), any())).thenReturn(true);
+        when(emailService.sendOTPMail(anyString(), anyString())).thenReturn(true);
 
         String email = "user@example.com";
         String otp = otpService.generateOTP(email);
