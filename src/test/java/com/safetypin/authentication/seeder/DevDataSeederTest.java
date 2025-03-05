@@ -50,7 +50,6 @@ class DevDataSeederTest {
         user.setRole("admin");
         user.setBirthdate(LocalDate.of(1990, 1, 1));
         user.setProvider("EMAIL");
-        user.setSocialId("social_9999");
         userRepository.save(user);
 
         long countBefore = userRepository.count();
