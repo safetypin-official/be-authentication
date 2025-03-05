@@ -1,12 +1,16 @@
 package com.safetypin.authentication.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.safetypin.authentication.dto.GoogleAuthDTO;
 import com.safetypin.authentication.dto.PasswordResetRequest;
 import com.safetypin.authentication.dto.RegistrationRequest;
 import com.safetypin.authentication.dto.SocialLoginRequest;
+import com.safetypin.authentication.exception.UserAlreadyExistsException;
 import com.safetypin.authentication.model.User;
 import com.safetypin.authentication.service.AuthenticationService;
+import com.safetypin.authentication.service.GoogleAuthService;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -38,6 +42,9 @@ class AuthenticationControllerTest {
     private AuthenticationService authenticationService;
 
     @Autowired
+    private GoogleAuthService googleAuthService;
+
+    @Autowired
     private ObjectMapper objectMapper;
 
     @TestConfiguration
@@ -45,6 +52,11 @@ class AuthenticationControllerTest {
         @Bean
         public AuthenticationService authenticationService() {
             return Mockito.mock(AuthenticationService.class);
+        }
+
+        @Bean
+        public GoogleAuthService googleAuthService() {
+            return Mockito.mock(GoogleAuthService.class);
         }
     }
 
@@ -105,7 +117,6 @@ class AuthenticationControllerTest {
         user.setRole("USER");
         user.setBirthdate(request.getBirthdate());
         user.setProvider("GOOGLE");
-        user.setSocialId("social123");
 
         UUID id = UUID.randomUUID();
         user.setId(id);
@@ -129,7 +140,6 @@ class AuthenticationControllerTest {
         user.setRole("USER");
         user.setBirthdate(LocalDate.now().minusYears(20));
         user.setProvider("EMAIL");
-        user.setSocialId(null);
 
         UUID id = UUID.randomUUID();
         user.setId(id);
@@ -153,7 +163,6 @@ class AuthenticationControllerTest {
         user.setRole("USER");
         user.setBirthdate(LocalDate.now().minusYears(25));
         user.setProvider("GOOGLE");
-        user.setSocialId("social123");
 
         UUID id = UUID.randomUUID();
         user.setId(id);
@@ -221,5 +230,105 @@ class AuthenticationControllerTest {
         mockMvc.perform(get("/api/auth/dashboard"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("{}"));
+    }
+
+    @Test
+    void testAuthenticateGoogle_Success() throws Exception {
+        // Prepare test data
+        GoogleAuthDTO googleAuthData = new GoogleAuthDTO();
+        googleAuthData.setIdToken("validGoogleToken");
+        googleAuthData.setServerAuthCode("validServerAuthCode");
+
+        // Generate a mock JWT token
+        String mockJwt = "mockJwtToken123";
+
+        // Mock the service method to return the JWT token
+        Mockito.when(googleAuthService.authenticate(any(GoogleAuthDTO.class)))
+                .thenReturn(mockJwt);
+
+        // Perform the test
+        mockMvc.perform(post("/api/auth/google")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(googleAuthData)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("OK"))
+                .andExpect(jsonPath("$.data.token").value(mockJwt));
+    }
+
+    @Test
+    void testAuthenticateGoogle_MissingIdToken() throws Exception {
+        // Prepare test data with missing idToken
+        GoogleAuthDTO googleAuthData = new GoogleAuthDTO();
+        googleAuthData.setServerAuthCode("validServerAuthCode");
+
+        // Perform the test
+        mockMvc.perform(post("/api/auth/google")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(googleAuthData)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testAuthenticateGoogle_MissingServerAuthCode() throws Exception {
+        // Prepare test data with missing serverAuthCode
+        GoogleAuthDTO googleAuthData = new GoogleAuthDTO();
+        googleAuthData.setIdToken("validGoogleToken");
+
+        // Perform the test
+        mockMvc.perform(post("/api/auth/google")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(googleAuthData)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testAuthenticateGoogle_UserAlreadyExists() throws Exception {
+        // Prepare test data
+        GoogleAuthDTO googleAuthData = new GoogleAuthDTO();
+        googleAuthData.setIdToken("existingUserToken");
+        googleAuthData.setServerAuthCode("existingUserAuthCode");
+
+        // Simulate UserAlreadyExistsException
+        String errorMessage = "User with this email already exists";
+        Mockito.when(googleAuthService.authenticate(any(GoogleAuthDTO.class)))
+                .thenThrow(new UserAlreadyExistsException(errorMessage));
+
+        // Perform the test
+        mockMvc.perform(post("/api/auth/google")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(googleAuthData)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value(errorMessage))
+                .andExpect(jsonPath("$.data").doesNotExist());
+    }
+
+    @Test
+    void testAuthenticateGoogle_GeneralException() throws Exception {
+        // Prepare test data
+        GoogleAuthDTO googleAuthData = new GoogleAuthDTO();
+        googleAuthData.setIdToken("invalidToken");
+        googleAuthData.setServerAuthCode("invalidAuthCode");
+
+        // Simulate a general exception
+        String errorMessage = "Authentication failed: Invalid token";
+        Mockito.when(googleAuthService.authenticate(any(GoogleAuthDTO.class)))
+                .thenThrow(new RuntimeException(errorMessage));
+
+        // Perform the test
+        mockMvc.perform(post("/api/auth/google")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(googleAuthData)))
+                .andExpect(status().isInternalServerError());
+    }
+
+    @Test
+    void testAuthenticateGoogle_EmptyInput() throws Exception {
+        // Perform test with empty input
+        mockMvc.perform(post("/api/auth/google")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
     }
 }
