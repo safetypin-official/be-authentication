@@ -4,6 +4,8 @@ import com.safetypin.authentication.dto.*;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.UserAlreadyExistsException;
 import com.safetypin.authentication.service.AuthenticationService;
+import com.safetypin.authentication.service.GoogleAuthService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import jakarta.validation.Valid;
@@ -14,9 +16,12 @@ import org.springframework.web.bind.annotation.*;
 public class AuthenticationController {
 
     private final AuthenticationService authenticationService;
+    private final GoogleAuthService googleAuthService;
 
-    public AuthenticationController(AuthenticationService authenticationService) {
+    @Autowired
+    public AuthenticationController(AuthenticationService authenticationService, GoogleAuthService googleAuthService) {
         this.authenticationService = authenticationService;
+        this.googleAuthService = googleAuthService;
     }
 
 
@@ -86,7 +91,18 @@ public class AuthenticationController {
 
     }
 
-
+    @PostMapping("/google")
+    public ResponseEntity<?> authenticateGoogle(@Valid @RequestBody GoogleAuthDTO googleAuthData) {
+        try {
+            String jwt = googleAuthService.authenticate(googleAuthData);
+            return ResponseEntity.ok(new AuthResponse(true, "OK", new Token(jwt)));
+        } catch (UserAlreadyExistsException e) {
+            AuthResponse response = new AuthResponse(false, e.getMessage(), null);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Authentication failed: " + e.getMessage());
+        }
+    }
 
 
     // Endpoint for forgot password (only for email users)
