@@ -41,6 +41,10 @@ public class AuthenticationService {
         this.otpService = otpService;
     }
 
+    protected UserRepository getUserRepository() {
+        return userRepository;
+    }
+
     // Registration using email – includes birthdate and OTP generation
     public String registerUser(RegistrationRequest request) {
         if (calculateAge(request.getBirthdate()) < 16) {
@@ -61,7 +65,6 @@ public class AuthenticationService {
         user.setRole("USER");
         user.setBirthdate(request.getBirthdate());
         user.setProvider(EMAIL_PROVIDER);
-        user.setSocialId(null);
         user = userRepository.save(user);
 
         otpService.generateOTP(request.getEmail());
@@ -95,7 +98,6 @@ public class AuthenticationService {
         user.setRole("USER");
         user.setBirthdate(request.getBirthdate());
         user.setProvider(request.getProvider().toUpperCase());
-        user.setSocialId(request.getSocialId());
 
         user = userRepository.save(user);
         logger.info("User registered via social login at {}", java.time.LocalDateTime.now());

@@ -21,7 +21,6 @@ class UserTest {
         assertNull(user.getRole(), "Default role should be null");
         assertNull(user.getBirthdate(), "Default birthdate should be null");
         assertNull(user.getProvider(), "Default provider should be null");
-        assertNull(user.getSocialId(), "Default socialId should be null");
     }
 
     @Test
@@ -35,7 +34,6 @@ class UserTest {
         String role = "ADMIN";
         LocalDate birthdate = LocalDate.of(2000, 1, 1);
         String provider = "GOOGLE";
-        String socialId = "social123";
 
         user.setId(id);
         user.setEmail(email);
@@ -45,7 +43,6 @@ class UserTest {
         user.setRole(role);
         user.setBirthdate(birthdate);
         user.setProvider(provider);
-        user.setSocialId(socialId);
 
         assertEquals(id, user.getId());
         assertEquals(email, user.getEmail());
@@ -55,7 +52,6 @@ class UserTest {
         assertEquals(role, user.getRole());
         assertEquals(birthdate, user.getBirthdate());
         assertEquals(provider, user.getProvider());
-        assertEquals(socialId, user.getSocialId());
     }
 
     @Test
@@ -67,7 +63,6 @@ class UserTest {
         String role = "USER";
         LocalDate birthdate = LocalDate.of(1995, 5, 15);
         String provider = "EMAIL";
-        String socialId = null;
 
         User user = new User();
         user.setEmail(email);
@@ -77,7 +72,6 @@ class UserTest {
         user.setRole(role);
         user.setBirthdate(birthdate);
         user.setProvider(provider);
-        user.setSocialId(socialId);
 
 
         // id remains null until set (by the persistence layer)
@@ -89,6 +83,5 @@ class UserTest {
         assertEquals(role, user.getRole());
         assertEquals(birthdate, user.getBirthdate());
         assertEquals(provider, user.getProvider());
-        assertNull(user.getSocialId(), "SocialId should be null");
     }
 }

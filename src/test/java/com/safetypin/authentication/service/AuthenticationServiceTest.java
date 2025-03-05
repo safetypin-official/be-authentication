@@ -91,7 +91,6 @@ class AuthenticationServiceTest {
         savedUser.setRole("USER");
         savedUser.setBirthdate(request.getBirthdate());
         savedUser.setProvider("EMAIL");
-        savedUser.setSocialId(null);
 
         UUID id = UUID.randomUUID();
         savedUser.setId(id);
@@ -142,7 +141,6 @@ class AuthenticationServiceTest {
         existingUser.setRole("USER");
         existingUser.setBirthdate(LocalDate.now().minusYears(30));
         existingUser.setProvider("EMAIL");
-        existingUser.setSocialId(null);
 
         when(userRepository.findByEmail("social@example.com")).thenReturn(existingUser);
 
@@ -170,7 +168,6 @@ class AuthenticationServiceTest {
         existingUser.setRole("USER");
         existingUser.setBirthdate(LocalDate.now().minusYears(25));
         existingUser.setProvider("GOOGLE");
-        existingUser.setSocialId("social123");
         UUID id = UUID.randomUUID();
         existingUser.setId(id);
 
@@ -204,7 +201,6 @@ class AuthenticationServiceTest {
         savedUser.setRole("USER");
         savedUser.setBirthdate(request.getBirthdate());
         savedUser.setProvider("GOOGLE");
-        savedUser.setSocialId("social123");
 
         UUID id = UUID.randomUUID();
         savedUser.setId(id);
@@ -238,7 +234,6 @@ class AuthenticationServiceTest {
         user.setRole("USER");
         user.setBirthdate(LocalDate.now().minusYears(20));
         user.setProvider("EMAIL");
-        user.setSocialId(null);
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(user);
 
@@ -258,7 +253,6 @@ class AuthenticationServiceTest {
         user.setRole("USER");
         user.setBirthdate(LocalDate.now().minusYears(20));
         user.setProvider("EMAIL");
-        user.setSocialId(null);
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(user);
         when(passwordEncoder.matches("wrongPassword", "encodedPassword")).thenReturn(false);
@@ -279,7 +273,6 @@ class AuthenticationServiceTest {
         user.setRole("USER");
         user.setBirthdate(LocalDate.now().minusYears(20));
         user.setProvider("EMAIL");
-        user.setSocialId(null);
 
         UUID id = UUID.randomUUID();
         user.setId(id
@@ -315,7 +308,6 @@ class AuthenticationServiceTest {
         user.setRole("USER");
         user.setBirthdate(LocalDate.now().minusYears(25));
         user.setProvider("GOOGLE");
-        user.setSocialId("social123");
 
         UUID id = UUID.randomUUID();
         user.setId(id);
@@ -344,7 +336,6 @@ class AuthenticationServiceTest {
         user.setRole("USER");
         user.setBirthdate(LocalDate.now().minusYears(20));
         user.setProvider("EMAIL");
-        user.setSocialId(null);
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(user);
         when(userRepository.save(any(User.class))).thenReturn(user);
@@ -386,7 +377,6 @@ class AuthenticationServiceTest {
         user.setRole("USER");
         user.setBirthdate(LocalDate.now().minusYears(20));
         user.setProvider("EMAIL");
-        user.setSocialId(null);
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(user);
 
@@ -411,7 +401,6 @@ class AuthenticationServiceTest {
         user.setRole("USER");
         user.setBirthdate(LocalDate.now().minusYears(25));
         user.setProvider("GOOGLE");
-        user.setSocialId("social123");
 
         when(userRepository.findByEmail("social@example.com")).thenReturn(user);
         Exception exception2 = assertThrows(IllegalArgumentException.class, () ->
@@ -439,7 +428,6 @@ class AuthenticationServiceTest {
         user.setRole("USER");
         user.setBirthdate(LocalDate.now().minusYears(20));
         user.setProvider("EMAIL");
-        user.setSocialId(null);
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(user);
         String response = authenticationService.postContent("test@example.com", "Content");
@@ -456,7 +444,6 @@ class AuthenticationServiceTest {
         user.setRole("USER");
         user.setBirthdate(LocalDate.now().minusYears(20));
         user.setProvider("EMAIL");
-        user.setSocialId(null);
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(user);
         String response = authenticationService.postContent("test@example.com", "Content");

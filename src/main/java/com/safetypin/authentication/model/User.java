@@ -24,7 +24,6 @@ public class User {
 
     // May be null for social login users
     @Setter @Getter
-    @Column(nullable = false)
     private String password;
 
     @Setter @Getter
@@ -43,10 +42,6 @@ public class User {
 
     @Setter  @Getter
     private String provider;  // "EMAIL", "GOOGLE", "APPLE"
-
-    @Setter @Getter
-    private String socialId;  // For social login users
-
 
     // Getters and setters
 
