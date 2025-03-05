@@ -34,9 +34,6 @@ class AuthenticationServiceTest {
     @Mock
     private OTPService otpService;
 
-    @Mock
-    private EmailService emailService;
-
     @InjectMocks
     private AuthenticationService authenticationService;
 
@@ -44,9 +41,6 @@ class AuthenticationServiceTest {
 
     @Test
     void testRegisterUser_UnderAge() {
-        // Assume email service works
-        when(emailService.sendOTPMail(anyString(), anyString())).thenReturn(true);
-
         RegistrationRequest request = new RegistrationRequest();
         request.setEmail("test@example.com");
         request.setPassword("password");
@@ -62,8 +56,6 @@ class AuthenticationServiceTest {
 
     @Test
     void testRegisterUser_DuplicateEmail() {
-        when(emailService.sendOTPMail(anyString(), anyString())).thenReturn(true);
-
         RegistrationRequest request = new RegistrationRequest();
         request.setEmail("test@example.com");
         request.setPassword("password");
@@ -80,8 +72,6 @@ class AuthenticationServiceTest {
 
     @Test
     void testRegisterUser_Success() {
-        when(emailService.sendOTPMail(anyString(), anyString())).thenReturn(true);
-
         RegistrationRequest request = new RegistrationRequest();
         request.setEmail("test@example.com");
         request.setPassword("password");
