@@ -48,43 +48,151 @@ public class GoogleAuthService extends AuthenticationService {
     }
 
     protected GoogleIdTokenVerifier createIdTokenVerifier() {
-        return null;
+        return new GoogleIdTokenVerifier.Builder(
+                new NetHttpTransport(), new GsonFactory())
+                .setAudience(Collections.singletonList(googleClientId))
+                .build();
     }
 
     public GoogleIdToken.Payload verifyIdToken(String idTokenString) throws Exception {
-        return null;
+        if (idTokenString == null) {
+            throw new IllegalArgumentException("ID Token cannot be null");
+        }
+
+        GoogleIdTokenVerifier verifier = createIdTokenVerifier();
+        GoogleIdToken idToken = verifier.verify(idTokenString);
+
+        if (idToken == null) {
+            throw new Exception("Invalid ID Token");
+        }
+        return idToken.getPayload();
     }
 
     protected GoogleAuthorizationCodeTokenRequest createTokenRequest(
             String tokenUrl, String clientId, String clientSecret) {
-        return null;
+        return new GoogleAuthorizationCodeTokenRequest(
+                new NetHttpTransport(),
+                GsonFactory.getDefaultInstance(),
+                tokenUrl,
+                clientId,
+                clientSecret,
+                "",
+                "");
     }
 
     public String getAccessToken(String serverAuthCode) throws IOException {
-        return null;
+        TokenResponse tokenResponse = createTokenRequest(
+                "https://oauth2.googleapis.com/token",
+                googleClientId,
+                googleClientSecret)
+                .setCode(serverAuthCode)
+                .execute();
+
+        return tokenResponse.getAccessToken();
     }
 
     protected URL createURL(String urlString) throws IOException {
-        return null;
+        return new URL(urlString);
     }
 
     public String fetchUserData(String accessToken, String personFields) throws IOException {
-        return null;
+        String apiUrl = PEOPLE_API_BASE_URL + "?personFields=" + personFields;
+
+        URL url = createURL(apiUrl);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        try {
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Authorization", "Bearer " + accessToken);
+            conn.setRequestProperty("Accept", "application/json");
+
+            int responseCode = conn.getResponseCode();
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                return readResponse(conn.getInputStream());
+            } else {
+                throw new ApiException("Error fetching data from Google API", responseCode);
+            }
+        } finally {
+            conn.disconnect();
+        }
     }
 
     private String readResponse(InputStream inputStream) throws IOException {
-        return null;
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
+            StringBuilder response = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                response.append(line);
+            }
+            return response.toString();
+        }
     }
 
     public LocalDate getUserBirthdate(String accessToken) throws IOException {
-        return null;
+        String response = fetchUserData(accessToken, "birthdays");
+        return extractBirthday(response);
     }
 
     public String authenticate(GoogleAuthDTO googleAuthDTO) throws Exception {
-        return null;
+        GoogleIdToken.Payload payload = verifyIdToken(googleAuthDTO.getIdToken());
+
+        String email = payload.getEmail();
+        String name = (String) payload.get("name");
+
+        Optional<User> existingUser = Optional.ofNullable(super.getUserRepository().findByEmail(email));
+        if (existingUser.isPresent()) {
+            User user = existingUser.get();
+            String userProvider = user.getProvider();
+            if (!EMAIL_PROVIDER.equals(userProvider)) {
+                throw new UserAlreadyExistsException("An account with this email exists. Please sign in using " + userProvider);
+            }
+            return super.generateJwtToken(user.getId());
+        }
+
+        String accessToken = getAccessToken(googleAuthDTO.getServerAuthCode());
+        LocalDate userBirthdate = getUserBirthdate(accessToken);
+
+        User newUser = new User();
+        newUser.setEmail(email);
+        newUser.setName(name);
+        newUser.setPassword(null);
+        newUser.setProvider("GOOGLE");
+        newUser.setVerified(true);
+        newUser.setRole("USER");
+        newUser.setBirthdate(userBirthdate);
+
+        User user = super.getUserRepository().save(newUser);
+
+        return super.generateJwtToken(user.getId());
     }
 
     LocalDate extractBirthday(String jsonResponse) {
-        return null;
+        JsonElement rootElement = JsonParser.parseString(jsonResponse);
+        JsonObject rootObj = rootElement.getAsJsonObject();
+
+        if (!rootObj.has("birthdays")) {
+            return null;
+        }
+
+        JsonArray birthdaysArray = rootObj.getAsJsonArray("birthdays");
+        if (birthdaysArray.isEmpty()) {
+            return null;
+        }
+
+        JsonObject birthdayObj = birthdaysArray.get(0).getAsJsonObject();
+        if (!birthdayObj.has("date")) {
+            return null;
+        }
+
+        JsonObject dateObj = birthdayObj.getAsJsonObject("date");
+
+        int year = dateObj.has("year") ? dateObj.get("year").getAsInt() : 0;
+        int month = dateObj.get("month").getAsInt();
+        int day = dateObj.get("day").getAsInt();
+
+        if (year > 0) {
+            return LocalDate.of(year, month, day);
+        } else {
+            return LocalDate.of(Year.now().getValue(), month, day);
+        }
     }
 }
