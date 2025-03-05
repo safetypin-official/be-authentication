@@ -69,6 +69,24 @@
 			<scope>test</scope>
 		</dependency>
 
+		<!-- Spring Mail + testing suite -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
+			<version>3.4.2</version>
+		</dependency>
+		<dependency>
+			<groupId>com.icegreen</groupId>
+			<artifactId>greenmail-junit5</artifactId>
+			<version>2.1.3</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>javax.activation</groupId>
+			<artifactId>activation</artifactId>
+			<version>1.1.1</version>
+		</dependency>
+
 		<!-- JUnit 5 for unit and regression testing -->
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
@@ -176,13 +194,6 @@
 			<artifactId>jjwt-jackson</artifactId>
 			<version>0.11.5</version>
 			<scope>runtime</scope>
-		</dependency>
-
-		<!-- Spring Mail -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-mail</artifactId>
-			<version>3.4.2</version>
 		</dependency>
 
 	</dependencies>

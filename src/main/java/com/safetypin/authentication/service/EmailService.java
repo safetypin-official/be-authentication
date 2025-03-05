@@ -21,7 +21,6 @@ public class EmailService {
     }
 
     public boolean sendOTPMail(String to, String otp) {
-
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(SENDER);
         message.setTo(to);
