@@ -1,29 +1,45 @@
 package com.safetypin.authentication.service;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.lang.reflect.Constructor;
 import java.time.LocalDateTime;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class OTPServiceTest {
     @InjectMocks
     private OTPService otpService;
 
+    @Mock
+    private EmailService emailService;
+
     @Test
     void testGenerateOTP() {
+        // Assume email service works
+        when(emailService.sendOTPMail(any(), any())).thenReturn(true);
+
         String email = "user@example.com";
         String otp = otpService.generateOTP(email);
         assertNotNull(otp, "OTP should not be null");
         assertEquals(6, otp.length(), "OTP should be 6 characters long");
         assertTrue(otp.matches("\\d{6}"), "OTP should consist of 6 digits");
+
+        // Verify emailService invoked once to send email
+        verify(emailService, times(1)).sendOTPMail(email, otp);
     }
 
     @Test
     void testVerifyOTPSuccess() {
+        when(emailService.sendOTPMail(any(), any())).thenReturn(true);
+
         String email = "user@example.com";
         String otp = otpService.generateOTP(email);
         // Immediately verify the generated OTP; it should succeed.
@@ -31,8 +47,11 @@ class OTPServiceTest {
         assertTrue(result, "The OTP should verify successfully");
     }
 
+    // TODO: Test has a 1/1,000,000 chance to fail because OTP can generate all 0's.
     @Test
     void testVerifyOTPWrongOtp() {
+        when(emailService.sendOTPMail(any(), any())).thenReturn(true);
+
         String email = "user@example.com";
         otpService.generateOTP(email);
         // Try verifying with an incorrect OTP.
@@ -42,6 +61,8 @@ class OTPServiceTest {
 
     @Test
     void testVerifyOTPExpired() throws Exception {
+        when(emailService.sendOTPMail(any(), any())).thenReturn(true);
+
         String email = "user@example.com";
         String otp = otpService.generateOTP(email);
 
