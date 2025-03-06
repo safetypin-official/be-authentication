@@ -5,6 +5,7 @@ import com.safetypin.authentication.dto.SocialLoginRequest;
 import com.safetypin.authentication.dto.UserResponse;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.UserAlreadyExistsException;
+import com.safetypin.authentication.model.Role;
 import com.safetypin.authentication.model.User;
 import com.safetypin.authentication.repository.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -15,8 +16,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDate;
-import java.util.UUID;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -85,7 +86,7 @@ class AuthenticationServiceTest {
         savedUser.setPassword("encodedPassword");
         savedUser.setName("Test User");
         savedUser.setVerified(false);
-        savedUser.setRole("USER");
+        savedUser.setRole(Role.REGISTERED_USER);
         savedUser.setBirthdate(request.getBirthdate());
         savedUser.setProvider("EMAIL");
         savedUser.setSocialId(null);
@@ -136,7 +137,7 @@ class AuthenticationServiceTest {
         existingUser.setPassword("encodedPassword");
         existingUser.setName("Existing User");
         existingUser.setVerified(false);
-        existingUser.setRole("USER");
+        existingUser.setRole(Role.REGISTERED_USER);
         existingUser.setBirthdate(LocalDate.now().minusYears(30));
         existingUser.setProvider("EMAIL");
         existingUser.setSocialId(null);
@@ -164,7 +165,7 @@ class AuthenticationServiceTest {
         existingUser.setPassword(null);
         existingUser.setName("Social User");
         existingUser.setVerified(true);
-        existingUser.setRole("USER");
+        existingUser.setRole(Role.REGISTERED_USER);
         existingUser.setBirthdate(LocalDate.now().minusYears(25));
         existingUser.setProvider("GOOGLE");
         existingUser.setSocialId("social123");
@@ -198,7 +199,7 @@ class AuthenticationServiceTest {
         savedUser.setPassword(null);
         savedUser.setName("Social User");
         savedUser.setVerified(true);
-        savedUser.setRole("USER");
+        savedUser.setRole(Role.REGISTERED_USER);
         savedUser.setBirthdate(request.getBirthdate());
         savedUser.setProvider("GOOGLE");
         savedUser.setSocialId("social123");
@@ -232,7 +233,7 @@ class AuthenticationServiceTest {
         user.setPassword(null);
         user.setName("Test User");
         user.setVerified(true);
-        user.setRole("USER");
+        user.setRole(Role.REGISTERED_USER);
         user.setBirthdate(LocalDate.now().minusYears(20));
         user.setProvider("EMAIL");
         user.setSocialId(null);
@@ -252,7 +253,7 @@ class AuthenticationServiceTest {
         user.setPassword("encodedPassword");
         user.setName("Test User");
         user.setVerified(true);
-        user.setRole("USER");
+        user.setRole(Role.REGISTERED_USER);
         user.setBirthdate(LocalDate.now().minusYears(20));
         user.setProvider("EMAIL");
         user.setSocialId(null);
@@ -273,7 +274,7 @@ class AuthenticationServiceTest {
         user.setPassword("encodedPassword");
         user.setName("Test User");
         user.setVerified(true);
-        user.setRole("USER");
+        user.setRole(Role.REGISTERED_USER);
         user.setBirthdate(LocalDate.now().minusYears(20));
         user.setProvider("EMAIL");
         user.setSocialId(null);
@@ -309,7 +310,7 @@ class AuthenticationServiceTest {
         user.setPassword(null);
         user.setName("Social User");
         user.setVerified(true);
-        user.setRole("USER");
+        user.setRole(Role.REGISTERED_USER);
         user.setBirthdate(LocalDate.now().minusYears(25));
         user.setProvider("GOOGLE");
         user.setSocialId("social123");
@@ -320,7 +321,7 @@ class AuthenticationServiceTest {
         when(userRepository.findByEmail("social@example.com")).thenReturn(user);
         when(userRepository.findById(id)).thenReturn(Optional.of(user));
 
-        String token =authenticationService.loginSocial("social@example.com");
+        String token = authenticationService.loginSocial("social@example.com");
         assertNotNull(token);
         UserResponse userResponse = authenticationService.getUserFromJwtToken(token);
         assertEquals("social@example.com", userResponse.getEmail());
@@ -338,7 +339,7 @@ class AuthenticationServiceTest {
         user.setPassword("encodedPassword");
         user.setName("Test User");
         user.setVerified(false);
-        user.setRole("USER");
+        user.setRole(Role.REGISTERED_USER);
         user.setBirthdate(LocalDate.now().minusYears(20));
         user.setProvider("EMAIL");
         user.setSocialId(null);
@@ -380,7 +381,7 @@ class AuthenticationServiceTest {
         user.setPassword("encodedPassword");
         user.setName("Test User");
         user.setVerified(true);
-        user.setRole("USER");
+        user.setRole(Role.REGISTERED_USER);
         user.setBirthdate(LocalDate.now().minusYears(20));
         user.setProvider("EMAIL");
         user.setSocialId(null);
@@ -405,7 +406,7 @@ class AuthenticationServiceTest {
         user.setPassword(null);
         user.setName("Social User");
         user.setVerified(true);
-        user.setRole("USER");
+        user.setRole(Role.REGISTERED_USER);
         user.setBirthdate(LocalDate.now().minusYears(25));
         user.setProvider("GOOGLE");
         user.setSocialId("social123");
@@ -433,7 +434,7 @@ class AuthenticationServiceTest {
         user.setPassword("encodedPassword");
         user.setName("Test User");
         user.setVerified(false);
-        user.setRole("USER");
+        user.setRole(Role.REGISTERED_USER);
         user.setBirthdate(LocalDate.now().minusYears(20));
         user.setProvider("EMAIL");
         user.setSocialId(null);
@@ -450,7 +451,7 @@ class AuthenticationServiceTest {
         user.setPassword("encodedPassword");
         user.setName("Test User");
         user.setVerified(true);
-        user.setRole("USER");
+        user.setRole(Role.REGISTERED_USER);
         user.setBirthdate(LocalDate.now().minusYears(20));
         user.setProvider("EMAIL");
         user.setSocialId(null);
