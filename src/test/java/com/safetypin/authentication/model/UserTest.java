@@ -1,5 +1,6 @@
 package com.safetypin.authentication.model;
 
+import com.safetypin.authentication.dto.UserResponse;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
@@ -83,5 +84,40 @@ class UserTest {
         assertEquals(role, user.getRole());
         assertEquals(birthdate, user.getBirthdate());
         assertEquals(provider, user.getProvider());
+    }
+
+    @Test
+    void testGenerateUserResponse() {
+        // Setup
+        User user = new User();
+        UUID id = UUID.randomUUID();
+        String email = "test@example.com";
+        String password = "secret";  // This shouldn't be in the response
+        String name = "Test User";
+        boolean verified = true;
+        String role = "ADMIN";
+        LocalDate birthdate = LocalDate.of(2000, 1, 1);
+        String provider = "GOOGLE";
+
+        user.setId(id);
+        user.setEmail(email);
+        user.setPassword(password);
+        user.setName(name);
+        user.setVerified(verified);
+        user.setRole(role);
+        user.setBirthdate(birthdate);
+        user.setProvider(provider);
+
+        // Execute
+        UserResponse response = user.generateUserResponse();
+
+        // Verify
+        assertEquals(id, response.getId(), "ID should match");
+        assertEquals(email, response.getEmail(), "Email should match");
+        assertEquals(name, response.getName(), "Name should match");
+        assertEquals(verified, response.isVerified(), "Verification status should match");
+        assertEquals(role, response.getRole(), "Role should match");
+        assertEquals(birthdate, response.getBirthdate(), "Birthdate should match");
+        assertEquals(provider, response.getProvider(), "Provider should match");
     }
 }
