@@ -1,7 +1,8 @@
 package com.safetypin.authentication.model;
 
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class RoleTest {
 
@@ -13,7 +14,7 @@ class RoleTest {
         assertEquals(Role.PREMIUM_USER, Role.valueOf("PREMIUM_USER"));
         assertEquals(Role.MODERATOR, Role.valueOf("MODERATOR"));
     }
-    
+
     @Test
     void testEnumOrdinals() {
         // Test the ordinals (mostly for coverage)

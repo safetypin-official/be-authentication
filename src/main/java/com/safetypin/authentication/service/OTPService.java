@@ -13,10 +13,9 @@ import java.util.concurrent.ExecutionException;
 
 @Service
 public class OTPService {
-    private final EmailService emailService;
-
     private static final long OTP_EXPIRATION_SECONDS = 120; // 2 minutes expiration
     private static final Logger log = LoggerFactory.getLogger(OTPService.class);
+    private final EmailService emailService;
     private final ConcurrentHashMap<String, OTPDetails> otpStorage = new ConcurrentHashMap<>();
     private final SecureRandom random = new SecureRandom();
 

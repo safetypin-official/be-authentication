@@ -4,9 +4,9 @@ import com.safetypin.authentication.dto.*;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.UserAlreadyExistsException;
 import com.safetypin.authentication.service.AuthenticationService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -59,14 +59,13 @@ public class AuthenticationController {
     }
 
 
-
     // Endpoint for email login
     @PostMapping("/login-email")
     public ResponseEntity<AuthResponse> loginEmail(@RequestParam String email, @RequestParam String password) {
         try {
             String jwt = authenticationService.loginUser(email, password);
             return ResponseEntity.ok(new AuthResponse(true, "OK", new Token(jwt)));
-        } catch (InvalidCredentialsException e){
+        } catch (InvalidCredentialsException e) {
             AuthResponse response = new AuthResponse(false, e.getMessage(), null);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
@@ -79,14 +78,12 @@ public class AuthenticationController {
         try {
             String jwt = authenticationService.loginSocial(email);
             return ResponseEntity.ok(new AuthResponse(true, "OK", new Token(jwt)));
-        } catch (InvalidCredentialsException e){
+        } catch (InvalidCredentialsException e) {
             AuthResponse response = new AuthResponse(false, e.getMessage(), null);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
 
     }
-
-
 
 
     // Endpoint for forgot password (only for email users)
@@ -106,8 +103,6 @@ public class AuthenticationController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
     }
-
-
 
 
     // Endpoint simulating a content post that requires a verified account (DEPRECATED, use be-post instead)

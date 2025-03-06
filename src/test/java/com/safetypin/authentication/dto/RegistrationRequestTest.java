@@ -1,13 +1,15 @@
 package com.safetypin.authentication.dto;
 
-import org.junit.jupiter.api.Test;
-import static org.assertj.core.api.Assertions.assertThat;
+import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
-import jakarta.validation.ConstraintViolation;
+import org.junit.jupiter.api.Test;
+
 import java.time.LocalDate;
 import java.util.Set;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class RegistrationRequestTest {
 

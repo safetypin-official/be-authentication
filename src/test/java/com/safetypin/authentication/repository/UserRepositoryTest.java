@@ -28,14 +28,14 @@ class UserRepositoryTest {
         registeredUser.setName("Registered User");
         registeredUser.setRole(Role.REGISTERED_USER);
         userRepository.save(registeredUser);
-        
+
         User premiumUser = new User();
         premiumUser.setEmail("premium@example.com");
         premiumUser.setPassword("password");
         premiumUser.setName("Premium User");
         premiumUser.setRole(Role.PREMIUM_USER);
         userRepository.save(premiumUser);
-        
+
         // No moderator user yet - we'll test for missing role
     }
 
@@ -55,26 +55,26 @@ class UserRepositoryTest {
         User foundUser = userRepository.findByEmail("nonexistent@example.com");
         assertNull(foundUser, "Expected no user to be found for a non-existent email");
     }
-    
+
     @Test
     void testFindByRolesExisting() {
         // Test finding users by different existing roles
         User registeredUser = userRepository.findByRole(Role.REGISTERED_USER);
         assertNotNull(registeredUser);
         assertEquals("registered@example.com", registeredUser.getEmail());
-        
+
         User premiumUser = userRepository.findByRole(Role.PREMIUM_USER);
         assertNotNull(premiumUser);
         assertEquals("premium@example.com", premiumUser.getEmail());
     }
-    
+
     @Test
     void testFindByRoleNonExistent() {
         // Test finding by role that no user has
         User moderator = userRepository.findByRole(Role.MODERATOR);
         assertNull(moderator, "No user should be found with MODERATOR role");
     }
-    
+
     @Test
     void testFindAll() {
         // Test finding all users

@@ -26,7 +26,7 @@ class OTPServiceTest {
     void testGenerateOTP() {
         // Assume email service works
         when(emailService.sendOTPMail(anyString(), anyString()))
-            .thenReturn(CompletableFuture.completedFuture(true));
+                .thenReturn(CompletableFuture.completedFuture(true));
 
         String email = "user@example.com";
         String otp = otpService.generateOTP(email);
@@ -41,7 +41,7 @@ class OTPServiceTest {
     @Test
     void testVerifyOTPSuccess() {
         when(emailService.sendOTPMail(anyString(), anyString()))
-            .thenReturn(CompletableFuture.completedFuture(true));
+                .thenReturn(CompletableFuture.completedFuture(true));
 
         String email = "user@example.com";
         String otp = otpService.generateOTP(email);
@@ -54,7 +54,7 @@ class OTPServiceTest {
     @Test
     void testVerifyOTPWrongOtp() {
         when(emailService.sendOTPMail(anyString(), anyString()))
-            .thenReturn(CompletableFuture.completedFuture(true));
+                .thenReturn(CompletableFuture.completedFuture(true));
 
         String email = "user@example.com";
         otpService.generateOTP(email);
@@ -66,7 +66,7 @@ class OTPServiceTest {
     @Test
     void testVerifyOTPExpired() throws Exception {
         when(emailService.sendOTPMail(anyString(), anyString()))
-            .thenReturn(CompletableFuture.completedFuture(true));
+                .thenReturn(CompletableFuture.completedFuture(true));
 
         String email = "user@example.com";
         String otp = otpService.generateOTP(email);
