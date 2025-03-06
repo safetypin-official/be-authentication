@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.safetypin.authentication.dto.PasswordResetRequest;
 import com.safetypin.authentication.dto.RegistrationRequest;
 import com.safetypin.authentication.dto.SocialLoginRequest;
+import com.safetypin.authentication.model.Role;
 import com.safetypin.authentication.model.User;
 import com.safetypin.authentication.service.AuthenticationService;
 import org.junit.jupiter.api.Test;
@@ -40,25 +41,6 @@ class AuthenticationControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @TestConfiguration
-    static class TestConfig {
-        @Bean
-        public AuthenticationService authenticationService() {
-            return Mockito.mock(AuthenticationService.class);
-        }
-    }
-
-    @TestConfiguration
-    static class TestSecurityConfig {
-        @Bean
-        public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-            http.csrf(AbstractHttpConfigurer::disable)
-                    .authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll());
-            return http.build();
-        }
-    }
-
-
     @Test
     void testRegisterEmail() throws Exception {
         RegistrationRequest request = new RegistrationRequest();
@@ -71,7 +53,7 @@ class AuthenticationControllerTest {
         user.setEmail("email@example.com");
         user.setPassword("encodedPassword");
         user.setName("Test User");
-        user.setRole("USER");
+        user.setRole(Role.REGISTERED_USER);
         user.setBirthdate(request.getBirthdate());
         user.setProvider("EMAIL");
 
@@ -102,7 +84,7 @@ class AuthenticationControllerTest {
         user.setPassword(null);
         user.setName("Social User");
         user.setVerified(true);
-        user.setRole("USER");
+        user.setRole(Role.REGISTERED_USER);
         user.setBirthdate(request.getBirthdate());
         user.setProvider("GOOGLE");
         user.setSocialId("social123");
@@ -126,7 +108,7 @@ class AuthenticationControllerTest {
         user.setPassword("encodedPassword");
         user.setName("Test User");
         user.setVerified(true);
-        user.setRole("USER");
+        user.setRole(Role.REGISTERED_USER);
         user.setBirthdate(LocalDate.now().minusYears(20));
         user.setProvider("EMAIL");
         user.setSocialId(null);
@@ -150,7 +132,7 @@ class AuthenticationControllerTest {
         user.setPassword(null);
         user.setName("Social User");
         user.setVerified(true);
-        user.setRole("USER");
+        user.setRole(Role.REGISTERED_USER);
         user.setBirthdate(LocalDate.now().minusYears(25));
         user.setProvider("GOOGLE");
         user.setSocialId("social123");
@@ -221,5 +203,23 @@ class AuthenticationControllerTest {
         mockMvc.perform(get("/api/auth/dashboard"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("{}"));
+    }
+
+    @TestConfiguration
+    static class TestConfig {
+        @Bean
+        public AuthenticationService authenticationService() {
+            return Mockito.mock(AuthenticationService.class);
+        }
+    }
+
+    @TestConfiguration
+    static class TestSecurityConfig {
+        @Bean
+        public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+            http.csrf(AbstractHttpConfigurer::disable)
+                    .authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll());
+            return http.build();
+        }
     }
 }
