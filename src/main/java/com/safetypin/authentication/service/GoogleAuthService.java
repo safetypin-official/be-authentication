@@ -159,7 +159,7 @@ public class GoogleAuthService {
                 conn.disconnect();
             }
         } catch (MalformedURLException e) {
-            logger.error("Invalid API URL: {}", e.getMessage());
+            logger.error("Google authentication failed", e);
             throw new IllegalArgumentException("Invalid API URL", e);
         }
     }
