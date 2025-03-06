@@ -10,7 +10,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Date;
 import java.util.Optional;
@@ -102,7 +101,7 @@ public class JwtServiceTest {
     }
 
     @Test
-    void getUserFromJwtToken_shouldThrowExceptionForExpiredToken() throws Exception {
+    void getUserFromJwtToken_shouldThrowExceptionForExpiredToken() {
         // Create a JwtService with a custom expiration time
         JwtService shortExpirationJwtService = new JwtService(secretKey, userService);
 
