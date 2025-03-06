@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 
 @Service
 public class OTPService {
@@ -29,9 +30,14 @@ public class OTPService {
         OTPDetails details = new OTPDetails(otp, LocalDateTime.now());
         otpStorage.put(email, details);
 
-        boolean status = emailService.sendOTPMail(email, otp);
-        if (!status) {
-            throw new OTPException("Failed to send OTP");
+        try {
+            boolean status = emailService.sendOTPMail(email, otp).get();
+            if (!status) {
+                throw new OTPException("Failed to send OTP");
+            }
+        } catch (InterruptedException | ExecutionException e) {
+            Thread.currentThread().interrupt();
+            throw new OTPException("Failed to send OTP: " + e.getMessage());
         }
 
         log.info("Sending OTP {} to {}", otp, email);
