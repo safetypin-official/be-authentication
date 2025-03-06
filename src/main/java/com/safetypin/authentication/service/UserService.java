@@ -15,8 +15,8 @@ public class UserService {
         this.userRepository = userRepository;
     }
 
-    public Optional<User> findById(UUID Id) {
-        return userRepository.findById(Id);
+    public Optional<User> findById(UUID id) {
+        return userRepository.findById(id);
     }
 
     public Optional<User> findByEmail(String email) {
