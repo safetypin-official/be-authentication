@@ -4,13 +4,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.safetypin.authentication.dto.GoogleAuthDTO;
 import com.safetypin.authentication.dto.PasswordResetRequest;
 import com.safetypin.authentication.dto.RegistrationRequest;
-import com.safetypin.authentication.dto.SocialLoginRequest;
+import com.safetypin.authentication.dto.UserResponse;
+import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.UserAlreadyExistsException;
 import com.safetypin.authentication.model.User;
 import com.safetypin.authentication.service.AuthenticationService;
 import com.safetypin.authentication.service.GoogleAuthService;
+import com.safetypin.authentication.service.JwtService;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -45,6 +46,9 @@ class AuthenticationControllerTest {
     private GoogleAuthService googleAuthService;
 
     @Autowired
+    private JwtService jwtService;
+
+    @Autowired
     private ObjectMapper objectMapper;
 
     @TestConfiguration
@@ -57,6 +61,11 @@ class AuthenticationControllerTest {
         @Bean
         public GoogleAuthService googleAuthService() {
             return Mockito.mock(GoogleAuthService.class);
+        }
+
+        @Bean
+        public JwtService jwtService() {
+            return Mockito.mock(JwtService.class);
         }
     }
 
@@ -89,41 +98,10 @@ class AuthenticationControllerTest {
 
         UUID id = UUID.randomUUID();
         user.setId(id);
-        String token = authenticationService.generateJwtToken(user.getId());
+        String token = jwtService.generateToken(user.getId());
         Mockito.when(authenticationService.registerUser(any(RegistrationRequest.class))).thenReturn(token);
 
         mockMvc.perform(post("/api/auth/register-email")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.token").value(token));
-    }
-
-    @Test
-    void testRegisterSocial() throws Exception {
-        SocialLoginRequest request = new SocialLoginRequest();
-        request.setProvider("GOOGLE");
-        request.setSocialToken("token");
-        request.setEmail("social@example.com");
-        request.setName("Social User");
-        request.setBirthdate(LocalDate.now().minusYears(25));
-        request.setSocialId("social123");
-
-        User user = new User();
-        user.setEmail("social@example.com");
-        user.setPassword(null);
-        user.setName("Social User");
-        user.setVerified(true);
-        user.setRole("USER");
-        user.setBirthdate(request.getBirthdate());
-        user.setProvider("GOOGLE");
-
-        UUID id = UUID.randomUUID();
-        user.setId(id);
-        String token = authenticationService.generateJwtToken(user.getId());
-        Mockito.when(authenticationService.socialLogin(any(SocialLoginRequest.class))).thenReturn(token);
-
-        mockMvc.perform(post("/api/auth/register-social")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -143,7 +121,7 @@ class AuthenticationControllerTest {
 
         UUID id = UUID.randomUUID();
         user.setId(id);
-        String token = authenticationService.generateJwtToken(user.getId());
+        String token = jwtService.generateToken(user.getId());
         Mockito.when(authenticationService.loginUser("email@example.com", "password")).thenReturn(token);
 
         mockMvc.perform(post("/api/auth/login-email")
@@ -154,26 +132,25 @@ class AuthenticationControllerTest {
     }
 
     @Test
-    void testLoginSocial() throws Exception {
-        User user = new User();
-        user.setEmail("social@example.com");
-        user.setPassword(null);
-        user.setName("Social User");
-        user.setVerified(true);
-        user.setRole("USER");
-        user.setBirthdate(LocalDate.now().minusYears(25));
-        user.setProvider("GOOGLE");
+    void testLoginEmail_InvalidCredentials() throws Exception {
+        // Prepare test data
+        String email = "email@example.com";
+        String password = "invalidPassword";
 
-        UUID id = UUID.randomUUID();
-        user.setId(id);
-        String token = authenticationService.generateJwtToken(user.getId());
-        Mockito.when(authenticationService.loginSocial("social@example.com")).thenReturn(token);
+        // Mock the service method to throw InvalidCredentialsException
+        Mockito.when(authenticationService.loginUser(email, password))
+                .thenThrow(new InvalidCredentialsException("Invalid email or password"));
 
-        mockMvc.perform(post("/api/auth/login-social")
-                        .param("email", "social@example.com"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.token").value(token));
+        // Perform the test
+        mockMvc.perform(post("/api/auth/login-email")
+                        .param("email", email)
+                        .param("password", password))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Invalid email or password"))
+                .andExpect(jsonPath("$.data").doesNotExist()); // No data expected in case of error
     }
+
 
     @Test
     void testVerifyOTP_Success() throws Exception {
@@ -213,16 +190,29 @@ class AuthenticationControllerTest {
                 .andExpect(content().string("Password reset instructions have been sent to your email (simulated)"));
     }
 
-    @Test
-    void testPostContent() throws Exception {
-        Mockito.when(authenticationService.postContent("email@example.com", "Test Content"))
-                .thenReturn("Content posted successfully");
 
-        mockMvc.perform(post("/api/auth/post")
-                        .param("email", "email@example.com")
-                        .param("content", "Test Content"))
-                .andExpect(status().isOk())
-                .andExpect(content().string("Content posted successfully"));
+    @Test
+    void testRegisterEmail_UserAlreadyExistsException() throws Exception {
+        // Prepare registration request
+        RegistrationRequest request = new RegistrationRequest();
+        request.setEmail("existing@example.com");
+        request.setPassword("password");
+        request.setName("Test User");
+        request.setBirthdate(LocalDate.now().minusYears(20));
+
+        // Mock the service to throw UserAlreadyExistsException
+        String errorMessage = "User with email already exists";
+        Mockito.when(authenticationService.registerUser(Mockito.any(RegistrationRequest.class)))
+                .thenThrow(new UserAlreadyExistsException(errorMessage));
+
+        // Perform the POST request to /register-email endpoint
+        mockMvc.perform(post("/api/auth/register-email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value(errorMessage))
+                .andExpect(jsonPath("$.data").doesNotExist());
     }
 
     @Test
@@ -331,4 +321,47 @@ class AuthenticationControllerTest {
                         .content("{}"))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    void testVerifyJwtToken() throws Exception {
+        // Prepare test data
+        String validToken = "valid.jwt.token";
+
+        // Create a mock UserResponse
+        UserResponse userResponse = Mockito.mock(UserResponse.class);
+        UUID userId = UUID.randomUUID();
+
+        // Set up basic behavior for the mock
+        Mockito.when(userResponse.getId()).thenReturn(userId);
+        Mockito.when(userResponse.getEmail()).thenReturn("test@example.com");
+        Mockito.when(userResponse.getName()).thenReturn("Test User");
+
+        // Mock the service method to return the mocked user response
+        Mockito.when(jwtService.getUserFromJwtToken(validToken)).thenReturn(userResponse);
+
+        // Perform the test
+        mockMvc.perform(post("/api/auth/verify-jwt")
+                        .param("token", validToken))
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("OK"));
+    }
+
+    @Test
+    void testVerifyJwtToken_InvalidToken() throws Exception {
+        // Prepare test data
+        String invalidToken = "invalid.jwt.token";
+
+        // Mock the service method to throw InvalidCredentialsException
+        Mockito.when(jwtService.getUserFromJwtToken(invalidToken))
+                .thenThrow(new InvalidCredentialsException("Invalid token"));
+
+        // Perform the test
+        mockMvc.perform(post("/api/auth/verify-jwt")
+                        .param("token", invalidToken))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Invalid token"))
+                .andExpect(jsonPath("$.data").doesNotExist()); // No data expected in case of error
+    }
+
 }
