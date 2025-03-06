@@ -63,20 +63,19 @@ public class GoogleAuthServiceTest {
     private GoogleAuthDTO googleAuthDTO;
     private UUID testUserId;
 
-    private final String TEST_ACCESS_TOKEN = "test-access-token";
+    private final String testAccessToken = "test-access-token";
 
-    private final String TEST_GOOGLE_CLIENT_ID = "test-client-id";
+    private final String testGoogleClientId = "test-client-id";
 
-    private final String TEST_ID_TOKEN = "test-id-token";
+    private final String testIdToken = "test-id-token";
 
     @BeforeEach
     void setup() {
-        ReflectionTestUtils.setField(googleAuthService, "googleClientId", TEST_GOOGLE_CLIENT_ID);
-        String TEST_GOOGLE_CLIENT_SECRET = "test-client-secret";
-        ReflectionTestUtils.setField(googleAuthService, "googleClientSecret", TEST_GOOGLE_CLIENT_SECRET);
+        ReflectionTestUtils.setField(googleAuthService, "googleClientId", testGoogleClientId);
+        ReflectionTestUtils.setField(googleAuthService, "googleClientSecret", "test-client-secret");
 
         googleAuthDTO = new GoogleAuthDTO();
-        googleAuthDTO.setIdToken(TEST_ID_TOKEN);
+        googleAuthDTO.setIdToken(testIdToken);
         googleAuthDTO.setServerAuthCode("test-auth-code");
 
         testUserId = UUID.randomUUID();
@@ -99,7 +98,7 @@ public class GoogleAuthServiceTest {
         when(userService.findByEmail(anyString())).thenReturn(Optional.empty());
 
         // Mock getAccessToken
-        doReturn(TEST_ACCESS_TOKEN).when(googleAuthService).getAccessToken(anyString());
+        doReturn(testAccessToken).when(googleAuthService).getAccessToken(anyString());
 
         // Mock getUserBirthdate to return a specific date
         LocalDate birthdate = LocalDate.of(1990, 1, 1);
@@ -185,15 +184,15 @@ public class GoogleAuthServiceTest {
         doReturn(verifier).when(googleAuthService).createIdTokenVerifier();
 
         // Set up the verifier to return our mock ID token
-        when(verifier.verify(TEST_ID_TOKEN)).thenReturn(idToken);
+        when(verifier.verify(testIdToken)).thenReturn(idToken);
         when(idToken.getPayload()).thenReturn(payload);
 
         // Execute
-        GoogleIdToken.Payload result = googleAuthService.verifyIdToken(TEST_ID_TOKEN);
+        GoogleIdToken.Payload result = googleAuthService.verifyIdToken(testIdToken);
 
         // Verify
         assertSame(payload, result);
-        verify(verifier).verify(TEST_ID_TOKEN);
+        verify(verifier).verify(testIdToken);
     }
 
     @Test
@@ -209,11 +208,11 @@ public class GoogleAuthServiceTest {
         // Execute and verify
         InvalidCredentialsException exception = assertThrows(
                 InvalidCredentialsException.class,
-                () -> googleAuthService.verifyIdToken(TEST_ID_TOKEN)
+                () -> googleAuthService.verifyIdToken(testIdToken)
         );
 
         assertEquals("Invalid ID Token", exception.getMessage());
-        verify(verifier).verify(TEST_ID_TOKEN);
+        verify(verifier).verify(testIdToken);
     }
 
     @Test
@@ -224,13 +223,13 @@ public class GoogleAuthServiceTest {
 
         // Set up the token request to return our mock token response
         when(tokenRequest.execute()).thenReturn((tokenResponse));
-        when(tokenResponse.getAccessToken()).thenReturn(TEST_ACCESS_TOKEN);
+        when(tokenResponse.getAccessToken()).thenReturn(testAccessToken);
 
         // Execute
         String result = googleAuthService.getAccessToken("test-auth-code");
 
         // Verify
-        assertEquals(TEST_ACCESS_TOKEN, result);
+        assertEquals(testAccessToken, result);
         verify(tokenRequest).execute();
     }
 
@@ -312,7 +311,7 @@ public class GoogleAuthServiceTest {
         doReturn(birthdate).when(googleAuthService).extractBirthday(anyString());
 
         // Execute
-        LocalDate result = googleAuthService.getUserBirthdate(TEST_ACCESS_TOKEN);
+        LocalDate result = googleAuthService.getUserBirthdate(testAccessToken);
 
         // Verify
         assertEquals(birthdate, result);
@@ -338,13 +337,13 @@ public class GoogleAuthServiceTest {
         GoogleAuthService realService = new GoogleAuthService(userService, jwtService);
 
         // Use reflection to set the client ID for testing
-        setPrivateField(realService, "googleClientId", TEST_GOOGLE_CLIENT_ID);
+        setPrivateField(realService, "googleClientId", testGoogleClientId);
 
         // Call the createIdTokenVerifier method
-        GoogleIdTokenVerifier verifier = realService.createIdTokenVerifier();
+        GoogleIdTokenVerifier googleVerifier = realService.createIdTokenVerifier();
 
         // Assertions to verify the verifier's configuration
-        assertNotNull(verifier, "Verifier should not be null");
+        assertNotNull(googleVerifier, "Verifier should not be null");
     }
 
     @Test
@@ -353,7 +352,7 @@ public class GoogleAuthServiceTest {
         GoogleAuthService realService = new GoogleAuthService(userService, jwtService);
 
         // Use reflection to set the client ID for testing
-        setPrivateField(realService, "googleClientId", TEST_GOOGLE_CLIENT_ID);
+        setPrivateField(realService, "googleClientId", testGoogleClientId);
 
         assertNotNull(realService.createAuthorizationCodeTokenRequest("dumb-bunny"));
     }
@@ -381,7 +380,7 @@ public class GoogleAuthServiceTest {
         });
 
         // Execute and verify
-        String response = spyService.fetchUserData(TEST_ACCESS_TOKEN);
+        String response = spyService.fetchUserData(testAccessToken);
         assertEquals("test response data", response);
     }
 
@@ -389,7 +388,7 @@ public class GoogleAuthServiceTest {
     void testFetchUserData_ApiError() {
 
         assertThrows(ApiException.class, () -> {
-            googleAuthService.fetchUserData(TEST_ACCESS_TOKEN);
+            googleAuthService.fetchUserData(testAccessToken);
         });
     }
 
@@ -402,7 +401,7 @@ public class GoogleAuthServiceTest {
         // Act & Assert
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> googleAuthService.fetchUserData(TEST_ACCESS_TOKEN)
+                () -> googleAuthService.fetchUserData(testAccessToken)
         );
 
         // Verify the exception contains the expected message
