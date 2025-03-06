@@ -6,55 +6,111 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.IOException;
-import com.google.gson.JsonArray;
 import com.google.gson.JsonParser;
 
+import com.safetypin.authentication.dto.GoogleAuthDTO;
+import com.safetypin.authentication.exception.ApiException;
+import com.safetypin.authentication.exception.InvalidCredentialsException;
+import com.safetypin.authentication.exception.UserAlreadyExistsException;
+import com.safetypin.authentication.model.User;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import java.io.*;
+import java.net.*;
+import java.security.GeneralSecurityException;
 import java.time.LocalDate;
 import java.time.Year;
 import java.util.Collections;
 import java.util.Optional;
 
-import com.safetypin.authentication.dto.GoogleAuthDTO;
-import com.safetypin.authentication.exception.ApiException;
-import com.safetypin.authentication.exception.UserAlreadyExistsException;
-import com.safetypin.authentication.model.User;
-import com.safetypin.authentication.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-
-
 @Service
-public class GoogleAuthService extends AuthenticationService {
+public class GoogleAuthService {
+    private static final Logger logger = LoggerFactory.getLogger(GoogleAuthService.class);
+
+    private final UserService userService;
+    private final JwtService jwtService;
 
     @Value("${google.client.id:default}")
     private String googleClientId;
+
     @Value("${google.client.secret:default}")
     private String googleClientSecret;
-    public static final String EMAIL_PROVIDER = "GMAIL";
+
+    private static final String EMAIL_PROVIDER = "GOOGLE";
     private static final String PEOPLE_API_BASE_URL = "https://people.googleapis.com/v1/people/me";
 
-    public GoogleAuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, OTPService otpService) {
-        super(userRepository, passwordEncoder, otpService);
+    private static final String BIRTHDAY = "birthdays";
+
+    public GoogleAuthService(UserService userService, JwtService jwtService) {
+        this.userService = userService;
+        this.jwtService = jwtService;
     }
 
-    protected GoogleIdTokenVerifier createIdTokenVerifier() {
+    public String authenticate(GoogleAuthDTO googleAuthDTO) throws ApiException {
+        try {
+            GoogleIdToken.Payload payload = verifyIdToken(googleAuthDTO.getIdToken());
+            String email = payload.getEmail();
+            String name = (String) payload.get("name");
+
+            Optional<User> existingUser = userService.findByEmail(email);
+            if (existingUser.isPresent()) {
+                User user = existingUser.get();
+                String userProvider = user.getProvider();
+                if (!EMAIL_PROVIDER.equals(userProvider)) {
+                    throw new UserAlreadyExistsException("An account with this email exists. Please sign in using " + userProvider);
+                }
+                return jwtService.generateToken(user.getId());
+            }
+
+            String accessToken = getAccessToken(googleAuthDTO.getServerAuthCode());
+            LocalDate userBirthdate = getUserBirthdate(accessToken);
+
+            User newUser = new User();
+            newUser.setEmail(email);
+            newUser.setName(name);
+            newUser.setPassword(null);
+            newUser.setProvider(EMAIL_PROVIDER);
+            newUser.setVerified(true);
+            newUser.setRole("USER");
+            newUser.setBirthdate(userBirthdate);
+
+            User user = userService.save(newUser);
+            logger.info("New user registered via Google authentication: {}", email);
+
+            return jwtService.generateToken(user.getId());
+        } catch (UserAlreadyExistsException e) {
+            throw e;
+        } catch (Exception e) {
+            logger.error("Google authentication failed: {}", e.getMessage());
+            throw new ApiException("Authentication failed");
+        }
+    }
+
+    GoogleIdTokenVerifier createIdTokenVerifier() {
         return new GoogleIdTokenVerifier.Builder(
                 new NetHttpTransport(), new GsonFactory())
                 .setAudience(Collections.singletonList(googleClientId))
                 .build();
     }
 
-    public GoogleIdToken.Payload verifyIdToken(String idTokenString) throws Exception {
+    GoogleAuthorizationCodeTokenRequest createAuthorizationCodeTokenRequest(String serverAuthCode) {
+        return new GoogleAuthorizationCodeTokenRequest(
+                new NetHttpTransport(),
+                GsonFactory.getDefaultInstance(),
+                "https://oauth2.googleapis.com/token",
+                googleClientId,
+                googleClientSecret,
+                serverAuthCode,
+                "");
+    }
+
+    GoogleIdToken.Payload verifyIdToken(String idTokenString) throws IllegalArgumentException, InvalidCredentialsException, GeneralSecurityException, IOException {
         if (idTokenString == null) {
             throw new IllegalArgumentException("ID Token cannot be null");
         }
@@ -63,58 +119,51 @@ public class GoogleAuthService extends AuthenticationService {
         GoogleIdToken idToken = verifier.verify(idTokenString);
 
         if (idToken == null) {
-            throw new Exception("Invalid ID Token");
+            throw new InvalidCredentialsException("Invalid ID Token");
         }
         return idToken.getPayload();
     }
 
-    protected GoogleAuthorizationCodeTokenRequest createTokenRequest(
-            String tokenUrl, String clientId, String clientSecret) {
-        return new GoogleAuthorizationCodeTokenRequest(
-                new NetHttpTransport(),
-                GsonFactory.getDefaultInstance(),
-                tokenUrl,
-                clientId,
-                clientSecret,
-                "",
-                "");
+    protected URL createURL(String urlString) throws IOException {
+        URI uri = URI.create(urlString);
+        return uri.toURL();
     }
 
-    public String getAccessToken(String serverAuthCode) throws IOException {
-        TokenResponse tokenResponse = createTokenRequest(
-                "https://oauth2.googleapis.com/token",
-                googleClientId,
-                googleClientSecret)
-                .setCode(serverAuthCode)
+    String getAccessToken(String serverAuthCode) throws IOException {
+        TokenResponse tokenResponse = createAuthorizationCodeTokenRequest(serverAuthCode)
                 .execute();
 
         return tokenResponse.getAccessToken();
     }
 
-    protected URL createURL(String urlString) throws IOException {
-        return new URL(urlString);
-    }
-
-    public String fetchUserData(String accessToken, String personFields) throws IOException {
-        String apiUrl = PEOPLE_API_BASE_URL + "?personFields=" + personFields;
-
-        URL url = createURL(apiUrl);
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+    String fetchUserData(String accessToken) throws IOException {
         try {
-            conn.setRequestMethod("GET");
-            conn.setRequestProperty("Authorization", "Bearer " + accessToken);
-            conn.setRequestProperty("Accept", "application/json");
+            String apiUrl = PEOPLE_API_BASE_URL + "?personFields=" + GoogleAuthService.BIRTHDAY;
 
-            int responseCode = conn.getResponseCode();
-            if (responseCode == HttpURLConnection.HTTP_OK) {
-                return readResponse(conn.getInputStream());
-            } else {
-                throw new ApiException("Error fetching data from Google API", responseCode);
+            URL url = createURL(apiUrl);
+
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            try {
+                conn.setRequestMethod("GET");
+                conn.setRequestProperty("Authorization", "Bearer " + accessToken);
+                conn.setRequestProperty("Accept", "application/json");
+
+                int responseCode = conn.getResponseCode();
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    return readResponse(conn.getInputStream());
+                } else {
+                    logger.error("Error fetching data from Google API: HTTP {}", responseCode);
+                    throw new ApiException("Error fetching data from Google API");
+                }
+            } finally {
+                conn.disconnect();
             }
-        } finally {
-            conn.disconnect();
+        } catch (MalformedURLException e) {
+            logger.error("Invalid API URL: {}", e.getMessage());
+            throw new IllegalArgumentException("Invalid API URL", e);
         }
     }
+
 
     private String readResponse(InputStream inputStream) throws IOException {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
@@ -127,53 +176,20 @@ public class GoogleAuthService extends AuthenticationService {
         }
     }
 
-    public LocalDate getUserBirthdate(String accessToken) throws IOException {
-        String response = fetchUserData(accessToken, "birthdays");
+    LocalDate getUserBirthdate(String accessToken) throws IOException {
+        String response = fetchUserData(accessToken);
         return extractBirthday(response);
-    }
-
-    public String authenticate(GoogleAuthDTO googleAuthDTO) throws Exception {
-        GoogleIdToken.Payload payload = verifyIdToken(googleAuthDTO.getIdToken());
-
-        String email = payload.getEmail();
-        String name = (String) payload.get("name");
-
-        Optional<User> existingUser = Optional.ofNullable(super.getUserRepository().findByEmail(email));
-        if (existingUser.isPresent()) {
-            User user = existingUser.get();
-            String userProvider = user.getProvider();
-            if (!EMAIL_PROVIDER.equals(userProvider)) {
-                throw new UserAlreadyExistsException("An account with this email exists. Please sign in using " + userProvider);
-            }
-            return super.generateJwtToken(user.getId());
-        }
-
-        String accessToken = getAccessToken(googleAuthDTO.getServerAuthCode());
-        LocalDate userBirthdate = getUserBirthdate(accessToken);
-
-        User newUser = new User();
-        newUser.setEmail(email);
-        newUser.setName(name);
-        newUser.setPassword(null);
-        newUser.setProvider("GOOGLE");
-        newUser.setVerified(true);
-        newUser.setRole("USER");
-        newUser.setBirthdate(userBirthdate);
-
-        User user = super.getUserRepository().save(newUser);
-
-        return super.generateJwtToken(user.getId());
     }
 
     LocalDate extractBirthday(String jsonResponse) {
         JsonElement rootElement = JsonParser.parseString(jsonResponse);
         JsonObject rootObj = rootElement.getAsJsonObject();
 
-        if (!rootObj.has("birthdays")) {
+        if (!rootObj.has(BIRTHDAY)) {
             return null;
         }
 
-        JsonArray birthdaysArray = rootObj.getAsJsonArray("birthdays");
+        JsonArray birthdaysArray = rootObj.getAsJsonArray(BIRTHDAY);
         if (birthdaysArray.isEmpty()) {
             return null;
         }
