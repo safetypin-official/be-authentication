@@ -17,6 +17,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -41,9 +43,10 @@ class EmailServiceTest {
     }
 
     @Test
-    void testSendOTPMail_Success() throws MessagingException, IOException {
+    void testSendOTPMail_Success() throws MessagingException, IOException, ExecutionException, InterruptedException {
         String otp = "123456";
-        boolean status = emailService.sendOTPMail("username@test.com", otp);
+        CompletableFuture<Boolean> future = emailService.sendOTPMail("username@test.com", otp);
+        boolean status = future.get();
         assertTrue(status);
 
         MimeMessage[] receivedMessages = greenMail.getReceivedMessages();
@@ -54,11 +57,12 @@ class EmailServiceTest {
     }
 
     @Test
-    void testSendOTPMail_MailServerDown() {
+    void testSendOTPMail_MailServerDown() throws ExecutionException, InterruptedException {
         greenMail.stop();
 
         String otp = "123456";
-        boolean status = emailService.sendOTPMail("username@test.com", otp);
+        CompletableFuture<Boolean> future = emailService.sendOTPMail("username@test.com", otp);
+        boolean status = future.get();
         assertFalse(status);
     }
 }
