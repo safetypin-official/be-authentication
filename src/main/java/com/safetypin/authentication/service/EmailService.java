@@ -54,7 +54,7 @@ public class EmailService {
                             "            <p>Hello,</p>" +
                             "            <p>Your one-time verification code is:</p>" +
                             "            <div class='otp-code'>" + otp + "</div>" +
-                            "            <p>This code will expire in 10 minutes. Please do not share this code with anyone.</p>" +
+                            "            <p>This code will expire in 2 minutes. Please do not share this code with anyone.</p>" +
                             "            <p>If you didn't request this code, please ignore this email.</p>" +
                             "        </div>" +
                             "        <div class='footer'>" +
