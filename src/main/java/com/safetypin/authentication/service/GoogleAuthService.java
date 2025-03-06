@@ -136,10 +136,9 @@ public class GoogleAuthService {
         return tokenResponse.getAccessToken();
     }
 
-    String fetchUserData(String accessToken) throws IOException {
+    String fetchUserData(String accessToken) {
         try {
             String apiUrl = PEOPLE_API_BASE_URL + "?personFields=" + GoogleAuthService.BIRTHDAY;
-
             URL url = createURL(apiUrl);
 
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -153,14 +152,17 @@ public class GoogleAuthService {
                     return readResponse(conn.getInputStream());
                 } else {
                     logger.error("Error fetching data from Google API: HTTP {}", responseCode);
-                    throw new ApiException("Error fetching data from Google API");
+                    return null;
                 }
             } finally {
                 conn.disconnect();
             }
         } catch (MalformedURLException e) {
-            logger.error("Google authentication failed", e);
-            throw new IllegalArgumentException("Invalid API URL", e);
+            logger.error("Invalid API URL", e);
+            return null;
+        } catch (IOException e) {
+            logger.error("IO error when fetching user data", e);
+            return null;
         }
     }
 
@@ -176,7 +178,7 @@ public class GoogleAuthService {
         }
     }
 
-    LocalDate getUserBirthdate(String accessToken) throws IOException {
+    LocalDate getUserBirthdate(String accessToken) {
         String response = fetchUserData(accessToken);
         return extractBirthday(response);
     }

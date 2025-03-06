@@ -1,5 +1,6 @@
 package com.safetypin.authentication.service;
 
+import ch.qos.logback.core.Appender;
 import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeTokenRequest;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
@@ -12,18 +13,19 @@ import com.safetypin.authentication.model.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Spy;
+import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.Appender;
+import org.slf4j.LoggerFactory;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.*;
 import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
@@ -60,6 +62,12 @@ class GoogleAuthServiceTest {
     @InjectMocks
     private GoogleAuthService googleAuthService;
 
+    @Mock
+    private Appender<ILoggingEvent> mockAppender;
+
+    @Captor
+    private ArgumentCaptor<ILoggingEvent> loggingEventCaptor;
+
     private GoogleAuthDTO googleAuthDTO;
     private UUID testUserId;
 
@@ -79,6 +87,15 @@ class GoogleAuthServiceTest {
         googleAuthDTO.setServerAuthCode("test-auth-code");
 
         testUserId = UUID.randomUUID();
+        // Get Logback Logger
+        Logger root = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
+        root.setLevel(Level.INFO);
+
+        // Clear previous appenders to avoid duplicates
+        root.detachAndStopAllAppenders();
+
+        // Add mock appender
+        root.addAppender(mockAppender);
     }
 
     private void setPrivateField(Object instance, String fieldName, Object value) throws Exception {
@@ -386,10 +403,18 @@ class GoogleAuthServiceTest {
 
     @Test
     void testFetchUserData_ApiError() {
+        // Arrange & Act
+        String result = googleAuthService.fetchUserData(testAccessToken);
 
-        assertThrows(ApiException.class, () -> {
-            googleAuthService.fetchUserData(testAccessToken);
-        });
+        // Assert
+        assertNull(result);
+
+        // Verify logging occurred
+        verify(mockAppender).doAppend(loggingEventCaptor.capture());
+        ILoggingEvent loggingEvent = loggingEventCaptor.getValue();
+
+        assertEquals(Level.ERROR, loggingEvent.getLevel());
+        assertTrue(loggingEvent.getFormattedMessage().contains("Error fetching data from Google API"));
     }
 
     @Test
@@ -398,14 +423,48 @@ class GoogleAuthServiceTest {
         doThrow(new MalformedURLException("Invalid URL format"))
                 .when(googleAuthService).createURL(anyString());
 
-        // Act & Assert
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
-                () -> googleAuthService.fetchUserData(testAccessToken)
-        );
+        // Act
+        String result = googleAuthService.fetchUserData(testAccessToken);
 
-        // Verify the exception contains the expected message
-        assert(exception.getMessage().contains("Invalid API URL"));
-        assert(exception.getCause() instanceof MalformedURLException);
+        // Assert
+        assertNull(result);
+
+        // Verify logging occurred
+        verify(mockAppender).doAppend(loggingEventCaptor.capture());
+        ILoggingEvent loggingEvent = loggingEventCaptor.getValue();
+
+        assertEquals(Level.ERROR, loggingEvent.getLevel());
+        assertTrue(loggingEvent.getFormattedMessage().contains("Invalid API URL"));
     }
+
+    @Test
+    void testFetchUserData_IOException() {
+        // Create a test GoogleAuthService with a protected method for URL creation
+        GoogleAuthService spyService = spy(new GoogleAuthService(userService, jwtService) {
+            @Override
+            protected URL createURL(String urlString) throws IOException {
+                URL mockUrl = mock(URL.class);
+                HttpURLConnection mockConn = mock(HttpURLConnection.class);
+
+                // Mock URL and connection behaviors
+                when(mockUrl.openConnection()).thenReturn(mockConn);
+                when(mockConn.getResponseCode()).thenThrow(new IOException("Network error"));
+
+                return mockUrl;
+            }
+        });
+
+        // Execute and verify
+        String response = spyService.fetchUserData(testAccessToken);
+        assertNull(response);
+
+        // Verify logging occurred
+        verify(mockAppender).doAppend(loggingEventCaptor.capture());
+        ILoggingEvent loggingEvent = loggingEventCaptor.getValue();
+
+        assertEquals(Level.ERROR, loggingEvent.getLevel());
+        assertTrue(loggingEvent.getFormattedMessage().contains("IO error when fetching user data"));
+    }
+
+
 }
