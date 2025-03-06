@@ -33,7 +33,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class GoogleAuthServiceTest {
+class GoogleAuthServiceTest {
 
     @Mock
     private UserService userService;
