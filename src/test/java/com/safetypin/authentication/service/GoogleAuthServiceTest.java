@@ -1,5 +1,23 @@
 package com.safetypin.authentication.service;
 
+import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeTokenRequest;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.googleapis.auth.oauth2.GoogleTokenResponse;
+import com.safetypin.authentication.dto.GoogleAuthDTO;
+import com.safetypin.authentication.exception.ApiException;
+import com.safetypin.authentication.exception.InvalidCredentialsException;
+import com.safetypin.authentication.exception.UserAlreadyExistsException;
+import com.safetypin.authentication.model.User;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Spy;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -7,99 +25,61 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.LocalDate;
-import java.time.Year;
-import java.util.*;
-
-import com.google.api.client.auth.oauth2.TokenResponseException;
-import com.google.api.client.googleapis.auth.oauth2.GoogleTokenResponse;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
-
-import com.google.api.client.auth.oauth2.TokenResponse;
-import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeTokenRequest;
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
-
-import com.safetypin.authentication.dto.GoogleAuthDTO;
-import com.safetypin.authentication.exception.ApiException;
-import com.safetypin.authentication.exception.UserAlreadyExistsException;
-import com.safetypin.authentication.model.User;
-import com.safetypin.authentication.repository.UserRepository;
 
 @ExtendWith(MockitoExtension.class)
 public class GoogleAuthServiceTest {
 
     @Mock
-    private UserRepository userRepository;
+    private UserService userService;
 
     @Mock
-    private PasswordEncoder passwordEncoder;
+    private JwtService jwtService;
 
     @Mock
-    private OTPService otpService;
+    private GoogleIdToken idToken;
 
     @Mock
-    private GoogleIdTokenVerifier mockVerifier;
+    private GoogleIdToken.Payload payload;
 
     @Mock
-    private GoogleIdToken mockIdToken;
+    private GoogleIdTokenVerifier verifier;
 
     @Mock
-    private GoogleIdToken.Payload mockPayload;
+    private GoogleAuthorizationCodeTokenRequest tokenRequest;
 
     @Mock
-    private GoogleAuthorizationCodeTokenRequest mockTokenRequest;
+    private GoogleTokenResponse tokenResponse;
 
-    @Mock
-    private TokenResponse mockTokenResponse;
-
-    @Mock
-    private HttpURLConnection mockConnection;
-
-    @Mock
-    private URL mockUrl;
-
+    @Spy
+    @InjectMocks
     private GoogleAuthService googleAuthService;
 
+    private GoogleAuthDTO googleAuthDTO;
+    private UUID testUserId;
+
+    private final String TEST_ACCESS_TOKEN = "test-access-token";
+
+    private final String TEST_GOOGLE_CLIENT_ID = "test-client-id";
+
+    private final String TEST_ID_TOKEN = "test-id-token";
+
     @BeforeEach
-    void setUp() throws Exception {
-        MockitoAnnotations.openMocks(this);
-        googleAuthService = new GoogleAuthService(userRepository, passwordEncoder, otpService) {
-            @Override
-            protected GoogleIdTokenVerifier createIdTokenVerifier() {
-                return mockVerifier;
-            }
+    void setup() {
+        ReflectionTestUtils.setField(googleAuthService, "googleClientId", TEST_GOOGLE_CLIENT_ID);
+        String TEST_GOOGLE_CLIENT_SECRET = "test-client-secret";
+        ReflectionTestUtils.setField(googleAuthService, "googleClientSecret", TEST_GOOGLE_CLIENT_SECRET);
 
-            @Override
-            protected GoogleAuthorizationCodeTokenRequest createTokenRequest(
-                    String tokenUrl, String clientId, String clientSecret) {
-                return mockTokenRequest;
-            }
+        googleAuthDTO = new GoogleAuthDTO();
+        googleAuthDTO.setIdToken(TEST_ID_TOKEN);
+        googleAuthDTO.setServerAuthCode("test-auth-code");
 
-            @Override
-            protected URL createURL(String urlString) throws IOException {
-                return mockUrl;
-            }
-        };
-
-        // Use reflection to set private fields for testing
-        setPrivateField("googleClientId", "test-client-id");
-        setPrivateField("googleClientSecret", "test-client-secret");
-    }
-
-    private void setPrivateField(String fieldName, Object value) throws Exception {
-        java.lang.reflect.Field field = GoogleAuthService.class.getDeclaredField(fieldName);
-        field.setAccessible(true);
-        field.set(googleAuthService, value);
+        testUserId = UUID.randomUUID();
     }
 
     private void setPrivateField(Object instance, String fieldName, Object value) throws Exception {
@@ -108,57 +88,280 @@ public class GoogleAuthServiceTest {
         field.set(instance, value);
     }
 
-
     @Test
-    public void testVerifyIdToken_NullToken() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            googleAuthService.verifyIdToken(null);
-        });
+    void authenticate_NewUser_Success() throws Exception {
+        // Mock verify ID token
+        doReturn(payload).when(googleAuthService).verifyIdToken(anyString());
+        when(payload.getEmail()).thenReturn("test@example.com");
+        when(payload.get("name")).thenReturn("Test User");
+
+        // Mock user service
+        when(userService.findByEmail(anyString())).thenReturn(Optional.empty());
+
+        // Mock getAccessToken
+        doReturn(TEST_ACCESS_TOKEN).when(googleAuthService).getAccessToken(anyString());
+
+        // Mock getUserBirthdate to return a specific date
+        LocalDate birthdate = LocalDate.of(1990, 1, 1);
+        doReturn(birthdate).when(googleAuthService).getUserBirthdate(anyString());
+
+        // Mock user save
+        User savedUser = new User();
+        savedUser.setId(testUserId);
+        when(userService.save(any(User.class))).thenReturn(savedUser);
+
+        // Mock JWT generation
+        when(jwtService.generateToken(any(UUID.class))).thenReturn("test-jwt-token");
+
+        // Execute
+        String result = googleAuthService.authenticate(googleAuthDTO);
+
+        // Verify
+        assertEquals("test-jwt-token", result);
+        verify(userService).findByEmail("test@example.com");
+        verify(userService).save(any(User.class));
+        verify(jwtService).generateToken(testUserId);
     }
 
     @Test
-    void testVerifyIdToken_ValidToken() throws Exception {
-        // Prepare mock GoogleIdToken
-        GoogleIdToken mockIdToken = mock(GoogleIdToken.class);
-        GoogleIdToken.Payload mockPayload = new GoogleIdToken.Payload();
-        mockPayload.setEmail("test@example.com");
+    void authenticate_ExistingGoogleUser_Success() throws Exception {
+        // Mock verify ID token
+        doReturn(payload).when(googleAuthService).verifyIdToken(anyString());
+        when(payload.getEmail()).thenReturn("test@example.com");
 
-        // Prepare a spy to inject mock verifier
-        GoogleAuthService spyService = spy(googleAuthService);
-        doReturn(mockVerifier).when(spyService).createIdTokenVerifier();
+        // Mock existing user
+        User existingUser = new User();
+        existingUser.setId(testUserId);
+        existingUser.setProvider("GOOGLE");
+        when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(existingUser));
 
-        when(mockVerifier.verify(anyString())).thenReturn(mockIdToken);
-        when(mockIdToken.getPayload()).thenReturn(mockPayload);
+        // Mock JWT generation
+        when(jwtService.generateToken(any(UUID.class))).thenReturn("test-jwt-token");
 
-        GoogleIdToken.Payload result = spyService.verifyIdToken("valid-token");
+        // Execute
+        String result = googleAuthService.authenticate(googleAuthDTO);
 
-        assertNotNull(result);
-        assertEquals("test@example.com", result.getEmail());
+        // Verify
+        assertEquals("test-jwt-token", result);
+        verify(userService).findByEmail("test@example.com");
+        verify(userService, never()).save(any(User.class));
+        verify(jwtService).generateToken(testUserId);
     }
 
     @Test
-    void testVerifyIdToken_invalidIdToken() throws Exception {
-        // Prepare a spy for GoogleAuthService
-        GoogleAuthService spyService = spy(googleAuthService);
+    void authenticate_ExistingUserWithDifferentProvider_ThrowsException() throws Exception {
+        // Mock verify ID token
+        doReturn(payload).when(googleAuthService).verifyIdToken(anyString());
+        when(payload.getEmail()).thenReturn("test@example.com");
 
-        // Mock the GoogleIdTokenVerifier and GoogleIdToken
-        GoogleIdTokenVerifier mockVerifier = mock(GoogleIdTokenVerifier.class);
-        GoogleIdToken mockIdToken = mock(GoogleIdToken.class);
+        // Mock existing user with different provider
+        User existingUser = new User();
+        existingUser.setProvider("EMAIL");
+        when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(existingUser));
 
-        // Set up the behavior for the mockVerifier to return null when verify is called
-        when(mockVerifier.verify(anyString())).thenReturn(null);  // Simulating invalid ID token
+        // Execute and verify
+        UserAlreadyExistsException exception = assertThrows(
+                UserAlreadyExistsException.class,
+                () -> googleAuthService.authenticate(googleAuthDTO)
+        );
 
-        // Mock createIdTokenVerifier to return the mockVerifier
-        doReturn(mockVerifier).when(spyService).createIdTokenVerifier();
+        assertTrue(exception.getMessage().contains("Please sign in using EMAIL"));
+    }
 
-        // Call the method and verify that the exception is thrown
-        assertThrows(Exception.class, () -> spyService.verifyIdToken("invalid-token"));
+    @Test
+    void verifyIdToken_NullToken_ThrowsException() {
+        // Execute and verify
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> googleAuthService.verifyIdToken(null)
+        );
+
+        assertEquals("ID Token cannot be null", exception.getMessage());
+    }
+
+    @Test
+    void verifyIdToken_ValidToken_ReturnsPayload() throws Exception {
+        // Mock the verifier creation
+        doReturn(verifier).when(googleAuthService).createIdTokenVerifier();
+
+        // Set up the verifier to return our mock ID token
+        when(verifier.verify(TEST_ID_TOKEN)).thenReturn(idToken);
+        when(idToken.getPayload()).thenReturn(payload);
+
+        // Execute
+        GoogleIdToken.Payload result = googleAuthService.verifyIdToken(TEST_ID_TOKEN);
+
+        // Verify
+        assertSame(payload, result);
+        verify(verifier).verify(TEST_ID_TOKEN);
+    }
+
+    @Test
+    void verifyIdToken_InvalidToken_ThrowsException() throws Exception {
+        // Create a spy on the service to override the verifier creation
+
+        // Mock the verifier creation
+        doReturn(verifier).when(googleAuthService).createIdTokenVerifier();
+
+        // Set up the verifier to return null (invalid token)
+        when(verifier.verify(anyString())).thenReturn(null);
+
+        // Execute and verify
+        InvalidCredentialsException exception = assertThrows(
+                InvalidCredentialsException.class,
+                () -> googleAuthService.verifyIdToken(TEST_ID_TOKEN)
+        );
+
+        assertEquals("Invalid ID Token", exception.getMessage());
+        verify(verifier).verify(TEST_ID_TOKEN);
+    }
+
+    @Test
+    void getAccessToken_Success() throws Exception {
+
+        // Mock the token request creation
+        doReturn(tokenRequest).when(googleAuthService).createAuthorizationCodeTokenRequest("test-auth-code");
+
+        // Set up the token request to return our mock token response
+        when(tokenRequest.execute()).thenReturn((tokenResponse));
+        when(tokenResponse.getAccessToken()).thenReturn(TEST_ACCESS_TOKEN);
+
+        // Execute
+        String result = googleAuthService.getAccessToken("test-auth-code");
+
+        // Verify
+        assertEquals(TEST_ACCESS_TOKEN, result);
+        verify(tokenRequest).execute();
+    }
+
+    @Test
+    void extractBirthday_ValidResponse_ReturnsBirthdate() {
+        String jsonResponse = "{"
+                + "\"birthdays\": ["
+                + "  {"
+                + "    \"date\": {"
+                + "      \"year\": 1990,"
+                + "      \"month\": 1,"
+                + "      \"day\": 15"
+                + "    }"
+                + "  }"
+                + "]"
+                + "}";
+
+        LocalDate result = googleAuthService.extractBirthday(jsonResponse);
+
+        assertEquals(LocalDate.of(1990, 1, 15), result);
+    }
+
+    @Test
+    void extractBirthday_NoYearProvided_ReturnsCurrentYear() {
+        String jsonResponse = "{"
+                + "\"birthdays\": ["
+                + "  {"
+                + "    \"date\": {"
+                + "      \"month\": 1,"
+                + "      \"day\": 15"
+                + "    }"
+                + "  }"
+                + "]"
+                + "}";
+
+        LocalDate result = googleAuthService.extractBirthday(jsonResponse);
+
+        assertEquals(LocalDate.of(LocalDate.now().getYear(), 1, 15), result);
+    }
+
+    @Test
+    void extractBirthday_NoBirthdayField_ReturnsNull() {
+        String jsonResponse = "{}";
+
+        LocalDate result = googleAuthService.extractBirthday(jsonResponse);
+
+        assertNull(result);
+    }
+
+    @Test
+    void extractBirthday_EmptyBirthdaysArray_ReturnsNull() {
+        String jsonResponse = "{\"birthdays\": []}";
+
+        LocalDate result = googleAuthService.extractBirthday(jsonResponse);
+
+        assertNull(result);
+    }
+
+    @Test
+    void extractBirthday_NoDateField_ReturnsNull() {
+        String jsonResponse = "{"
+                + "\"birthdays\": ["
+                + "  {}"
+                + "]"
+                + "}";
+
+        LocalDate result = googleAuthService.extractBirthday(jsonResponse);
+
+        assertNull(result);
+    }
+
+    @Test
+    void getUserBirthdate_Success() throws Exception {
+        // Setup private method mocking
+        doReturn("test-json-response").when(googleAuthService).fetchUserData(anyString());
+
+        // Mock extract birthday
+        LocalDate birthdate = LocalDate.of(1990, 1, 15);
+        doReturn(birthdate).when(googleAuthService).extractBirthday(anyString());
+
+        // Execute
+        LocalDate result = googleAuthService.getUserBirthdate(TEST_ACCESS_TOKEN);
+
+        // Verify
+        assertEquals(birthdate, result);
+    }
+
+    @Test
+    void authenticate_Exception_ThrowsApiException() throws Exception {
+        // Mock verify ID token to throw exception
+        doThrow(new IOException("Test exception")).when(googleAuthService).verifyIdToken(anyString());
+
+        // Execute and verify
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> googleAuthService.authenticate(googleAuthDTO)
+        );
+
+        assertEquals("Authentication failed", exception.getMessage());
+    }
+
+    @Test
+    void testCreateIdTokenVerifier_Configurations() throws Exception {
+        // Create a real instance of GoogleAuthService for this test
+        GoogleAuthService realService = new GoogleAuthService(userService, jwtService);
+
+        // Use reflection to set the client ID for testing
+        setPrivateField(realService, "googleClientId", TEST_GOOGLE_CLIENT_ID);
+
+        // Call the createIdTokenVerifier method
+        GoogleIdTokenVerifier verifier = realService.createIdTokenVerifier();
+
+        // Assertions to verify the verifier's configuration
+        assertNotNull(verifier, "Verifier should not be null");
+    }
+
+    @Test
+    void testCreateTokenRequests_Configurations() throws Exception {
+        // Create a real instance of GoogleAuthService for this test
+        GoogleAuthService realService = new GoogleAuthService(userService, jwtService);
+
+        // Use reflection to set the client ID for testing
+        setPrivateField(realService, "googleClientId", TEST_GOOGLE_CLIENT_ID);
+
+        assertNotNull(realService.createAuthorizationCodeTokenRequest("dumb-bunny"));
     }
 
     @Test
     void testFetchUserData_Successful() throws Exception {
         // Create a test GoogleAuthService with a protected method for URL creation
-        GoogleAuthService spyService = spy(new GoogleAuthService(userRepository, passwordEncoder, otpService) {
+        GoogleAuthService spyService = spy(new GoogleAuthService(userService, jwtService) {
             @Override
             protected URL createURL(String urlString) throws IOException {
                 URL mockUrl = mock(URL.class);
@@ -178,338 +381,32 @@ public class GoogleAuthServiceTest {
         });
 
         // Execute and verify
-        String response = spyService.fetchUserData("access-token", "birthdays");
+        String response = spyService.fetchUserData(TEST_ACCESS_TOKEN);
         assertEquals("test response data", response);
     }
 
     @Test
-    void testFetchUserData_ErrorResponse() throws Exception {
-        // Create a test GoogleAuthService with a protected method for URL creation
-        GoogleAuthService spyService = spy(new GoogleAuthService(userRepository, passwordEncoder, otpService) {
-            @Override
-            protected URL createURL(String urlString) throws IOException {
-                URL mockUrl = mock(URL.class);
-                HttpURLConnection mockConn = mock(HttpURLConnection.class);
+    void testFetchUserData_ApiError() {
 
-                // Mock URL and connection behaviors
-                when(mockUrl.openConnection()).thenReturn(mockConn);
-                when(mockConn.getResponseCode()).thenReturn(HttpURLConnection.HTTP_UNAUTHORIZED);
-
-                return mockUrl;
-            }
+        assertThrows(ApiException.class, () -> {
+            googleAuthService.fetchUserData(TEST_ACCESS_TOKEN);
         });
+    }
 
-        // Verify that an ApiException is thrown
-        ApiException thrown = assertThrows(ApiException.class, () ->
-                spyService.fetchUserData("access-token", "birthdays")
+    @Test
+    void testFetchUserData_InvalidAPIFormat() throws IOException {
+        // Arrange
+        doThrow(new MalformedURLException("Invalid URL format"))
+                .when(googleAuthService).createURL(anyString());
+
+        // Act & Assert
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> googleAuthService.fetchUserData(TEST_ACCESS_TOKEN)
         );
 
-        assertEquals("Error fetching data from Google API", thrown.getMessage());
+        // Verify the exception contains the expected message
+        assert(exception.getMessage().contains("Invalid API URL"));
+        assert(exception.getCause() instanceof MalformedURLException);
     }
-
-    @Test
-    public void testFetchUserData_ApiError() throws IOException {
-        when(mockUrl.openConnection()).thenReturn(mockConnection);
-        when(mockConnection.getResponseCode()).thenReturn(HttpURLConnection.HTTP_UNAUTHORIZED);
-
-        assertThrows(Exception.class, () -> {
-            googleAuthService.fetchUserData("access-token", "fields");
-        });
-    }
-
-    @Test
-    void testGetAccessToken_Successful() throws Exception {
-        // Create a spy for the service
-        GoogleAuthService spyService = spy(googleAuthService);
-
-        // Mock the GoogleTokenResponse creation
-        GoogleTokenResponse mockTokenResponse = mock(GoogleTokenResponse.class);
-        when(mockTokenResponse.getAccessToken()).thenReturn("test-access-token");
-
-        // Mock the GoogleAuthorizationCodeTokenRequest creation
-        GoogleAuthorizationCodeTokenRequest mockRequest = mock(GoogleAuthorizationCodeTokenRequest.class);
-
-        // Mock the behavior of the request
-        doReturn(mockRequest).when(spyService).createTokenRequest(anyString(), anyString(), anyString());
-
-        // Mock setCode() to return the mockRequest to simulate method chaining
-        when(mockRequest.setCode(anyString())).thenReturn(mockRequest);  // Return mockRequest itself for chaining
-
-        // Mock the execute() method to return the mocked token response
-        when(mockRequest.execute()).thenReturn(mockTokenResponse);
-
-        // Execute and verify
-        String accessToken = spyService.getAccessToken("test-server-auth-code");
-        assertEquals("test-access-token", accessToken);
-    }
-
-    @Test
-    void testAuthenticate_NewUser() throws Exception {
-        // Prepare test scenario
-        GoogleIdToken.Payload payload = createMockPayload();
-        GoogleAuthDTO authDTO = createMockAuthDTO();
-
-        // Mock dependencies
-        GoogleAuthService spyService = spy(googleAuthService);
-
-        // Prepare mocking chain
-        doReturn(payload).when(spyService).verifyIdToken(anyString());
-        when(userRepository.findByEmail(anyString())).thenReturn(null);
-        doReturn("access-token").when(spyService).getAccessToken(anyString());
-        doReturn(LocalDate.now()).when(spyService).getUserBirthdate(anyString());
-
-        // Prepare saved user
-        User savedUser = new User();
-        savedUser.setId(UUID.randomUUID());
-        when(userRepository.save(any(User.class))).thenReturn(savedUser);
-        doReturn("jwt-token").when(spyService).generateJwtToken(any(UUID.class));
-
-        // Execute and verify
-        String token = spyService.authenticate(authDTO);
-        assertEquals("jwt-token", token);
-    }
-
-    @Test
-    public void testAuthenticate_ExistingUserSameProvider() throws Exception {
-        // Prepare mock data
-        GoogleAuthDTO authDTO = new GoogleAuthDTO();
-        authDTO.setIdToken("test-id-token");
-        authDTO.setServerAuthCode("test-server-auth-code");
-
-        // Setup existing user with ID
-        User existingUser = new User();
-        existingUser.setId(UUID.randomUUID());
-        existingUser.setProvider("GMAIL");
-        existingUser.setEmail("test@example.com");
-
-        // Setup ID token verification
-        lenient().when(mockVerifier.verify(anyString())).thenReturn(mockIdToken);
-        lenient().when(mockIdToken.getPayload()).thenReturn(mockPayload);
-        when(mockPayload.getEmail()).thenReturn("test@example.com");
-        when(mockPayload.get("name")).thenReturn("Test User");
-
-        // Mock user repository
-        when(userRepository.findByEmail(anyString())).thenReturn(existingUser);
-
-        // Prepare token response
-        GoogleTokenResponse mockTokenResponse = mock(GoogleTokenResponse.class);
-
-        // Authenticate
-        String token = googleAuthService.authenticate(authDTO);
-
-        // Verify
-        assertNotNull(token);
-        verify(userRepository, never()).save(any(User.class));
-    }
-
-
-    @Test
-    public void testAuthenticate_ExistingUserDifferentProvider() throws Exception {
-        // Prepare mock data
-        GoogleAuthDTO authDTO = new GoogleAuthDTO();
-        authDTO.setIdToken("test-id-token");
-        authDTO.setServerAuthCode("test-server-auth-code");
-
-        // Setup existing user
-        User existingUser = new User();
-        existingUser.setProvider("FACEBOOK");
-
-        // Setup ID token verification
-        when(mockVerifier.verify(anyString())).thenReturn(mockIdToken);
-        when(mockIdToken.getPayload()).thenReturn(mockPayload);
-        when(mockPayload.getEmail()).thenReturn("test@example.com");
-        when(mockPayload.get("name")).thenReturn("Test User");
-
-        // Mock user repository
-        when(userRepository.findByEmail(anyString())).thenReturn(existingUser);
-
-        // Verify exception
-        assertThrows(UserAlreadyExistsException.class, () -> {
-            googleAuthService.authenticate(authDTO);
-        });
-    }
-
-    @Test
-    void testExtractBirthday_FullBirthdayInfo() {
-        String fullBirthdayJson = "{\"birthdays\":[{\"date\":{\"year\":1990,\"month\":1,\"day\":15}}]}";
-        LocalDate birthday = googleAuthService.extractBirthday(fullBirthdayJson);
-        assertEquals(LocalDate.of(1990, 1, 15), birthday);
-    }
-
-    @Test
-    void testExtractBirthday_NoYear() {
-        String noYearJson = "{\"birthdays\":[{\"date\":{\"month\":1,\"day\":15}}]}";
-        LocalDate birthday = googleAuthService.extractBirthday(noYearJson);
-        assertEquals(LocalDate.of(Year.now().getValue(), 1, 15), birthday);
-    }
-
-    @Test
-    void testExtractBirthday_EmptyBirthdays() {
-        String emptyBirthdaysJson = "{\"birthdays\":[]}";
-        assertNull(googleAuthService.extractBirthday(emptyBirthdaysJson));
-    }
-
-    @Test
-    public void testExtractBirthday_NoBirthdays() {
-        String jsonResponse = "{\"key\":\"value\"}";
-        LocalDate birthday = googleAuthService.extractBirthday(jsonResponse);
-
-        assertNull(birthday);
-    }
-
-    @Test
-    public void testExtractBirthday_EmptyBirthdaysArray() {
-        String jsonResponse = "{\"birthdays\":[]}";
-        LocalDate birthday = googleAuthService.extractBirthday(jsonResponse);
-
-        assertNull(birthday);
-    }
-
-    @Test
-    public void testExtractBirthday_NoBirthdayDateField() {
-        // JSON response where the first birthday object doesn't have a "date" field
-        String jsonResponse = "{\"birthdays\":[{\"someOtherField\":\"value\"}]}";
-
-        LocalDate birthday = googleAuthService.extractBirthday(jsonResponse);
-
-        assertNull(birthday);
-    }
-
-    @Test
-    void testCreateURL_Successful() throws Exception {
-        GoogleAuthService realService = new GoogleAuthService(userRepository, passwordEncoder, otpService);
-        setPrivateField(realService, "googleClientId", "test-client-id");
-        setPrivateField(realService, "googleClientSecret", "test-client-secret");
-
-        String testUrlString = "https://example.com";
-        URL createdUrl = realService.createURL(testUrlString);
-
-        assertNotNull(createdUrl);
-        assertEquals(testUrlString, createdUrl.toString());
-    }
-
-    @Test
-    void testCreateURL_InvalidURL() throws Exception {
-        GoogleAuthService realService = new GoogleAuthService(userRepository, passwordEncoder, otpService);
-        setPrivateField(realService, "googleClientId", "test-client-id");
-        setPrivateField(realService, "googleClientSecret", "test-client-secret");
-
-        assertThrows(MalformedURLException.class, () -> {
-            realService.createURL("not a valid url");
-        });
-    }
-
-    @Test
-    void testGetUserBirthdate_Successful() throws IOException {
-        // Create a spy of GoogleAuthService to mock the fetchUserData method
-        GoogleAuthService spyService = spy(googleAuthService);
-
-        // Prepare a mock JSON response with a birthday
-        String mockBirthdayResponse = "{\"birthdays\":[{\"date\":{\"year\":1990,\"month\":1,\"day\":15}}]}";
-
-        // Mock the fetchUserData method to return the prepared response
-        doReturn(mockBirthdayResponse).when(spyService).fetchUserData(anyString(), eq("birthdays"));
-
-        // Execute the method
-        LocalDate birthday = spyService.getUserBirthdate("test-access-token");
-
-        // Verify the result
-        assertEquals(LocalDate.of(1990, 1, 15), birthday);
-
-        // Verify that fetchUserData was called with correct parameters
-        verify(spyService).fetchUserData("test-access-token", "birthdays");
-    }
-
-    @Test
-    void testGetUserBirthdate_NoBirthdayData() throws IOException {
-        // Create a spy of GoogleAuthService to mock the fetchUserData method
-        GoogleAuthService spyService = spy(googleAuthService);
-
-        // Prepare a mock JSON response without birthdays
-        String mockEmptyResponse = "{\"key\":\"value\"}";
-
-        // Mock the fetchUserData method to return the prepared response
-        doReturn(mockEmptyResponse).when(spyService).fetchUserData(anyString(), eq("birthdays"));
-
-        // Execute the method
-        LocalDate birthday = spyService.getUserBirthdate("test-access-token");
-
-        // Verify the result is null
-        assertNull(birthday);
-
-        // Verify that fetchUserData was called with correct parameters
-        verify(spyService).fetchUserData("test-access-token", "birthdays");
-    }
-
-    // Helper methods for creating mock objects
-    private GoogleIdToken.Payload createMockPayload() {
-        GoogleIdToken.Payload payload = new GoogleIdToken.Payload();
-        payload.setEmail("test@example.com");
-        payload.put("name", "Test User");
-        return payload;
-    }
-
-    private GoogleAuthDTO createMockAuthDTO() {
-        GoogleAuthDTO authDTO = new GoogleAuthDTO();
-        authDTO.setIdToken("valid-token");
-        authDTO.setServerAuthCode("server-code");
-        return authDTO;
-    }
-
-    @Test
-    void testGetAccessToken_WithOverriddenCreateTokenRequest() throws Exception {
-        // Override method createTokenRequest untuk mengembalikan stub yang sudah dikonfigurasi
-        GoogleAuthService spyService = spy(new GoogleAuthService(userRepository, passwordEncoder, otpService) {
-            @Override
-            protected GoogleAuthorizationCodeTokenRequest createTokenRequest(String tokenUrl, String clientId, String clientSecret) {
-                GoogleAuthorizationCodeTokenRequest mockRequest = mock(GoogleAuthorizationCodeTokenRequest.class);
-                // Gunakan GoogleTokenResponse agar sesuai dengan tipe kembalian execute()
-                GoogleTokenResponse tokenResponse = new GoogleTokenResponse();
-                tokenResponse.setAccessToken("test-access-token");
-
-                try {
-                    // Pastikan pemanggilan setCode() dan execute() mengembalikan nilai yang sesuai
-                    when(mockRequest.setCode(anyString())).thenReturn(mockRequest);
-                    when(mockRequest.execute()).thenReturn(tokenResponse);
-                } catch (IOException e) {
-                    // Tidak diharapkan terjadi exception
-                    fail("IOException tidak diharapkan: " + e.getMessage());
-                }
-                return mockRequest;
-            }
-        });
-
-        String accessToken = spyService.getAccessToken("dummy-code");
-        assertEquals("test-access-token", accessToken);
-    }
-
-    @Test
-    void testCreateIdTokenVerifier_Configurations() throws Exception {
-        // Create a real instance of GoogleAuthService for this test
-        GoogleAuthService realService = new GoogleAuthService(userRepository, passwordEncoder, otpService);
-
-        // Use reflection to set the client ID for testing
-        setPrivateField(realService, "googleClientId", "test-client-id");
-
-        // Call the createIdTokenVerifier method
-        GoogleIdTokenVerifier verifier = realService.createIdTokenVerifier();
-
-        // Assertions to verify the verifier's configuration
-        assertNotNull(verifier, "Verifier should not be null");
-    }
-
-    @Test
-    void testCreateTokenRequests_Configurations() throws Exception {
-        // Create a real instance of GoogleAuthService for this test
-        GoogleAuthService realService = new GoogleAuthService(userRepository, passwordEncoder, otpService);
-
-        // Use reflection to set the client ID for testing
-        setPrivateField(realService, "googleClientId", "test-client-id");
-
-        // Call the createIdTokenVerifier method
-        assertThrows(TokenResponseException.class, () -> {
-            realService.createTokenRequest("https://oauth2.googleapis.com/token", "test-client-id", "test-client-secret").setCode("sadf").execute();
-        });
-    }
-
 }
