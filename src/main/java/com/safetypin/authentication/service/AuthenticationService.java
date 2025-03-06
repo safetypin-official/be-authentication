@@ -5,6 +5,7 @@ import com.safetypin.authentication.dto.SocialLoginRequest;
 import com.safetypin.authentication.dto.UserResponse;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.UserAlreadyExistsException;
+import com.safetypin.authentication.model.Role;
 import com.safetypin.authentication.model.User;
 import com.safetypin.authentication.repository.UserRepository;
 import io.jsonwebtoken.Claims;
@@ -26,13 +27,10 @@ import java.util.UUID;
 @Service
 public class AuthenticationService {
     public static final String EMAIL_PROVIDER = "EMAIL";
-
-
+    private static final Logger logger = LoggerFactory.getLogger(AuthenticationService.class);
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final OTPService otpService;
-    private static final Logger logger = LoggerFactory.getLogger(AuthenticationService.class);
-
     private final String JWT_SECRET_KEY = "5047c55bfe120155fd4e884845682bb8b8815c0048a686cc664d1ea6c8e094da";
 
     public AuthenticationService(UserRepository userRepository, PasswordEncoder passwordEncoder, OTPService otpService) {
@@ -58,7 +56,7 @@ public class AuthenticationService {
         user.setPassword(encodedPassword);
         user.setName(request.getName());
         user.setVerified(false);
-        user.setRole("USER");
+        user.setRole(Role.REGISTERED_USER);
         user.setBirthdate(request.getBirthdate());
         user.setProvider(EMAIL_PROVIDER);
         user.setSocialId(null);
@@ -92,7 +90,7 @@ public class AuthenticationService {
         user.setPassword(null);
         user.setName(request.getName());
         user.setVerified(true);
-        user.setRole("USER");
+        user.setRole(Role.REGISTERED_USER);
         user.setBirthdate(request.getBirthdate());
         user.setProvider(request.getProvider().toUpperCase());
         user.setSocialId(request.getSocialId());
@@ -176,8 +174,7 @@ public class AuthenticationService {
     }
 
 
-
-    public String generateJwtToken(UUID userId){
+    public String generateJwtToken(UUID userId) {
         Key key = Keys.hmacShaKeyFor(JWT_SECRET_KEY.getBytes());
         // 1 day
         long EXPIRATION_TIME = 86400000;
