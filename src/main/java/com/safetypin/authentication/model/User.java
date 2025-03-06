@@ -35,7 +35,8 @@ public class User {
     private boolean isVerified = false;
 
     @Setter @Getter
-    private String role;
+    @Enumerated(EnumType.STRING)
+    private Role role;
 
     // New fields
     @Setter @Getter
@@ -63,10 +64,9 @@ public class User {
                 .id(id)
                 .provider(provider)
                 .birthdate(birthdate)
-                .role(role)
+                .role(role != null ? role.name() : null)
                 .name(name)
                 .isVerified(isVerified)
                 .build();
     }
-
 }
