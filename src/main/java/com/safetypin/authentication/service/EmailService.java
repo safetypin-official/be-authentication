@@ -6,7 +6,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+
+import java.util.concurrent.CompletableFuture;
 
 @Service
 public class EmailService {
@@ -20,7 +23,8 @@ public class EmailService {
         this.mailSender = mailSender;
     }
 
-    public boolean sendOTPMail(String to, String otp) {
+    @Async("emailTaskExecutor")
+    public CompletableFuture<Boolean> sendOTPMail(String to, String otp) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(SENDER);
         message.setTo(to);
@@ -29,10 +33,10 @@ public class EmailService {
 
         try {
             mailSender.send(message);
+            return CompletableFuture.completedFuture(true);
         } catch (MailException e) {
             logger.warn("EmailService.sendOTPMail:: Failed to send mail with error; {}", e.getMessage());
-            return false;
+            return CompletableFuture.completedFuture(false);
         }
-        return true;
     }
 }
