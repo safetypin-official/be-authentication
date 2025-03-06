@@ -1,6 +1,5 @@
 package com.safetypin.authentication.service;
 
-import ch.qos.logback.core.Appender;
 import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeTokenRequest;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
@@ -319,7 +318,7 @@ class GoogleAuthServiceTest {
     }
 
     @Test
-    void getUserBirthdate_Success() throws Exception {
+    void getUserBirthdate_Success() {
         // Setup private method mocking
         doReturn("test-json-response").when(googleAuthService).fetchUserData(anyString());
 
@@ -375,7 +374,7 @@ class GoogleAuthServiceTest {
     }
 
     @Test
-    void testFetchUserData_Successful() throws Exception {
+    void testFetchUserData_Successful() {
         // Create a test GoogleAuthService with a protected method for URL creation
         GoogleAuthService spyService = spy(new GoogleAuthService(userService, jwtService) {
             @Override
