@@ -8,6 +8,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.lang.reflect.Constructor;
 import java.time.LocalDateTime;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -24,7 +25,8 @@ class OTPServiceTest {
     @Test
     void testGenerateOTP() {
         // Assume email service works
-        when(emailService.sendOTPMail(anyString(), anyString())).thenReturn(true);
+        when(emailService.sendOTPMail(anyString(), anyString()))
+            .thenReturn(CompletableFuture.completedFuture(true));
 
         String email = "user@example.com";
         String otp = otpService.generateOTP(email);
@@ -38,7 +40,8 @@ class OTPServiceTest {
 
     @Test
     void testVerifyOTPSuccess() {
-        when(emailService.sendOTPMail(anyString(), anyString())).thenReturn(true);
+        when(emailService.sendOTPMail(anyString(), anyString()))
+            .thenReturn(CompletableFuture.completedFuture(true));
 
         String email = "user@example.com";
         String otp = otpService.generateOTP(email);
@@ -50,7 +53,8 @@ class OTPServiceTest {
     // TODO: Test has a 1/1,000,000 chance to fail because OTP can generate all 0's.
     @Test
     void testVerifyOTPWrongOtp() {
-        when(emailService.sendOTPMail(anyString(), anyString())).thenReturn(true);
+        when(emailService.sendOTPMail(anyString(), anyString()))
+            .thenReturn(CompletableFuture.completedFuture(true));
 
         String email = "user@example.com";
         otpService.generateOTP(email);
@@ -61,7 +65,8 @@ class OTPServiceTest {
 
     @Test
     void testVerifyOTPExpired() throws Exception {
-        when(emailService.sendOTPMail(anyString(), anyString())).thenReturn(true);
+        when(emailService.sendOTPMail(anyString(), anyString()))
+            .thenReturn(CompletableFuture.completedFuture(true));
 
         String email = "user@example.com";
         String otp = otpService.generateOTP(email);
