@@ -106,10 +106,6 @@ public class JwtServiceTest {
         // Create a JwtService with a custom expiration time
         JwtService shortExpirationJwtService = new JwtService(secretKey, userService);
 
-        // Use reflection to create and set an expired token
-        String token = shortExpirationJwtService.generateToken(userId);
-        Claims claims = shortExpirationJwtService.parseToken(token);
-
         // Create a new token with an expiration date in the past
         Date pastDate = new Date(System.currentTimeMillis() - 1000); // 1 second in the past
 
