@@ -14,6 +14,7 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -28,6 +29,7 @@ import java.util.UUID;
 public class AuthenticationService {
     public static final String EMAIL_PROVIDER = "EMAIL";
     private static final Logger logger = LoggerFactory.getLogger(AuthenticationService.class);
+    @Value("${JWT_SECRET_KEY}")
     private static final String JWT_SECRET_KEY = "5047c55bfe120155fd4e884845682bb8b8815c0048a686cc664d1ea6c8e094da";
     private static final Long JWT_TOKEN_EXPIRATION_TIME = 86400000L;
     private final UserRepository userRepository;
