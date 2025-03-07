@@ -44,6 +44,10 @@ public class OTPService {
     }
 
     public boolean verifyOTP(String email, String otp) {
+        if (otp == null) {
+            throw new NullPointerException("OTP cannot be null");
+        }
+        
         OTPDetails details = otpStorage.get(email);
         if (details == null) {
             return false;
