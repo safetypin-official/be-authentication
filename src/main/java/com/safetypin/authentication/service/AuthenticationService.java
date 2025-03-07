@@ -28,10 +28,11 @@ import java.util.UUID;
 public class AuthenticationService {
     public static final String EMAIL_PROVIDER = "EMAIL";
     private static final Logger logger = LoggerFactory.getLogger(AuthenticationService.class);
+    private static final String JWT_SECRET_KEY = "5047c55bfe120155fd4e884845682bb8b8815c0048a686cc664d1ea6c8e094da";
+    private static final Long JWT_TOKEN_EXPIRATION_TIME = 86400000L;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final OTPService otpService;
-    private final String JWT_SECRET_KEY = "5047c55bfe120155fd4e884845682bb8b8815c0048a686cc664d1ea6c8e094da";
 
     public AuthenticationService(UserRepository userRepository, PasswordEncoder passwordEncoder, OTPService otpService) {
         this.userRepository = userRepository;
@@ -176,13 +177,11 @@ public class AuthenticationService {
 
     public String generateJwtToken(UUID userId) {
         Key key = Keys.hmacShaKeyFor(JWT_SECRET_KEY.getBytes());
-        // 1 day
-        long EXPIRATION_TIME = 86400000;
         return Jwts
                 .builder()
                 .setSubject(userId.toString())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
+                .setExpiration(new Date(System.currentTimeMillis() + JWT_TOKEN_EXPIRATION_TIME))
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }
