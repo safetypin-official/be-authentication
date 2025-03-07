@@ -29,7 +29,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(AuthenticationController.class)
-@Import({AuthenticationControllerTest.TestConfig.class, AuthenticationControllerTest.TestSecurityConfig.class})
+@Import({AuthenticationControllerTest.TestConfig.class})
 class AuthenticationControllerTest {
 
     @Autowired
@@ -210,6 +210,16 @@ class AuthenticationControllerTest {
         @Bean
         public AuthenticationService authenticationService() {
             return Mockito.mock(AuthenticationService.class);
+        }
+        
+        @Bean
+        public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+            http
+                .csrf(AbstractHttpConfigurer::disable)  // Appropriate for JWT authentication
+                .authorizeHttpRequests(auth -> auth
+                    .anyRequest().permitAll()
+                );
+            return http.build();
         }
     }
 }
