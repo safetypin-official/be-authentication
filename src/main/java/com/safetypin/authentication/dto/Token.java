@@ -6,5 +6,5 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public class Token {
-    private String token;
+    private String tokenValue;
 }
