@@ -66,7 +66,7 @@ class AuthenticationControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.token").value(token));
+                .andExpect(jsonPath("$.data.tokenValue").value(token));
     }
 
     @Test
@@ -98,7 +98,7 @@ class AuthenticationControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.token").value(token));
+                .andExpect(jsonPath("$.data.tokenValue").value(token));
     }
 
     @Test
@@ -122,7 +122,7 @@ class AuthenticationControllerTest {
                         .param("email", "email@example.com")
                         .param("password", "password"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.token").value(token));
+                .andExpect(jsonPath("$.data.tokenValue").value(token));
     }
 
     @Test
@@ -145,7 +145,7 @@ class AuthenticationControllerTest {
         mockMvc.perform(post("/api/auth/login-social")
                         .param("email", "social@example.com"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.token").value(token));
+                .andExpect(jsonPath("$.data.tokenValue").value(token));
     }
 
     @Test
