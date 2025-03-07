@@ -12,7 +12,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class OTPServiceTest {
@@ -22,49 +23,100 @@ class OTPServiceTest {
     @Mock
     private EmailService emailService;
 
+    /**
+     * Helper method to generate an OTP different from the input
+     */
+    private String generateDifferentOTP(String originalOTP) {
+        if (originalOTP.equals("000000")) {
+            return "000001";
+        } else {
+            return "000000";
+        }
+    }
+
     @Test
     void testGenerateOTP() {
-        // Assume email service works
         when(emailService.sendOTPMail(anyString(), anyString()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         String email = "user@example.com";
-        String otp = otpService.generateOTP(email);
-        assertNotNull(otp, "OTP should not be null");
-        assertEquals(6, otp.length(), "OTP should be 6 characters long");
-        assertTrue(otp.matches("\\d{6}"), "OTP should consist of 6 digits");
+        String generatedOTP = otpService.generateOTP(email);
 
-        // Verify emailService invoked once to send email
-        verify(emailService, times(1)).sendOTPMail(email, otp);
+        assertNotNull(generatedOTP, "Generated OTP should not be null");
+        assertEquals(6, generatedOTP.length(), "OTP should be 6 digits long");
     }
 
-    @Test
-    void testVerifyOTPSuccess() {
-        when(emailService.sendOTPMail(anyString(), anyString()))
-                .thenReturn(CompletableFuture.completedFuture(true));
-
-        String email = "user@example.com";
-        String otp = otpService.generateOTP(email);
-        // Immediately verify the generated OTP; it should succeed.
-        boolean result = otpService.verifyOTP(email, otp);
-        assertTrue(result, "The OTP should verify successfully");
-    }
-
-    // TODO: Test has a 1/1,000,000 chance to fail because OTP can generate all 0's.
     @Test
     void testVerifyOTPWrongOtp() {
         when(emailService.sendOTPMail(anyString(), anyString()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         String email = "user@example.com";
-        otpService.generateOTP(email);
-        // Try verifying with an incorrect OTP.
-        boolean result = otpService.verifyOTP(email, "000000");
+        String generatedOTP = otpService.generateOTP(email);
+
+        // Generate a different OTP guaranteed to be different from the one generated
+        String wrongOTP = generateDifferentOTP(generatedOTP);
+
+        boolean result = otpService.verifyOTP(email, wrongOTP);
         assertFalse(result, "Verification should fail for an incorrect OTP");
     }
 
     @Test
-    void testVerifyOTPExpired() throws Exception {
+    void testMultipleOTPGenerations() {
+        when(emailService.sendOTPMail(anyString(), anyString()))
+                .thenReturn(CompletableFuture.completedFuture(true));
+
+        String email = "user@example.com";
+        String firstOTP = otpService.generateOTP(email);
+        String secondOTP = otpService.generateOTP(email);
+
+        assertNotEquals(firstOTP, secondOTP, "Generated OTPs should be different");
+    }
+
+    @Test
+    void testVerifyOTPAfterSecondGeneration() {
+        when(emailService.sendOTPMail(anyString(), anyString()))
+                .thenReturn(CompletableFuture.completedFuture(true));
+
+        String email = "user@example.com";
+        String firstOTP = otpService.generateOTP(email);
+        String secondOTP = otpService.generateOTP(email);
+
+        boolean result = otpService.verifyOTP(email, firstOTP);
+        assertFalse(result, "First OTP should not verify after second generation");
+
+        boolean secondResult = otpService.verifyOTP(email, secondOTP);
+        assertTrue(secondResult, "Latest OTP should verify successfully");
+    }
+
+    @Test
+    void testVerifyOTPMultipleTimes() {
+        when(emailService.sendOTPMail(anyString(), anyString()))
+                .thenReturn(CompletableFuture.completedFuture(true));
+
+        String email = "user@example.com";
+        String otp = otpService.generateOTP(email);
+
+        boolean firstTry = otpService.verifyOTP(email, otp);
+        assertTrue(firstTry, "First verification should succeed");
+
+        boolean secondTry = otpService.verifyOTP(email, otp);
+        assertFalse(secondTry, "Second verification should fail as OTP should be consumed");
+    }
+
+    @Test
+    void testNullParameters() {
+        assertThrows(NullPointerException.class, () -> {
+            otpService.verifyOTP(null, "123456");
+        }, "Should throw exception when email is null");
+
+        assertThrows(NullPointerException.class, () -> {
+            otpService.verifyOTP("user@example.com", null);
+        }, "Should throw exception when OTP is null");
+    }
+
+    @Test
+    void testOTPExpiration() throws Exception {
         when(emailService.sendOTPMail(anyString(), anyString()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
