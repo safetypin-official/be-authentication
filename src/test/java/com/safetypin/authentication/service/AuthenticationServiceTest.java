@@ -8,6 +8,9 @@ import com.safetypin.authentication.exception.UserAlreadyExistsException;
 import com.safetypin.authentication.model.Role;
 import com.safetypin.authentication.model.User;
 import com.safetypin.authentication.repository.UserRepository;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -15,7 +18,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.security.Key;
 import java.time.LocalDate;
+import java.util.Date;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -459,5 +464,32 @@ class AuthenticationServiceTest {
         when(userRepository.findByEmail("test@example.com")).thenReturn(user);
         String response = authenticationService.postContent("test@example.com", "Content");
         assertEquals("Content posted successfully", response);
+    }
+
+    @Test
+    void testJwtTokenExpirationTime() {
+        // Generate a token for a random UUID
+        UUID userId = UUID.randomUUID();
+        String token = authenticationService.generateJwtToken(userId);
+        assertNotNull(token);
+        
+        // Parse the token to extract claims
+        Key key = Keys.hmacShaKeyFor("5047c55bfe120155fd4e884845682bb8b8815c0048a686cc664d1ea6c8e094da".getBytes());
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+        
+        // Extract the issued at and expiration times
+        Date issuedAt = claims.getIssuedAt();
+        Date expiration = claims.getExpiration();
+        assertNotNull(issuedAt);
+        assertNotNull(expiration);
+        
+        // Calculate difference and verify it equals 86400000L (24 hours)
+        long timeDifference = expiration.getTime() - issuedAt.getTime();
+        assertEquals(86400000L, timeDifference, 
+                "JWT token should expire exactly 24 hours (86400000 milliseconds) after issuance");
     }
 }
