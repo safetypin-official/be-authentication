@@ -9,6 +9,7 @@ import com.safetypin.authentication.model.Role;
 import com.safetypin.authentication.model.User;
 import com.safetypin.authentication.repository.UserRepository;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -159,6 +160,7 @@ public class AuthenticationService {
     }
 
     // Example method representing posting content that requires a verified account
+    // Deprecated : moved to be-post
     public String postContent(String email, String content) { // NOSONAR
         User user = userRepository.findByEmail(email);
         if (user == null) {
@@ -189,25 +191,32 @@ public class AuthenticationService {
     }
 
     public UserResponse getUserFromJwtToken(String token) {
-        Key key = Keys.hmacShaKeyFor(JWT_SECRET_KEY.getBytes());
-        Claims claims = Jwts.parserBuilder()
-                .setSigningKey(key)
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
+        try {
+            Key key = Keys.hmacShaKeyFor(JWT_SECRET_KEY.getBytes());
 
-        boolean isExpired = claims.getExpiration().before(new Date(System.currentTimeMillis()));
-        UUID userId = UUID.fromString(claims.getSubject());
+            Claims claims = Jwts.parserBuilder()
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
 
-        if (isExpired) {
-            throw new InvalidCredentialsException("Token expired");
-        } else {
+            boolean isExpired = claims.getExpiration().before(new Date(System.currentTimeMillis()));
+            UUID userId = UUID.fromString(claims.getSubject());
+
+            if (isExpired) {
+                throw new InvalidCredentialsException("Token expired");
+            }
+
             Optional<User> user = userRepository.findById(userId);
             if (user.isEmpty()) {
                 throw new InvalidCredentialsException("User not found");
             }
             return user.get().generateUserResponse();
+
+        } catch (JwtException | IllegalArgumentException e){
+            throw new InvalidCredentialsException("Invalid token");
         }
+
     }
 
 
