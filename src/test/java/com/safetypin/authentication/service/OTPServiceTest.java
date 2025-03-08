@@ -1,5 +1,6 @@
 package com.safetypin.authentication.service;
 
+import com.safetypin.authentication.exception.OTPException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -10,6 +11,7 @@ import java.lang.reflect.Constructor;
 import java.time.LocalDateTime;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.anyString;
@@ -152,5 +154,61 @@ class OTPServiceTest {
         // No OTP was generated for this email, so verification should return false.
         boolean result = otpService.verifyOTP("nonexistent@example.com", "123456");
         assertFalse(result, "Verification should fail when no OTP is generated for the given email");
+    }
+
+    @Test
+    void testGenerateOTPEmailServiceReturnsFalse() {
+        // Mock email service to return false
+        when(emailService.sendOTPMail(anyString(), anyString()))
+                .thenReturn(CompletableFuture.completedFuture(false));
+
+        String email = "user@example.com";
+
+        // Verify that OTPException is thrown
+        OTPException exception = assertThrows(OTPException.class, () -> {
+            otpService.generateOTP(email);
+        }, "Should throw OTPException when email service returns false");
+
+        assertEquals("Failed to send OTP", exception.getMessage());
+    }
+
+    @Test
+    void testGenerateOTPInterruptedException() {
+        // Mock email service to throw InterruptedException
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        future.completeExceptionally(new InterruptedException("Test interrupted"));
+        when(emailService.sendOTPMail(anyString(), anyString())).thenReturn(future);
+
+        String email = "user@example.com";
+
+        // Verify that OTPException is thrown
+        OTPException exception = assertThrows(OTPException.class, () -> {
+            otpService.generateOTP(email);
+        }, "Should throw OTPException when InterruptedException occurs");
+
+        assertTrue(exception.getMessage().contains("Failed to send OTP"));
+
+        // Verify that thread was interrupted
+        assertTrue(Thread.currentThread().isInterrupted(), "Thread should be interrupted");
+
+        // Clear the interrupted status for other tests
+        Thread.interrupted();
+    }
+
+    @Test
+    void testGenerateOTPExecutionException() {
+        // Mock email service to throw ExecutionException
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        future.completeExceptionally(new ExecutionException("Test execution failed", new RuntimeException("Email service error")));
+        when(emailService.sendOTPMail(anyString(), anyString())).thenReturn(future);
+
+        String email = "user@example.com";
+
+        // Verify that OTPException is thrown
+        OTPException exception = assertThrows(OTPException.class, () -> {
+            otpService.generateOTP(email);
+        }, "Should throw OTPException when ExecutionException occurs");
+
+        assertTrue(exception.getMessage().contains("Failed to send OTP"));
     }
 }
