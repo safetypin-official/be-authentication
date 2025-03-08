@@ -42,14 +42,15 @@ class DevDataSeederTest {
     @Test
     void testSeederDoesNotInsertIfUsersExist() {
         // Save an existing user into the repository
-        userRepository.save(new User("existing@example.com",
-                passwordEncoder.encode("test"),
-                "Existing User",
-                true,
-                "admin",
-                LocalDate.of(1990, 1, 1),
-                "EMAIL",
-                "social_9999"));
+        User user = new User();
+        user.setEmail("existing@example.com");
+        user.setPassword(passwordEncoder.encode("test"));
+        user.setName("Existing User");
+        user.setVerified(true);
+        user.setRole("admin");
+        user.setBirthdate(LocalDate.of(1990, 1, 1));
+        user.setProvider("EMAIL");
+        userRepository.save(user);
 
         long countBefore = userRepository.count();
         new DevDataSeeder(userRepository, passwordEncoder).run();

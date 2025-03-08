@@ -1,68 +1,47 @@
 package com.safetypin.authentication.model;
 
+import com.safetypin.authentication.dto.UserResponse;
 import jakarta.persistence.*;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 @Entity
 @Table(name = "users")
+@NoArgsConstructor
 public class User {
-
-    @Setter
-    @Getter
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Setter @Getter
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
-    @Setter
-    @Getter
+    @Setter @Getter
     @Column(nullable = false, unique = true)
     private String email;
 
     // May be null for social login users
-    @Setter
-    @Getter
-    @Column(nullable = false)
+    @Setter @Getter
     private String password;
 
-    @Setter
-    @Getter
+    @Setter @Getter
     @Column(nullable = false)
     private String name;
 
     @Column(nullable = false)
     private boolean isVerified = false;
 
-    @Setter
-    @Getter
+    @Setter @Getter
     private String role;
 
     // New fields
-    @Setter
-    @Getter
+    @Setter @Getter
     private LocalDate birthdate;
-    @Setter
-    @Getter
+
+    @Setter  @Getter
     private String provider;  // "EMAIL", "GOOGLE", "APPLE"
-    @Setter
-    @Getter
-    private String socialId;  // For social login users
-
-    public User() {}
-
-    public User(String email, String password, String name, boolean isVerified, String role,
-                LocalDate birthdate, String provider, String socialId) {
-        this.email = email;
-        this.password = password;
-        this.name = name;
-        this.isVerified = isVerified;
-        this.role = role;
-        this.birthdate = birthdate;
-        this.provider = provider;
-        this.socialId = socialId;
-    }
 
     // Getters and setters
 
@@ -71,6 +50,18 @@ public class User {
     }
     public void setVerified(boolean verified) {
         isVerified = verified;
+    }
+
+    public UserResponse generateUserResponse(){
+        return UserResponse.builder()
+                .email(email)
+                .id(id)
+                .provider(provider)
+                .birthdate(birthdate)
+                .role(role)
+                .name(name)
+                .isVerified(isVerified)
+                .build();
     }
 
 }
