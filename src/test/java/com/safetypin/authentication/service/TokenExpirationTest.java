@@ -22,7 +22,6 @@ import static org.mockito.Mockito.when;
 
 public class TokenExpirationTest {
 
-    private static final String JWT_SECRET_KEY = "5047c55bfe120155fd4e884845682bb8b8815c0048a686cc664d1ea6c8e094da";
 
     @Mock
     private UserRepository userRepository;
