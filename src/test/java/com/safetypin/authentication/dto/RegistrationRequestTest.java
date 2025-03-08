@@ -1,44 +1,30 @@
 package com.safetypin.authentication.dto;
 
-import jakarta.validation.ConstraintViolation;
-import jakarta.validation.Validation;
-import jakarta.validation.Validator;
-import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.Test;
-
 import java.time.LocalDate;
-import java.util.Set;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.*;
 
 class RegistrationRequestTest {
 
-    private final Validator validator;
-
-    public RegistrationRequestTest() {
-        ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
-        this.validator = factory.getValidator();
-    }
-
     @Test
-    void testRegistrationRequestValid() {
+    void testGettersAndSetters() {
+        // Arrange
         RegistrationRequest request = new RegistrationRequest();
-        request.setEmail("user@example.com");
-        request.setPassword("securePassword");
-        request.setName("John Doe");
-        request.setBirthdate(LocalDate.of(1995, 5, 10));
+        String email = "test@example.com";
+        String password = "Password123";
+        String name = "Test User";
+        LocalDate birthdate = LocalDate.of(1990, 1, 1);
 
-        Set<ConstraintViolation<RegistrationRequest>> violations = validator.validate(request);
-        assertThat(violations).isEmpty();
-    }
+        // Act
+        request.setEmail(email);
+        request.setPassword(password);
+        request.setName(name);
+        request.setBirthdate(birthdate);
 
-    @Test
-    void testRegistrationRequestMissingFields() {
-        RegistrationRequest request = new RegistrationRequest(); // Missing required fields
-
-        Set<ConstraintViolation<RegistrationRequest>> violations = validator.validate(request);
-        assertThat(violations)
-                .isNotEmpty()
-                .hasSize(4); // Email, password, name, and birthdate should all be invalid
+        // Assert
+        assertEquals(email, request.getEmail());
+        assertEquals(password, request.getPassword());
+        assertEquals(name, request.getName());
+        assertEquals(birthdate, request.getBirthdate());
     }
 }

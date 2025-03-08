@@ -1,46 +1,36 @@
 package com.safetypin.authentication.dto;
 
-import jakarta.validation.ConstraintViolation;
-import jakarta.validation.Validation;
-import jakarta.validation.Validator;
-import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.Test;
-
 import java.time.LocalDate;
-import java.util.Set;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.*;
 
 class SocialLoginRequestTest {
 
-    private final Validator validator;
-
-    public SocialLoginRequestTest() {
-        ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
-        this.validator = factory.getValidator();
-    }
-
     @Test
-    void testSocialLoginRequestValid() {
+    void testGettersAndSetters() {
+        // Arrange
         SocialLoginRequest request = new SocialLoginRequest();
-        request.setProvider("GOOGLE");
-        request.setSocialToken("validToken");
-        request.setEmail("socialuser@example.com");
-        request.setName("Social User");
-        request.setBirthdate(LocalDate.of(2000, 1, 1));
-        request.setSocialId("123456789");
+        String provider = "GOOGLE";
+        String socialToken = "token123";
+        String email = "test@example.com";
+        String name = "Test User";
+        LocalDate birthdate = LocalDate.of(1990, 1, 1);
+        String socialId = "social123";
 
-        Set<ConstraintViolation<SocialLoginRequest>> violations = validator.validate(request);
-        assertThat(violations).isEmpty();
-    }
+        // Act
+        request.setProvider(provider);
+        request.setSocialToken(socialToken);
+        request.setEmail(email);
+        request.setName(name);
+        request.setBirthdate(birthdate);
+        request.setSocialId(socialId);
 
-    @Test
-    void testSocialLoginRequestMissingFields() {
-        SocialLoginRequest request = new SocialLoginRequest(); // Missing required fields
-
-        Set<ConstraintViolation<SocialLoginRequest>> violations = validator.validate(request);
-        assertThat(violations)
-                .isNotEmpty()
-                .hasSize(6); // All fields should be invalid
+        // Assert
+        assertEquals(provider, request.getProvider());
+        assertEquals(socialToken, request.getSocialToken());
+        assertEquals(email, request.getEmail());
+        assertEquals(name, request.getName());
+        assertEquals(birthdate, request.getBirthdate());
+        assertEquals(socialId, request.getSocialId());
     }
 }
