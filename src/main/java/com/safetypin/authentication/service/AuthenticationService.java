@@ -31,7 +31,7 @@ public class AuthenticationService {
     public static final String EMAIL_PROVIDER = "EMAIL";
     private static final Logger logger = LoggerFactory.getLogger(AuthenticationService.class);
     @Value("${JWT_SECRET_KEY}")
-    private static final String JWT_SECRET_KEY = "5047c55bfe120155fd4e884845682bb8b8815c0048a686cc664d1ea6c8e094da";
+    private String JWT_SECRET_KEY;
     private static final Long JWT_TOKEN_EXPIRATION_TIME = 86400000L;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
