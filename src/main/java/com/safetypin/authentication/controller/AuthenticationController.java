@@ -4,12 +4,12 @@ import com.safetypin.authentication.dto.*;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.UserAlreadyExistsException;
 import com.safetypin.authentication.service.AuthenticationService;
+import jakarta.validation.Valid;
 import com.safetypin.authentication.service.GoogleAuthService;
 import com.safetypin.authentication.service.JwtService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -53,13 +53,14 @@ public class AuthenticationController {
 
     }
 
+
     // Endpoint for email login
     @PostMapping("/login-email")
     public ResponseEntity<AuthResponse> loginEmail(@RequestParam String email, @RequestParam String password) {
         try {
             String jwt = authenticationService.loginUser(email, password);
             return ResponseEntity.ok(new AuthResponse(true, "OK", new Token(jwt)));
-        } catch (InvalidCredentialsException e){
+        } catch (InvalidCredentialsException e) {
             AuthResponse response = new AuthResponse(false, e.getMessage(), null);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }

@@ -3,6 +3,7 @@ package com.safetypin.authentication.service;
 import com.safetypin.authentication.dto.RegistrationRequest;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.UserAlreadyExistsException;
+import com.safetypin.authentication.model.Role;
 import com.safetypin.authentication.model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +49,7 @@ public class AuthenticationService {
         user.setPassword(encodedPassword);
         user.setName(request.getName());
         user.setVerified(false);
-        user.setRole("USER");
+        user.setRole(Role.REGISTERED_USER);
         user.setBirthdate(request.getBirthdate());
         user.setProvider(EMAIL_PROVIDER);
         user = userService.save(user);

@@ -8,17 +8,17 @@ import org.springframework.web.bind.annotation.RestController;
 
 @SpringBootApplication
 public class AuthenticationApplication {
-	public static void main(String[] args) {
-		SpringApplication.run(AuthenticationApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(AuthenticationApplication.class, args);
+    }
 
 }
 
 @RestController
 @RequestMapping("/")
 class HelloController {
-	@GetMapping
-	public String sayHello() {
-		return "Hello, World!";
-	}
+    @GetMapping
+    public String sayHello() {
+        return "Hello, World!";
+    }
 }

@@ -1,6 +1,7 @@
 package com.safetypin.authentication;
 
 import org.junit.jupiter.api.Test;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class HelloControllerTest {
