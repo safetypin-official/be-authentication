@@ -10,6 +10,7 @@ import com.safetypin.authentication.model.User;
 import com.safetypin.authentication.repository.UserRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -472,7 +473,7 @@ class AuthenticationServiceTest {
         UUID userId = UUID.randomUUID();
         String token = authenticationService.generateJwtToken(userId);
         assertNotNull(token);
-        
+
         // Parse the token to extract claims
         Key key = Keys.hmacShaKeyFor("5047c55bfe120155fd4e884845682bb8b8815c0048a686cc664d1ea6c8e094da".getBytes());
         Claims claims = Jwts.parserBuilder()
@@ -480,16 +481,86 @@ class AuthenticationServiceTest {
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
-        
+
         // Extract the issued at and expiration times
         Date issuedAt = claims.getIssuedAt();
         Date expiration = claims.getExpiration();
         assertNotNull(issuedAt);
         assertNotNull(expiration);
-        
+
         // Calculate difference and verify it equals 86400000L (24 hours)
         long timeDifference = expiration.getTime() - issuedAt.getTime();
-        assertEquals(86400000L, timeDifference, 
+        assertEquals(86400000L, timeDifference,
                 "JWT token should expire exactly 24 hours (86400000 milliseconds) after issuance");
     }
+
+    // Tests for getUserFromJwtToken method
+
+    @Test
+    void testGetUserFromJwtToken_InvalidToken() {
+        // Test with malformed token
+        Exception exception = assertThrows(InvalidCredentialsException.class, () ->
+                authenticationService.getUserFromJwtToken("invalid.token.format")
+        );
+        assertEquals("Invalid token", exception.getMessage());
+    }
+
+    @Test
+    void testGetUserFromJwtToken_ExpiredToken() throws Exception {
+        // Create a JWT token with custom expiration (already expired)
+        UUID userId = UUID.randomUUID();
+        Key key = Keys.hmacShaKeyFor("5047c55bfe120155fd4e884845682bb8b8815c0048a686cc664d1ea6c8e094da".getBytes());
+
+        String expiredToken = Jwts.builder()
+                .setSubject(userId.toString())
+                .setIssuedAt(new Date(System.currentTimeMillis() - 200000)) // 200 seconds ago
+                .setExpiration(new Date(System.currentTimeMillis() - 100000)) // 100 seconds ago (expired)
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+
+        Exception exception = assertThrows(InvalidCredentialsException.class, () ->
+                authenticationService.getUserFromJwtToken(expiredToken)
+        );
+        assertEquals("Invalid token", exception.getMessage());
+    }
+
+    @Test
+    void testGetUserFromJwtToken_UserNotFound() {
+        // Create valid token with random UUID that doesn't exist in DB
+        UUID nonExistentId = UUID.randomUUID();
+        String token = authenticationService.generateJwtToken(nonExistentId);
+
+        when(userRepository.findById(nonExistentId)).thenReturn(Optional.empty());
+
+        Exception exception = assertThrows(InvalidCredentialsException.class, () ->
+                authenticationService.getUserFromJwtToken(token)
+        );
+        assertEquals("User not found", exception.getMessage());
+    }
+
+    @Test
+    void testGetUserFromJwtToken_Success() {
+        // Create user and token for explicit testing
+        UUID userId = UUID.randomUUID();
+        User user = new User();
+        user.setId(userId);
+        user.setEmail("test@example.com");
+        user.setName("Test User");
+        user.setVerified(true);
+        user.setRole(Role.REGISTERED_USER);
+
+        // Generate a valid token
+        String token = authenticationService.generateJwtToken(userId);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+        // Test successful retrieval
+        UserResponse response = authenticationService.getUserFromJwtToken(token);
+
+        assertNotNull(response);
+        assertEquals("test@example.com", response.getEmail());
+        assertEquals("Test User", response.getName());
+        assertTrue(response.isVerified());
+    }
+
 }
