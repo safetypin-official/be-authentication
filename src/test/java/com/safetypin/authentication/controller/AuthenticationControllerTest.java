@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.safetypin.authentication.dto.PasswordResetRequest;
 import com.safetypin.authentication.dto.RegistrationRequest;
 import com.safetypin.authentication.dto.SocialLoginRequest;
+import com.safetypin.authentication.dto.UserResponse;
+import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.model.Role;
 import com.safetypin.authentication.model.User;
 import com.safetypin.authentication.service.AuthenticationService;
@@ -126,6 +128,21 @@ class AuthenticationControllerTest {
     }
 
     @Test
+    void testLoginEmail_InvalidCredentials() throws Exception {
+        String errorMessage = "Invalid email or password";
+        Mockito.when(authenticationService.loginUser("wrong@example.com", "wrongpassword"))
+                .thenThrow(new InvalidCredentialsException(errorMessage));
+
+        mockMvc.perform(post("/api/auth/login-email")
+                        .param("email", "wrong@example.com")
+                        .param("password", "wrongpassword"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value(errorMessage))
+                .andExpect(jsonPath("$.data").isEmpty());
+    }
+
+    @Test
     void testLoginSocial() throws Exception {
         User user = new User();
         user.setEmail("social@example.com");
@@ -146,6 +163,20 @@ class AuthenticationControllerTest {
                         .param("email", "social@example.com"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.tokenValue").value(token));
+    }
+
+    @Test
+    void testLoginSocial_InvalidCredentials() throws Exception {
+        String errorMessage = "User with this email not found";
+        Mockito.when(authenticationService.loginSocial("nonexistent@example.com"))
+                .thenThrow(new InvalidCredentialsException(errorMessage));
+
+        mockMvc.perform(post("/api/auth/login-social")
+                        .param("email", "nonexistent@example.com"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value(errorMessage))
+                .andExpect(jsonPath("$.data").isEmpty());
     }
 
     @Test
@@ -173,6 +204,17 @@ class AuthenticationControllerTest {
     }
 
     @Test
+    void testVerifyOTP_InvalidCredentials() throws Exception {
+        String errorMessage = "Invalid email or OTP";
+        Mockito.when(authenticationService.verifyOTP("email@example.com", "invalid"))
+                .thenThrow(new InvalidCredentialsException(errorMessage));
+
+        mockMvc.perform(post("/api/auth/verify-otp")
+                        .param("email", "Invalid OTP code or expired"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void testForgotPassword() throws Exception {
         PasswordResetRequest request = new PasswordResetRequest();
         request.setEmail("email@example.com");
@@ -184,6 +226,47 @@ class AuthenticationControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(content().string("Password reset instructions have been sent to your email (simulated)"));
+    }
+
+    @Test
+    void testVerifyJwtToken_Success() throws Exception {
+        String validToken = "valid.jwt.token";
+        UUID userId = UUID.randomUUID();
+        UserResponse userResponse = UserResponse.builder()
+                .id(userId)
+                .email("test@example.com")
+                .name("Test User")
+                .isVerified(true)
+                .role("REGISTERED_USER")
+                .birthdate(LocalDate.now().minusYears(25))
+                .provider("EMAIL")
+                .build();
+
+        Mockito.when(authenticationService.getUserFromJwtToken(validToken)).thenReturn(userResponse);
+
+        mockMvc.perform(post("/api/auth/verify-jwt")
+                        .param("token", validToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("OK"))
+                .andExpect(jsonPath("$.data.email").value("test@example.com"))
+                .andExpect(jsonPath("$.data.name").value("Test User"));
+    }
+
+    @Test
+    void testVerifyJwtToken_InvalidToken() throws Exception {
+        String invalidToken = "invalid.token";
+        String errorMessage = "Invalid or expired JWT token";
+
+        Mockito.when(authenticationService.getUserFromJwtToken(invalidToken))
+                .thenThrow(new InvalidCredentialsException(errorMessage));
+
+        mockMvc.perform(post("/api/auth/verify-jwt")
+                        .param("token", invalidToken))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value(errorMessage))
+                .andExpect(jsonPath("$.data").isEmpty());
     }
 
     @Test
@@ -211,14 +294,14 @@ class AuthenticationControllerTest {
         public AuthenticationService authenticationService() {
             return Mockito.mock(AuthenticationService.class);
         }
-        
+
         @Bean
         public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
             http
-                .csrf(AbstractHttpConfigurer::disable)  // Appropriate for JWT authentication
-                .authorizeHttpRequests(auth -> auth
-                    .anyRequest().permitAll()
-                );
+                    .csrf(AbstractHttpConfigurer::disable)  // Appropriate for JWT authentication
+                    .authorizeHttpRequests(auth -> auth
+                            .anyRequest().permitAll()
+                    );
             return http.build();
         }
     }
