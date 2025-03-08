@@ -52,10 +52,6 @@ public class User {
     @Getter
     private String provider;  // "EMAIL", "GOOGLE", "APPLE"
 
-    @Setter
-    @Getter
-    private String socialId;  // For social login users
-
 
     // Getters and setters
 

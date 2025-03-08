@@ -5,6 +5,9 @@ import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.UserAlreadyExistsException;
 import com.safetypin.authentication.service.AuthenticationService;
 import jakarta.validation.Valid;
+import com.safetypin.authentication.service.GoogleAuthService;
+import com.safetypin.authentication.service.JwtService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,9 +17,14 @@ import org.springframework.web.bind.annotation.*;
 public class AuthenticationController {
 
     private final AuthenticationService authenticationService;
+    private final GoogleAuthService googleAuthService;
+    private final JwtService jwtService;
 
-    public AuthenticationController(AuthenticationService authenticationService) {
+    @Autowired
+    public AuthenticationController(AuthenticationService authenticationService, GoogleAuthService googleAuthService, JwtService jwtService) {
         this.authenticationService = authenticationService;
+        this.googleAuthService = googleAuthService;
+        this.jwtService = jwtService;
     }
 
 
@@ -25,19 +33,6 @@ public class AuthenticationController {
     public ResponseEntity<AuthResponse> registerEmail(@Valid @RequestBody RegistrationRequest request) {
         try {
             String jwt = authenticationService.registerUser(request);
-            return ResponseEntity.ok().body(new AuthResponse(true, "OK", new Token(jwt)));
-        } catch (IllegalArgumentException | UserAlreadyExistsException e) {
-            AuthResponse response = new AuthResponse(false, e.getMessage(), null);
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-        }
-
-    }
-
-    // Endpoint for social registration/login
-    @PostMapping("/register-social")
-    public ResponseEntity<AuthResponse> registerSocial(@Valid @RequestBody SocialLoginRequest request) {
-        try {
-            String jwt = authenticationService.socialLogin(request);
             return ResponseEntity.ok().body(new AuthResponse(true, "OK", new Token(jwt)));
         } catch (IllegalArgumentException | UserAlreadyExistsException e) {
             AuthResponse response = new AuthResponse(false, e.getMessage(), null);
@@ -72,17 +67,18 @@ public class AuthenticationController {
 
     }
 
-    // Endpoint for social login (DEPRECATED, use regis-social instead)
-    @PostMapping("/login-social")
-    public ResponseEntity<AuthResponse> loginSocial(@RequestParam String email) {
+    @PostMapping("/google")
+    public ResponseEntity<AuthResponse> authenticateGoogle(@Valid @RequestBody GoogleAuthDTO googleAuthData) {
         try {
-            String jwt = authenticationService.loginSocial(email);
+            String jwt = googleAuthService.authenticate(googleAuthData);
             return ResponseEntity.ok(new AuthResponse(true, "OK", new Token(jwt)));
-        } catch (InvalidCredentialsException e) {
+        } catch (UserAlreadyExistsException e) {
             AuthResponse response = new AuthResponse(false, e.getMessage(), null);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        } catch (Exception e) {
+            AuthResponse response = new AuthResponse(false, e.getMessage(), null);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
-
     }
 
 
@@ -96,19 +92,12 @@ public class AuthenticationController {
     @PostMapping("/verify-jwt")
     public ResponseEntity<AuthResponse> verifyJwtToken(@RequestParam String token) {
         try {
-            UserResponse userResponse = authenticationService.getUserFromJwtToken(token);
+            UserResponse userResponse = jwtService.getUserFromJwtToken(token);
             return ResponseEntity.ok(new AuthResponse(true, "OK", userResponse));
         } catch (InvalidCredentialsException e) {
             AuthResponse response = new AuthResponse(false, e.getMessage(), null);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
-    }
-
-
-    // Endpoint simulating a content post that requires a verified account (DEPRECATED, use be-post instead)
-    @PostMapping("/post")
-    public String postContent(@RequestParam String email, @RequestParam String content) {
-        return authenticationService.postContent(email, content);
     }
 
     // On successful login, return an empty map as a placeholder for future reports

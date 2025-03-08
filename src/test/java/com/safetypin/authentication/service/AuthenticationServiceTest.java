@@ -1,32 +1,18 @@
 package com.safetypin.authentication.service;
 
 import com.safetypin.authentication.dto.RegistrationRequest;
-import com.safetypin.authentication.dto.SocialLoginRequest;
-import com.safetypin.authentication.dto.UserResponse;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.UserAlreadyExistsException;
 import com.safetypin.authentication.model.Role;
 import com.safetypin.authentication.model.User;
-import com.safetypin.authentication.repository.UserRepository;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.security.Keys;
-import jakarta.annotation.PostConstruct;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.context.TestPropertySource;
 
-import java.security.Key;
 import java.time.LocalDate;
-import java.util.Date;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -38,7 +24,7 @@ import static org.mockito.Mockito.*;
 class AuthenticationServiceTest {
 
     @Mock
-    private UserRepository userRepository;
+    private UserService userService;
 
     @Mock
     private PasswordEncoder passwordEncoder;
@@ -46,18 +32,25 @@ class AuthenticationServiceTest {
     @Mock
     private OTPService otpService;
 
-    @InjectMocks
+    @Mock
+    private JwtService jwtService;
+
     private AuthenticationService authenticationService;
 
+    @BeforeEach
+    void setUp() {
+        authenticationService = new AuthenticationService(userService, passwordEncoder, otpService, jwtService);
+    }
+
     // registerUser tests
-    
+
     @Test
     void testRegisterUser_UnderAge() {
         RegistrationRequest request = new RegistrationRequest();
         request.setEmail("test@example.com");
         request.setPassword("password");
         request.setName("Test User");
-        // set birthdate to 17 years old
+        // set birthdate to 15 years old
         request.setBirthdate(LocalDate.now().minusYears(15));
 
         Exception exception = assertThrows(IllegalArgumentException.class, () ->
@@ -74,7 +67,8 @@ class AuthenticationServiceTest {
         request.setName("Test User");
         request.setBirthdate(LocalDate.now().minusYears(20));
 
-        when(userRepository.findByEmail("test@example.com")).thenReturn(new User());
+        User existingUser = new User();
+        when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(existingUser));
 
         Exception exception = assertThrows(UserAlreadyExistsException.class, () ->
                 authenticationService.registerUser(request)
@@ -90,8 +84,9 @@ class AuthenticationServiceTest {
         request.setName("Test User");
         request.setBirthdate(LocalDate.now().minusYears(20));
 
-        when(userRepository.findByEmail("test@example.com")).thenReturn(null);
+        when(userService.findByEmail("test@example.com")).thenReturn(Optional.empty());
         when(passwordEncoder.encode("password")).thenReturn("encodedPassword");
+
         User savedUser = new User();
         savedUser.setEmail("test@example.com");
         savedUser.setPassword("encodedPassword");
@@ -100,165 +95,36 @@ class AuthenticationServiceTest {
         savedUser.setRole(Role.REGISTERED_USER);
         savedUser.setBirthdate(request.getBirthdate());
         savedUser.setProvider("EMAIL");
-        savedUser.setSocialId(null);
 
         UUID id = UUID.randomUUID();
         savedUser.setId(id);
-        when(userRepository.save(any(User.class))).thenReturn(savedUser);
-        when(userRepository.findById(id)).thenReturn(Optional.of(savedUser));
+
+        when(userService.save(any(User.class))).thenReturn(savedUser);
+        when(jwtService.generateToken(id)).thenReturn("jwtToken");
 
         String token = authenticationService.registerUser(request);
+
         assertNotNull(token);
-        UserResponse userResponse = authenticationService.getUserFromJwtToken(token);
-        assertEquals("test@example.com", userResponse.getEmail());
-        // OTPService should be invoked to generate OTP.
+        assertEquals("jwtToken", token);
         verify(otpService, times(1)).generateOTP("test@example.com");
-    }
-
-    // socialLogin tests
-
-    @Test
-    void testSocialLogin_UnderAge() {
-        SocialLoginRequest request = new SocialLoginRequest();
-        request.setEmail("social@example.com");
-        request.setName("Social User");
-        request.setBirthdate(LocalDate.now().minusYears(15));
-        request.setProvider("GOOGLE");
-        request.setSocialId("social123");
-        request.setSocialToken("token");
-
-        Exception exception = assertThrows(IllegalArgumentException.class, () ->
-                authenticationService.socialLogin(request)
-        );
-        assertEquals("User must be at least 16 years old", exception.getMessage());
-    }
-
-    @Test
-    void testSocialLogin_DuplicateEmailWithEmailProvider() {
-        SocialLoginRequest request = new SocialLoginRequest();
-        request.setEmail("social@example.com");
-        request.setName("Social User");
-        request.setBirthdate(LocalDate.now().minusYears(25));
-        request.setProvider("APPLE");
-        request.setSocialId("social123");
-        request.setSocialToken("token");
-
-        User existingUser = new User();
-        existingUser.setEmail("social@example.com");
-        existingUser.setPassword("encodedPassword");
-        existingUser.setName("Existing User");
-        existingUser.setVerified(false);
-        existingUser.setRole(Role.REGISTERED_USER);
-        existingUser.setBirthdate(LocalDate.now().minusYears(30));
-        existingUser.setProvider("EMAIL");
-        existingUser.setSocialId(null);
-
-        when(userRepository.findByEmail("social@example.com")).thenReturn(existingUser);
-
-        Exception exception = assertThrows(UserAlreadyExistsException.class, () ->
-                authenticationService.socialLogin(request)
-        );
-        assertTrue(exception.getMessage().contains("An account with this email exists"));
-    }
-
-    @Test
-    void testSocialLogin_ExistingSocialUser() {
-        SocialLoginRequest request = new SocialLoginRequest();
-        request.setEmail("social@example.com");
-        request.setName("Social User");
-        request.setBirthdate(LocalDate.now().minusYears(25));
-        request.setProvider("GOOGLE");
-        request.setSocialId("social123");
-        request.setSocialToken("token");
-
-        User existingUser = new User();
-        existingUser.setEmail("social@example.com");
-        existingUser.setPassword(null);
-        existingUser.setName("Social User");
-        existingUser.setVerified(true);
-        existingUser.setRole(Role.REGISTERED_USER);
-        existingUser.setBirthdate(LocalDate.now().minusYears(25));
-        existingUser.setProvider("GOOGLE");
-        existingUser.setSocialId("social123");
-        UUID id = UUID.randomUUID();
-        existingUser.setId(id);
-
-        when(userRepository.findByEmail("social@example.com")).thenReturn(existingUser);
-        when(userRepository.findById(id)).thenReturn(Optional.of(existingUser));
-        when(userRepository.save(any(User.class))).thenReturn(existingUser);
-
-        String token = authenticationService.socialLogin(request);
-        assertNotNull(token);
-        UserResponse userResponse = authenticationService.getUserFromJwtToken(token);
-
-        assertEquals("social@example.com", userResponse.getEmail());
-    }
-
-    @Test
-    void testSocialLogin_NewUser() {
-        SocialLoginRequest request = new SocialLoginRequest();
-        request.setEmail("social@example.com");
-        request.setName("Social User");
-        request.setBirthdate(LocalDate.now().minusYears(25));
-        request.setProvider("GOOGLE");
-        request.setSocialId("social123");
-        request.setSocialToken("token");
-
-        when(userRepository.findByEmail("social@example.com")).thenReturn(null);
-        User savedUser = new User();
-        savedUser.setEmail("social@example.com");
-        savedUser.setPassword(null);
-        savedUser.setName("Social User");
-        savedUser.setVerified(true);
-        savedUser.setRole(Role.REGISTERED_USER);
-        savedUser.setBirthdate(request.getBirthdate());
-        savedUser.setProvider("GOOGLE");
-        savedUser.setSocialId("social123");
-
-        UUID id = UUID.randomUUID();
-        savedUser.setId(id);
-        when(userRepository.save(any(User.class))).thenReturn(savedUser);
-        when(userRepository.findById(id)).thenReturn(Optional.of(savedUser));
-
-        String token = authenticationService.socialLogin(request);
-        assertNotNull(token);
-        UserResponse userResponse = authenticationService.getUserFromJwtToken(token);
-        assertEquals("social@example.com", userResponse.getEmail());
+        verify(userService, times(1)).save(any(User.class));
     }
 
     // loginUser tests
 
     @Test
     void testLoginUser_EmailNotFound() {
-        when(userRepository.findByEmail("notfound@example.com")).thenReturn(null);
+        when(userService.findByEmail("notfound@example.com")).thenReturn(Optional.empty());
+
         Exception exception = assertThrows(InvalidCredentialsException.class, () ->
                 authenticationService.loginUser("notfound@example.com", "password")
         );
-        assertTrue(exception.getMessage().contains("Invalid email"));
+
+        assertEquals("Invalid email", exception.getMessage());
     }
 
     @Test
-    void testLoginUser_InvalidPassword_NullPassword() {
-        User user = new User();
-        user.setEmail("test@example.com");
-        user.setPassword(null);
-        user.setName("Test User");
-        user.setVerified(true);
-        user.setRole(Role.REGISTERED_USER);
-        user.setBirthdate(LocalDate.now().minusYears(20));
-        user.setProvider("EMAIL");
-        user.setSocialId(null);
-
-        when(userRepository.findByEmail("test@example.com")).thenReturn(user);
-
-        Exception exception = assertThrows(InvalidCredentialsException.class, () ->
-                authenticationService.loginUser("test@example.com", "password")
-        );
-        assertTrue(exception.getMessage().contains("Invalid password"));
-    }
-
-    @Test
-    void testLoginUser_InvalidPassword_WrongMatch() {
+    void testLoginUser_InvalidPassword() {
         User user = new User();
         user.setEmail("test@example.com");
         user.setPassword("encodedPassword");
@@ -267,15 +133,15 @@ class AuthenticationServiceTest {
         user.setRole(Role.REGISTERED_USER);
         user.setBirthdate(LocalDate.now().minusYears(20));
         user.setProvider("EMAIL");
-        user.setSocialId(null);
 
-        when(userRepository.findByEmail("test@example.com")).thenReturn(user);
+        when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("wrongPassword", "encodedPassword")).thenReturn(false);
 
         Exception exception = assertThrows(InvalidCredentialsException.class, () ->
                 authenticationService.loginUser("test@example.com", "wrongPassword")
         );
-        assertTrue(exception.getMessage().contains("Invalid password"));
+
+        assertEquals("Invalid password", exception.getMessage());
     }
 
     @Test
@@ -288,55 +154,18 @@ class AuthenticationServiceTest {
         user.setRole(Role.REGISTERED_USER);
         user.setBirthdate(LocalDate.now().minusYears(20));
         user.setProvider("EMAIL");
-        user.setSocialId(null);
-
-        UUID id = UUID.randomUUID();
-        user.setId(id
-        );
-        when(userRepository.findByEmail("test@example.com")).thenReturn(user);
-        when(passwordEncoder.matches("password", "encodedPassword")).thenReturn(true);
-        when(userRepository.findById(id)).thenReturn(Optional.of(user));
-
-        String token = authenticationService.loginUser("test@example.com", "password");
-        assertNotNull(token);
-        UserResponse userResponse = authenticationService.getUserFromJwtToken(token);
-        assertEquals("test@example.com", userResponse.getEmail());
-    }
-
-    // loginSocial tests
-
-    @Test
-    void testLoginSocial_UserNotFound() {
-        when(userRepository.findByEmail("notfound@example.com")).thenReturn(null);
-        Exception exception = assertThrows(InvalidCredentialsException.class, () ->
-                authenticationService.loginSocial("notfound@example.com")
-        );
-        assertTrue(exception.getMessage().contains("Social login failed"));
-    }
-
-    @Test
-    void testLoginSocial_Success() {
-        User user = new User();
-        user.setEmail("social@example.com");
-        user.setPassword(null);
-        user.setName("Social User");
-        user.setVerified(true);
-        user.setRole(Role.REGISTERED_USER);
-        user.setBirthdate(LocalDate.now().minusYears(25));
-        user.setProvider("GOOGLE");
-        user.setSocialId("social123");
 
         UUID id = UUID.randomUUID();
         user.setId(id);
 
-        when(userRepository.findByEmail("social@example.com")).thenReturn(user);
-        when(userRepository.findById(id)).thenReturn(Optional.of(user));
+        when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("password", "encodedPassword")).thenReturn(true);
+        when(jwtService.generateToken(id)).thenReturn("jwtToken");
 
-        String token = authenticationService.loginSocial("social@example.com");
+        String token = authenticationService.loginUser("test@example.com", "password");
+
         assertNotNull(token);
-        UserResponse userResponse = authenticationService.getUserFromJwtToken(token);
-        assertEquals("social@example.com", userResponse.getEmail());
-
+        assertEquals("jwtToken", token);
     }
 
     // verifyOTP tests
@@ -345,6 +174,7 @@ class AuthenticationServiceTest {
     void testVerifyOTP_Success() {
         // OTPService returns true and user is found
         when(otpService.verifyOTP("test@example.com", "123456")).thenReturn(true);
+
         User user = new User();
         user.setEmail("test@example.com");
         user.setPassword("encodedPassword");
@@ -353,34 +183,37 @@ class AuthenticationServiceTest {
         user.setRole(Role.REGISTERED_USER);
         user.setBirthdate(LocalDate.now().minusYears(20));
         user.setProvider("EMAIL");
-        user.setSocialId(null);
 
-        when(userRepository.findByEmail("test@example.com")).thenReturn(user);
-        when(userRepository.save(any(User.class))).thenReturn(user);
+        when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+        when(userService.save(any(User.class))).thenReturn(user);
 
         boolean result = authenticationService.verifyOTP("test@example.com", "123456");
+
         assertTrue(result);
         assertTrue(user.isVerified());
-        verify(userRepository, times(1)).save(user);
+        verify(userService, times(1)).save(user);
     }
 
     @Test
     void testVerifyOTP_Success_UserNotFound() {
         // OTPService returns true but user is not found
         when(otpService.verifyOTP("nonexistent@example.com", "123456")).thenReturn(true);
-        when(userRepository.findByEmail("nonexistent@example.com")).thenReturn(null);
+        when(userService.findByEmail("nonexistent@example.com")).thenReturn(Optional.empty());
 
         boolean result = authenticationService.verifyOTP("nonexistent@example.com", "123456");
+
         assertTrue(result);
-        verify(userRepository, never()).save(any(User.class));
+        verify(userService, never()).save(any(User.class));
     }
 
     @Test
     void testVerifyOTP_Failure() {
         when(otpService.verifyOTP("test@example.com", "000000")).thenReturn(false);
+
         boolean result = authenticationService.verifyOTP("test@example.com", "000000");
+
         assertFalse(result);
-        verify(userRepository, never()).save(any(User.class));
+        verify(userService, never()).save(any(User.class));
     }
 
     // forgotPassword tests
@@ -395,23 +228,25 @@ class AuthenticationServiceTest {
         user.setRole(Role.REGISTERED_USER);
         user.setBirthdate(LocalDate.now().minusYears(20));
         user.setProvider("EMAIL");
-        user.setSocialId(null);
 
-        when(userRepository.findByEmail("test@example.com")).thenReturn(user);
+        when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(user));
 
         assertDoesNotThrow(() -> authenticationService.forgotPassword("test@example.com"));
     }
 
     @Test
-    void testForgotPassword_Invalid() {
-        // Case 1: user not found
-        when(userRepository.findByEmail("notfound@example.com")).thenReturn(null);
-        Exception exception1 = assertThrows(IllegalArgumentException.class, () ->
+    void testForgotPassword_UserNotFound() {
+        when(userService.findByEmail("notfound@example.com")).thenReturn(Optional.empty());
+
+        Exception exception = assertThrows(IllegalArgumentException.class, () ->
                 authenticationService.forgotPassword("notfound@example.com")
         );
-        assertTrue(exception1.getMessage().contains("Password reset is only available for email-registered users."));
 
-        // Case 2: user exists but provider is not EMAIL
+        assertTrue(exception.getMessage().contains("Password reset is only available for email-registered users"));
+    }
+
+    @Test
+    void testForgotPassword_NonEmailProvider() {
         User user = new User();
         user.setEmail("social@example.com");
         user.setPassword(null);
@@ -420,152 +255,15 @@ class AuthenticationServiceTest {
         user.setRole(Role.REGISTERED_USER);
         user.setBirthdate(LocalDate.now().minusYears(25));
         user.setProvider("GOOGLE");
-        user.setSocialId("social123");
 
-        when(userRepository.findByEmail("social@example.com")).thenReturn(user);
-        Exception exception2 = assertThrows(IllegalArgumentException.class, () ->
+        when(userService.findByEmail("social@example.com")).thenReturn(Optional.of(user));
+
+        Exception exception = assertThrows(IllegalArgumentException.class, () ->
                 authenticationService.forgotPassword("social@example.com")
         );
-        assertTrue(exception2.getMessage().contains("Password reset is only available for email-registered users."));
+
+        assertTrue(exception.getMessage().contains("Password reset is only available for email-registered users"));
     }
 
-    // postContent tests
-
-    @Test
-    void testPostContent_UserNotFound() {
-        when(userRepository.findByEmail("notfound@example.com")).thenReturn(null);
-        String response = authenticationService.postContent("notfound@example.com", "Content");
-        assertEquals("User not found. Please register.", response);
-    }
-
-    @Test
-    void testPostContent_UserNotVerified() {
-        User user = new User();
-        user.setEmail("test@example.com");
-        user.setPassword("encodedPassword");
-        user.setName("Test User");
-        user.setVerified(false);
-        user.setRole(Role.REGISTERED_USER);
-        user.setBirthdate(LocalDate.now().minusYears(20));
-        user.setProvider("EMAIL");
-        user.setSocialId(null);
-
-        when(userRepository.findByEmail("test@example.com")).thenReturn(user);
-        String response = authenticationService.postContent("test@example.com", "Content");
-        assertTrue(response.contains("not verified"));
-    }
-
-    @Test
-    void testPostContent_UserVerified() {
-        User user = new User();
-        user.setEmail("test@example.com");
-        user.setPassword("encodedPassword");
-        user.setName("Test User");
-        user.setVerified(true);
-        user.setRole(Role.REGISTERED_USER);
-        user.setBirthdate(LocalDate.now().minusYears(20));
-        user.setProvider("EMAIL");
-        user.setSocialId(null);
-
-        when(userRepository.findByEmail("test@example.com")).thenReturn(user);
-        String response = authenticationService.postContent("test@example.com", "Content");
-        assertEquals("Content posted successfully", response);
-    }
-
-    @Test
-    void testJwtTokenExpirationTime() {
-        // Generate a token for a random UUID
-        UUID userId = UUID.randomUUID();
-        String token = authenticationService.generateJwtToken(userId);
-        assertNotNull(token);
-
-        // Parse the token to extract claims
-        Key key = Keys.hmacShaKeyFor("5047c55bfe120155fd4e884845682bb8b8815c0048a686cc664d1ea6c8e094da".getBytes());
-        Claims claims = Jwts.parserBuilder()
-                .setSigningKey(key)
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
-
-        // Extract the issued at and expiration times
-        Date issuedAt = claims.getIssuedAt();
-        Date expiration = claims.getExpiration();
-        assertNotNull(issuedAt);
-        assertNotNull(expiration);
-
-        // Calculate difference and verify it equals 86400000L (24 hours)
-        long timeDifference = expiration.getTime() - issuedAt.getTime();
-        assertEquals(86400000L, timeDifference,
-                "JWT token should expire exactly 24 hours (86400000 milliseconds) after issuance");
-    }
-
-    // Tests for getUserFromJwtToken method
-
-    @Test
-    void testGetUserFromJwtToken_InvalidToken() {
-        // Test with malformed token
-        Exception exception = assertThrows(InvalidCredentialsException.class, () ->
-                authenticationService.getUserFromJwtToken("invalid.token.format")
-        );
-        assertEquals("Invalid token", exception.getMessage());
-    }
-
-    @Test
-    void testGetUserFromJwtToken_ExpiredToken() throws Exception {
-        // Create a JWT token with custom expiration (already expired)
-        UUID userId = UUID.randomUUID();
-        Key key = Keys.hmacShaKeyFor("5047c55bfe120155fd4e884845682bb8b8815c0048a686cc664d1ea6c8e094da".getBytes());
-
-        String expiredToken = Jwts.builder()
-                .setSubject(userId.toString())
-                .setIssuedAt(new Date(System.currentTimeMillis() - 200000)) // 200 seconds ago
-                .setExpiration(new Date(System.currentTimeMillis() - 100000)) // 100 seconds ago (expired)
-                .signWith(key, SignatureAlgorithm.HS256)
-                .compact();
-
-        Exception exception = assertThrows(InvalidCredentialsException.class, () ->
-                authenticationService.getUserFromJwtToken(expiredToken)
-        );
-        assertEquals("Invalid token", exception.getMessage());
-    }
-
-    @Test
-    void testGetUserFromJwtToken_UserNotFound() {
-        // Create valid token with random UUID that doesn't exist in DB
-        UUID nonExistentId = UUID.randomUUID();
-        String token = authenticationService.generateJwtToken(nonExistentId);
-
-        when(userRepository.findById(nonExistentId)).thenReturn(Optional.empty());
-
-        Exception exception = assertThrows(InvalidCredentialsException.class, () ->
-                authenticationService.getUserFromJwtToken(token)
-        );
-        assertEquals("User not found", exception.getMessage());
-    }
-
-    @Test
-    void testGetUserFromJwtToken_Success() {
-        // Create user and token for explicit testing
-        UUID userId = UUID.randomUUID();
-        User user = new User();
-        user.setId(userId);
-        user.setEmail("test@example.com");
-        user.setName("Test User");
-        user.setVerified(true);
-        user.setRole(Role.REGISTERED_USER);
-
-        // Generate a valid token
-        String token = authenticationService.generateJwtToken(userId);
-
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-
-        // Test successful retrieval
-        UserResponse response = authenticationService.getUserFromJwtToken(token);
-
-        assertNotNull(response);
-        assertEquals("test@example.com", response.getEmail());
-        assertEquals("Test User", response.getName());
-        assertTrue(response.isVerified());
-    }
-
+    // Add missing methods for other functionality if needed
 }

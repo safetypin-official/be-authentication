@@ -7,21 +7,17 @@ import com.safetypin.authentication.repository.UserRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.security.Key;
 import java.util.Date;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 public class TokenExpirationTest {
@@ -35,7 +31,14 @@ public class TokenExpirationTest {
     private PasswordEncoder passwordEncoder;
 
     @Mock
+    private UserService userService;
+
+    @Mock
     private OTPService otpService;
+
+    @Mock
+    private JwtService jwtService;
+
 
     @BeforeEach
     void setUp() {
@@ -46,7 +49,7 @@ public class TokenExpirationTest {
     void testExpiredTokenThrowsCorrectException() {
         // Create a special test-only version of AuthenticationService
         TestAuthenticationService testService = new TestAuthenticationService(
-                userRepository, passwordEncoder, otpService);
+                userService, passwordEncoder, otpService, jwtService);
 
         // Create a UUID for our test
         UUID userId = UUID.randomUUID();
@@ -69,10 +72,11 @@ public class TokenExpirationTest {
 
     // This class extends AuthenticationService to allow us to test specific code paths
     private class TestAuthenticationService extends AuthenticationService {
-        public TestAuthenticationService(UserRepository userRepository, 
+        public TestAuthenticationService(UserService userService,
                                        PasswordEncoder passwordEncoder, 
-                                       OTPService otpService) {
-            super(userRepository, passwordEncoder, otpService);
+                                       OTPService otpService,
+                                         JwtService jwtService) {
+            super(userService, passwordEncoder, otpService, jwtService);
         }
 
         // This method simulates the token expiration check portion of getUserFromJwtToken

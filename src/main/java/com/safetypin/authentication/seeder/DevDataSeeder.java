@@ -42,7 +42,6 @@ public class DevDataSeeder implements Runnable {
             user1.setRole(Role.REGISTERED_USER);
             user1.setBirthdate(LocalDate.of(1990, 1, 1));
             user1.setProvider(EMAIL_PROVIDER);
-            user1.setSocialId("social1");
             userRepository.save(user1);
 
             User user2 = new User();
@@ -53,7 +52,6 @@ public class DevDataSeeder implements Runnable {
             user2.setRole(Role.REGISTERED_USER);
             user2.setBirthdate(LocalDate.of(1991, 2, 2));
             user2.setProvider(EMAIL_PROVIDER);
-            user2.setSocialId("social2");
             userRepository.save(user2);
 
 
@@ -65,7 +63,6 @@ public class DevDataSeeder implements Runnable {
             user3.setRole(Role.REGISTERED_USER);
             user3.setBirthdate(LocalDate.of(1992, 3, 3));
             user3.setProvider(EMAIL_PROVIDER);
-            user3.setSocialId("social3");
             userRepository.save(user3);
 
             User user4 = new User();
@@ -76,7 +73,6 @@ public class DevDataSeeder implements Runnable {
             user4.setRole(Role.REGISTERED_USER);
             user4.setBirthdate(LocalDate.of(1993, 4, 4));
             user4.setProvider(EMAIL_PROVIDER);
-            user4.setSocialId("social4");
             userRepository.save(user4);
 
             User user5 = new User();
@@ -87,7 +83,6 @@ public class DevDataSeeder implements Runnable {
             user5.setRole(Role.PREMIUM_USER);
             user5.setBirthdate(LocalDate.of(1994, 5, 5));
             user5.setProvider(EMAIL_PROVIDER);
-            user5.setSocialId("social5");
             userRepository.save(user5);
 
             User user6 = new User();
