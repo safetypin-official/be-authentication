@@ -78,8 +78,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: java-app
-      - name: List files to verify JAR
-        run: find . -name "*.jar" | xargs ls -la
       - name: check directory
         run: ls -al
       - name: Docker login
