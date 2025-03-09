@@ -6,6 +6,7 @@ import com.safetypin.authentication.dto.PasswordResetRequest;
 import com.safetypin.authentication.dto.RegistrationRequest;
 import com.safetypin.authentication.dto.UserResponse;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
+import com.safetypin.authentication.model.Role;
 import com.safetypin.authentication.exception.UserAlreadyExistsException;
 import com.safetypin.authentication.model.User;
 import com.safetypin.authentication.service.AuthenticationService;
@@ -33,7 +34,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(AuthenticationController.class)
-@Import({AuthenticationControllerTest.TestConfig.class, AuthenticationControllerTest.TestSecurityConfig.class})
+@Import({AuthenticationControllerTest.TestConfig.class})
 class AuthenticationControllerTest {
 
     @Autowired
@@ -92,7 +93,7 @@ class AuthenticationControllerTest {
         user.setEmail("email@example.com");
         user.setPassword("encodedPassword");
         user.setName("Test User");
-        user.setRole("USER");
+        user.setRole(Role.REGISTERED_USER);
         user.setBirthdate(request.getBirthdate());
         user.setProvider("EMAIL");
 
@@ -115,7 +116,7 @@ class AuthenticationControllerTest {
         user.setPassword("encodedPassword");
         user.setName("Test User");
         user.setVerified(true);
-        user.setRole("USER");
+        user.setRole(Role.REGISTERED_USER);
         user.setBirthdate(LocalDate.now().minusYears(20));
         user.setProvider("EMAIL");
 
@@ -174,6 +175,17 @@ class AuthenticationControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("OTP verification failed"));
+    }
+
+    @Test
+    void testVerifyOTP_InvalidCredentials() throws Exception {
+        String errorMessage = "Invalid email or OTP";
+        Mockito.when(authenticationService.verifyOTP("email@example.com", "invalid"))
+                .thenThrow(new InvalidCredentialsException(errorMessage));
+
+        mockMvc.perform(post("/api/auth/verify-otp")
+                        .param("email", "Invalid OTP code or expired"))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

@@ -122,7 +122,7 @@ class GoogleAuthDTOTest {
         assertEquals(dto1, dto2, "Identical DTOs should be equal");
         assertNotEquals(dto1, dto3, "Different DTOs should not be equal");
         assertNotEquals(null, dto1, "Should not be equal to null");
-        assertNotEquals(dto1, new Object(), "Should not be equal to different object type");
+        assertNotEquals(new Object(), dto1, "Should not be equal to different object type");
 
         // Test hashCode
         assertEquals(dto1.hashCode(), dto2.hashCode(), "Identical DTOs should have same hashCode");

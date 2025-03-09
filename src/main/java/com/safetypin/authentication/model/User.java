@@ -14,54 +14,64 @@ import java.util.UUID;
 @NoArgsConstructor
 public class User {
     @Id
-    @Setter @Getter
+    @Setter
+    @Getter
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Setter @Getter
+    @Setter
+    @Getter
     @Column(nullable = false, unique = true)
     private String email;
 
     // May be null for social login users
-    @Setter @Getter
+    @Setter
+    @Getter
+    @Column(nullable = false)
     private String password;
 
-    @Setter @Getter
+    @Setter
+    @Getter
     @Column(nullable = false)
     private String name;
 
     @Column(nullable = false)
     private boolean isVerified = false;
 
-    @Setter @Getter
-    private String role;
+    @Setter
+    @Getter
+    @Enumerated(EnumType.STRING)
+    private Role role;
 
     // New fields
-    @Setter @Getter
+    @Setter
+    @Getter
     private LocalDate birthdate;
 
-    @Setter  @Getter
+    @Setter
+    @Getter
     private String provider;  // "EMAIL", "GOOGLE", "APPLE"
+
 
     // Getters and setters
 
     public boolean isVerified() {
         return isVerified;
     }
+
     public void setVerified(boolean verified) {
         isVerified = verified;
     }
 
-    public UserResponse generateUserResponse(){
+    public UserResponse generateUserResponse() {
         return UserResponse.builder()
                 .email(email)
                 .id(id)
                 .provider(provider)
                 .birthdate(birthdate)
-                .role(role)
+                .role(role != null ? role.name() : null)
                 .name(name)
                 .isVerified(isVerified)
                 .build();
     }
-
 }

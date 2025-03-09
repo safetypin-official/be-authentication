@@ -3,6 +3,7 @@ package com.safetypin.authentication.service;
 import com.safetypin.authentication.dto.RegistrationRequest;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.UserAlreadyExistsException;
+import com.safetypin.authentication.model.Role;
 import com.safetypin.authentication.model.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -91,7 +92,7 @@ class AuthenticationServiceTest {
         savedUser.setPassword("encodedPassword");
         savedUser.setName("Test User");
         savedUser.setVerified(false);
-        savedUser.setRole("USER");
+        savedUser.setRole(Role.REGISTERED_USER);
         savedUser.setBirthdate(request.getBirthdate());
         savedUser.setProvider("EMAIL");
 
@@ -129,7 +130,7 @@ class AuthenticationServiceTest {
         user.setPassword("encodedPassword");
         user.setName("Test User");
         user.setVerified(true);
-        user.setRole("USER");
+        user.setRole(Role.REGISTERED_USER);
         user.setBirthdate(LocalDate.now().minusYears(20));
         user.setProvider("EMAIL");
 
@@ -150,7 +151,7 @@ class AuthenticationServiceTest {
         user.setPassword("encodedPassword");
         user.setName("Test User");
         user.setVerified(true);
-        user.setRole("USER");
+        user.setRole(Role.REGISTERED_USER);
         user.setBirthdate(LocalDate.now().minusYears(20));
         user.setProvider("EMAIL");
 
@@ -179,7 +180,7 @@ class AuthenticationServiceTest {
         user.setPassword("encodedPassword");
         user.setName("Test User");
         user.setVerified(false);
-        user.setRole("USER");
+        user.setRole(Role.REGISTERED_USER);
         user.setBirthdate(LocalDate.now().minusYears(20));
         user.setProvider("EMAIL");
 
@@ -224,7 +225,7 @@ class AuthenticationServiceTest {
         user.setPassword("encodedPassword");
         user.setName("Test User");
         user.setVerified(true);
-        user.setRole("USER");
+        user.setRole(Role.REGISTERED_USER);
         user.setBirthdate(LocalDate.now().minusYears(20));
         user.setProvider("EMAIL");
 
@@ -251,7 +252,7 @@ class AuthenticationServiceTest {
         user.setPassword(null);
         user.setName("Social User");
         user.setVerified(true);
-        user.setRole("USER");
+        user.setRole(Role.REGISTERED_USER);
         user.setBirthdate(LocalDate.now().minusYears(25));
         user.setProvider("GOOGLE");
 

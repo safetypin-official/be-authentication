@@ -1,5 +1,6 @@
 package com.safetypin.authentication.seeder;
 
+import com.safetypin.authentication.model.Role;
 import com.safetypin.authentication.model.User;
 import com.safetypin.authentication.repository.UserRepository;
 import jakarta.transaction.Transactional;
@@ -47,7 +48,7 @@ class DevDataSeederTest {
         user.setPassword(passwordEncoder.encode("test"));
         user.setName("Existing User");
         user.setVerified(true);
-        user.setRole("admin");
+        user.setRole(Role.MODERATOR);
         user.setBirthdate(LocalDate.of(1990, 1, 1));
         user.setProvider("EMAIL");
         userRepository.save(user);

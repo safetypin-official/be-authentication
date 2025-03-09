@@ -15,6 +15,7 @@ import com.safetypin.authentication.dto.GoogleAuthDTO;
 import com.safetypin.authentication.exception.ApiException;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.UserAlreadyExistsException;
+import com.safetypin.authentication.model.Role;
 import com.safetypin.authentication.model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,7 +78,7 @@ public class GoogleAuthService {
             newUser.setPassword(null);
             newUser.setProvider(EMAIL_PROVIDER);
             newUser.setVerified(true);
-            newUser.setRole("USER");
+            newUser.setRole(Role.REGISTERED_USER);
             newUser.setBirthdate(userBirthdate);
 
             User user = userService.save(newUser);
