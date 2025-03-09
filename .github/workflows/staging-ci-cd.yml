@@ -32,7 +32,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: java-app
-          path: app/target/*.jar
+          path: .
 
   test:
     name: Test
@@ -54,14 +54,16 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
-      - name: Test with Maven
-        run: |
-          mvn verify
-          mvn test
-          mvn jacoco:report
-          mvn test -P regression-tests
-          mvn verify -P integration-tests
-          mvn test -P uat
+      - name: Run Unit Tests
+        run: mvn test
+      - name: Generate Coverage Report
+        run: mvn jacoco:report
+      - name: Run Regression Tests
+        run: mvn test -P regression-tests
+      - name: Run Integration Tests
+        run: mvn verify -P integration-tests
+      - name: Run User Acceptance Tests
+        run: mvn test -P uat
 
   publish:
     name: Publish Docker Image
