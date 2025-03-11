@@ -17,10 +17,11 @@ import java.util.Date;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
-public class TokenExpirationTest {
+class TokenExpirationTest {
 
 
     @Mock
@@ -54,26 +55,26 @@ public class TokenExpirationTest {
         UUID userId = UUID.randomUUID();
         User mockUser = new User();
         mockUser.setId(userId);
-        
+
         // Configure repository to return our user
         when(userRepository.findById(userId)).thenReturn(Optional.of(mockUser));
-        
+
         // Call our test method that forces the isExpired check to be true
         InvalidCredentialsException exception = assertThrows(
                 InvalidCredentialsException.class,
                 () -> testService.testTokenExpiration(userId)
         );
-        
+
         // Verify we get the exact "Token expired" exception message
-        assertEquals("Token expired", exception.getMessage(), 
+        assertEquals("Token expired", exception.getMessage(),
                 "The exception message should be 'Token expired' when a token is expired");
     }
 
     // This class extends AuthenticationService to allow us to test specific code paths
     private class TestAuthenticationService extends AuthenticationService {
         public TestAuthenticationService(UserService userService,
-                                       PasswordEncoder passwordEncoder, 
-                                       OTPService otpService,
+                                         PasswordEncoder passwordEncoder,
+                                         OTPService otpService,
                                          JwtService jwtService) {
             super(userService, passwordEncoder, otpService, jwtService);
         }
@@ -86,10 +87,10 @@ public class TokenExpirationTest {
                         .setSubject(userId.toString())
                         .setIssuedAt(new Date(System.currentTimeMillis() - 200000))
                         .setExpiration(new Date(System.currentTimeMillis() - 100000)); // Expired!
-                
+
                 // This is the exact code from the main method that checks expiration
                 boolean isExpired = claims.getExpiration().before(new Date(System.currentTimeMillis()));
-                
+
                 if (isExpired) {
                     throw new InvalidCredentialsException("Token expired");
                 }
