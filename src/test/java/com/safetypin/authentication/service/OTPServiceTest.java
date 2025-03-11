@@ -211,4 +211,55 @@ class OTPServiceTest {
 
         assertTrue(exception.getMessage().contains("Failed to send OTP"));
     }
+
+    @Test
+    void testIsVerifiedForPasswordResetWhenEmailNotVerified() {
+        // Test when email is not in the verifiedResetEmails map
+        boolean result = otpService.isVerifiedForPasswordReset("notverified@example.com");
+        assertFalse(result, "Should return false for non-verified email");
+    }
+
+    @Test
+    void testIsVerifiedForPasswordResetWhenVerificationExpired() throws Exception {
+        String email = "expired@example.com";
+        
+        // Use reflection to access and modify the private verifiedResetEmails map
+        java.lang.reflect.Field verifiedResetEmailsField = OTPService.class.getDeclaredField("verifiedResetEmails");
+        verifiedResetEmailsField.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        ConcurrentHashMap<String, LocalDateTime> verifiedResetEmails = 
+            (ConcurrentHashMap<String, LocalDateTime>) verifiedResetEmailsField.get(otpService);
+        
+        // Add an expired verification (more than 5 minutes old)
+        verifiedResetEmails.put(email, LocalDateTime.now().minusMinutes(6));
+        
+        // Verify that the method returns false for expired verification
+        boolean result = otpService.isVerifiedForPasswordReset(email);
+        assertFalse(result, "Should return false for expired verification");
+        
+        // Verify that the expired entry was removed
+        assertFalse(verifiedResetEmails.containsKey(email), "Expired entry should be removed from the map");
+    }
+
+    @Test
+    void testIsVerifiedForPasswordResetSuccess() throws Exception {
+        String email = "valid@example.com";
+        
+        // Use reflection to access and modify the private verifiedResetEmails map
+        java.lang.reflect.Field verifiedResetEmailsField = OTPService.class.getDeclaredField("verifiedResetEmails");
+        verifiedResetEmailsField.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        ConcurrentHashMap<String, LocalDateTime> verifiedResetEmails = 
+            (ConcurrentHashMap<String, LocalDateTime>) verifiedResetEmailsField.get(otpService);
+        
+        // Add a valid verification time (just now)
+        verifiedResetEmails.put(email, LocalDateTime.now());
+        
+        // Verify that the method returns true for valid verification
+        boolean result = otpService.isVerifiedForPasswordReset(email);
+        assertTrue(result, "Should return true for valid verification");
+        
+        // Verify that the entry remains in the map
+        assertTrue(verifiedResetEmails.containsKey(email), "Valid entry should remain in the map");
+    }
 }

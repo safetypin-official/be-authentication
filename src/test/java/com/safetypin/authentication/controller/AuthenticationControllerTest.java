@@ -1,13 +1,10 @@
 package com.safetypin.authentication.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.safetypin.authentication.dto.GoogleAuthDTO;
-import com.safetypin.authentication.dto.PasswordResetRequest;
-import com.safetypin.authentication.dto.RegistrationRequest;
-import com.safetypin.authentication.dto.UserResponse;
+import com.safetypin.authentication.dto.*;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
-import com.safetypin.authentication.model.Role;
 import com.safetypin.authentication.exception.UserAlreadyExistsException;
+import com.safetypin.authentication.model.Role;
 import com.safetypin.authentication.model.User;
 import com.safetypin.authentication.service.AuthenticationService;
 import com.safetypin.authentication.service.GoogleAuthService;
@@ -51,35 +48,6 @@ class AuthenticationControllerTest {
 
     @Autowired
     private ObjectMapper objectMapper;
-
-    @TestConfiguration
-    static class TestConfig {
-        @Bean
-        public AuthenticationService authenticationService() {
-            return Mockito.mock(AuthenticationService.class);
-        }
-
-        @Bean
-        public GoogleAuthService googleAuthService() {
-            return Mockito.mock(GoogleAuthService.class);
-        }
-
-        @Bean
-        public JwtService jwtService() {
-            return Mockito.mock(JwtService.class);
-        }
-    }
-
-    @TestConfiguration
-    static class TestSecurityConfig {
-        @Bean
-        public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-            http.csrf(AbstractHttpConfigurer::disable)
-                    .authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll());
-            return http.build();
-        }
-    }
-
 
     @Test
     void testRegisterEmail() throws Exception {
@@ -152,7 +120,6 @@ class AuthenticationControllerTest {
                 .andExpect(jsonPath("$.data").doesNotExist()); // No data expected in case of error
     }
 
-
     @Test
     void testVerifyOTP_Success() throws Exception {
         Mockito.when(authenticationService.verifyOTP("email@example.com", "123456")).thenReturn(true);
@@ -199,9 +166,74 @@ class AuthenticationControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(content().string("Password reset instructions have been sent to your email (simulated)"));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("Password reset OTP has been sent to your email"));
     }
 
+    @Test
+    void testVerifyResetOTP_Success() throws Exception {
+        VerifyResetOTPRequest request = new VerifyResetOTPRequest();
+        request.setEmail("email@example.com");
+        request.setOtp("123456");
+
+        Mockito.when(authenticationService.verifyPasswordResetOTP("email@example.com", "123456")).thenReturn(true);
+
+        mockMvc.perform(post("/api/auth/verify-reset-otp")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("OTP verified successfully. You can now reset your password."));
+    }
+
+    @Test
+    void testVerifyResetOTP_Failure() throws Exception {
+        VerifyResetOTPRequest request = new VerifyResetOTPRequest();
+        request.setEmail("email@example.com");
+        request.setOtp("123456");
+
+        Mockito.when(authenticationService.verifyPasswordResetOTP("email@example.com", "123456")).thenReturn(false);
+
+        mockMvc.perform(post("/api/auth/verify-reset-otp")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Invalid OTP"));
+    }
+
+    @Test
+    void testResetPassword_Success() throws Exception {
+        PasswordResetWithOTPRequest request = new PasswordResetWithOTPRequest();
+        request.setEmail("email@example.com");
+        request.setNewPassword("newPassword123");
+
+        Mockito.doNothing().when(authenticationService).resetPassword("email@example.com", "newPassword123");
+
+        mockMvc.perform(post("/api/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("Password has been reset successfully"));
+    }
+
+    @Test
+    void testResetPassword_NotVerified() throws Exception {
+        PasswordResetWithOTPRequest request = new PasswordResetWithOTPRequest();
+        request.setEmail("email@example.com");
+        request.setNewPassword("newPassword123");
+
+        Mockito.doThrow(new InvalidCredentialsException("You must verify your OTP before resetting password."))
+                .when(authenticationService).resetPassword("email@example.com", "newPassword123");
+
+        mockMvc.perform(post("/api/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("You must verify your OTP before resetting password."));
+    }
 
     @Test
     void testRegisterEmail_UserAlreadyExistsException() throws Exception {
@@ -374,6 +406,34 @@ class AuthenticationControllerTest {
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Invalid token"))
                 .andExpect(jsonPath("$.data").doesNotExist()); // No data expected in case of error
+    }
+
+    @TestConfiguration
+    static class TestConfig {
+        @Bean
+        public AuthenticationService authenticationService() {
+            return Mockito.mock(AuthenticationService.class);
+        }
+
+        @Bean
+        public GoogleAuthService googleAuthService() {
+            return Mockito.mock(GoogleAuthService.class);
+        }
+
+        @Bean
+        public JwtService jwtService() {
+            return Mockito.mock(JwtService.class);
+        }
+    }
+
+    @TestConfiguration
+    static class TestSecurityConfig {
+        @Bean
+        public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+            http.csrf(AbstractHttpConfigurer::disable)
+                    .authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll());
+            return http.build();
+        }
     }
 
 }
