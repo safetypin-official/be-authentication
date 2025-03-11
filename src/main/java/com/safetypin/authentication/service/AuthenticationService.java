@@ -17,13 +17,11 @@ import java.util.Optional;
 @Service
 public class AuthenticationService {
     public static final String EMAIL_PROVIDER = "EMAIL";
-
+    private static final Logger logger = LoggerFactory.getLogger(AuthenticationService.class);
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
     private final OTPService otpService;
-
     private final JwtService jwtService;
-    private static final Logger logger = LoggerFactory.getLogger(AuthenticationService.class);
 
     public AuthenticationService(UserService userService, PasswordEncoder passwordEncoder, OTPService otpService, JwtService jwtService) {
         this.userService = userService;
@@ -95,15 +93,57 @@ public class AuthenticationService {
         return result;
     }
 
-    // Forgot password – only applicable for email-registered users
+    // Forgot password – initiates password reset flow
     public void forgotPassword(String email) {
-
-        Optional<User> user = userService.findByEmail(email);
-        if (user.isEmpty() || !EMAIL_PROVIDER.equals(user.get().getProvider())) {
+        Optional<User> userOpt = userService.findByEmail(email);
+        if (userOpt.isEmpty() || !EMAIL_PROVIDER.equals(userOpt.get().getProvider())) {
             throw new IllegalArgumentException("Password reset is only available for email-registered users.");
         }
-        // In production, send a reset token via email.
-        logger.info("Password reset requested at {}", java.time.LocalDateTime.now());
+
+        // Generate OTP for password reset
+        String otp = otpService.generateOTP(email);
+
+        // In production, send the OTP via email
+        logger.info("Password reset OTP generated for email {} at {}: {}", email, java.time.LocalDateTime.now(), otp);
+    }
+
+    // Verify OTP for password reset
+    public boolean verifyPasswordResetOTP(String email, String otp) {
+        Optional<User> userOpt = userService.findByEmail(email);
+        if (userOpt.isEmpty() || !EMAIL_PROVIDER.equals(userOpt.get().getProvider())) {
+            throw new IllegalArgumentException("Password reset is only available for email-registered users.");
+        }
+
+        boolean isValid = otpService.verifyOTP(email, otp);
+        if (isValid) {
+            // Mark this email as verified for password reset
+            otpService.markVerifiedForPasswordReset(email);
+            logger.info("Password reset OTP verified for {} at {}", email, java.time.LocalDateTime.now());
+        } else {
+            logger.warn("Invalid password reset OTP attempt for {} at {}", email, java.time.LocalDateTime.now());
+        }
+        return isValid;
+    }
+
+    // Reset password without requiring OTP again
+    public void resetPassword(String email, String newPassword) {
+        Optional<User> userOpt = userService.findByEmail(email);
+        if (userOpt.isEmpty() || !EMAIL_PROVIDER.equals(userOpt.get().getProvider())) {
+            throw new IllegalArgumentException("Password reset is only available for email-registered users.");
+        }
+
+        if (!otpService.isVerifiedForPasswordReset(email)) {
+            throw new InvalidCredentialsException("You must verify your OTP before resetting password.");
+        }
+
+        User user = userOpt.get();
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userService.save(user);
+
+        // Clear the verification status
+        otpService.clearPasswordResetVerification(email);
+
+        logger.info("Password reset successfully for {} at {}", email, java.time.LocalDateTime.now());
     }
 
     private int calculateAge(LocalDate birthdate) {

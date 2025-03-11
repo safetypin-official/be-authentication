@@ -11,6 +11,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.safetypin.authentication.dto.VerifyResetOTPRequest;
+import com.safetypin.authentication.dto.PasswordResetWithOTPRequest;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -84,9 +86,46 @@ public class AuthenticationController {
 
     // Endpoint for forgot password (only for email users)
     @PostMapping("/forgot-password")
-    public String forgotPassword(@Valid @RequestBody PasswordResetRequest request) {
-        authenticationService.forgotPassword(request.getEmail());
-        return "Password reset instructions have been sent to your email (simulated)";
+    public ResponseEntity<AuthResponse> forgotPassword(@Valid @RequestBody PasswordResetRequest request) {
+        try {
+            authenticationService.forgotPassword(request.getEmail());
+            return ResponseEntity.ok(new AuthResponse(true, 
+                "Password reset OTP has been sent to your email", null));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new AuthResponse(false, e.getMessage(), null));
+        }
+    }
+    
+    // Endpoint to verify OTP for password reset
+    @PostMapping("/verify-reset-otp")
+    public ResponseEntity<AuthResponse> verifyResetOTP(@Valid @RequestBody VerifyResetOTPRequest request) {
+        try {
+            boolean isValid = authenticationService.verifyPasswordResetOTP(request.getEmail(), request.getOtp());
+            if (isValid) {
+                return ResponseEntity.ok(new AuthResponse(true, 
+                    "OTP verified successfully. You can now reset your password.", null));
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new AuthResponse(false, "Invalid OTP", null));
+            }
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new AuthResponse(false, e.getMessage(), null));
+        }
+    }
+    
+    // Endpoint to reset password with OTP
+    @PostMapping("/reset-password")
+    public ResponseEntity<AuthResponse> resetPassword(@Valid @RequestBody PasswordResetWithOTPRequest request) {
+        try {
+            authenticationService.resetPassword(request.getEmail(), request.getNewPassword());
+            return ResponseEntity.ok(new AuthResponse(true, 
+                "Password has been reset successfully", null));
+        } catch (InvalidCredentialsException | IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new AuthResponse(false, e.getMessage(), null));
+        }
     }
 
     @PostMapping("/verify-jwt")
