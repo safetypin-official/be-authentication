@@ -17,6 +17,6 @@ public class PasswordResetWithOTPRequest {
     @Size(min = 8, message = "Password must be at least 8 characters")
     private String newPassword;
 
-    // Remove OTP field and its getter/setter
-
+    @NotBlank(message = "Reset token is required")
+    private String resetToken;
 }

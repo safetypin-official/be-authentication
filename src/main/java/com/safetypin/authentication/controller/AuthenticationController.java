@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.safetypin.authentication.dto.VerifyResetOTPRequest;
 import com.safetypin.authentication.dto.PasswordResetWithOTPRequest;
+import com.safetypin.authentication.dto.ResetTokenResponse;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -101,10 +102,11 @@ public class AuthenticationController {
     @PostMapping("/verify-reset-otp")
     public ResponseEntity<AuthResponse> verifyResetOTP(@Valid @RequestBody VerifyResetOTPRequest request) {
         try {
-            boolean isValid = authenticationService.verifyPasswordResetOTP(request.getEmail(), request.getOtp());
-            if (isValid) {
+            String resetToken = authenticationService.verifyPasswordResetOTP(request.getEmail(), request.getOtp());
+            if (resetToken != null) {
+                ResetTokenResponse tokenResponse = new ResetTokenResponse(resetToken);
                 return ResponseEntity.ok(new AuthResponse(true, 
-                    "OTP verified successfully. You can now reset your password.", null));
+                    "OTP verified successfully. Reset token valid for 3 minutes.", tokenResponse));
             } else {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(new AuthResponse(false, "Invalid OTP", null));
@@ -115,11 +117,11 @@ public class AuthenticationController {
         }
     }
     
-    // Endpoint to reset password with OTP
+    // Endpoint to reset password with reset token
     @PostMapping("/reset-password")
     public ResponseEntity<AuthResponse> resetPassword(@Valid @RequestBody PasswordResetWithOTPRequest request) {
         try {
-            authenticationService.resetPassword(request.getEmail(), request.getNewPassword());
+            authenticationService.resetPassword(request.getEmail(), request.getNewPassword(), request.getResetToken());
             return ResponseEntity.ok(new AuthResponse(true, 
                 "Password has been reset successfully", null));
         } catch (InvalidCredentialsException | IllegalArgumentException e) {
