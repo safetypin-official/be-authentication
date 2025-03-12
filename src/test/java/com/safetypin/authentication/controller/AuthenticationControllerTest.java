@@ -171,19 +171,39 @@ class AuthenticationControllerTest {
     }
 
     @Test
+    void testForgotPassword_IllegalArgumentException() throws Exception {
+        PasswordResetRequest request = new PasswordResetRequest();
+        request.setEmail("social-login@example.com");
+
+        // Mock the service to throw IllegalArgumentException
+        String errorMessage = "Password reset is only available for email-registered users.";
+        Mockito.doThrow(new IllegalArgumentException(errorMessage))
+                .when(authenticationService).forgotPassword("social-login@example.com");
+
+        mockMvc.perform(post("/api/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value(errorMessage))
+                .andExpect(jsonPath("$.data").doesNotExist());
+    }
+
+    @Test
     void testVerifyResetOTP_Success() throws Exception {
         VerifyResetOTPRequest request = new VerifyResetOTPRequest();
         request.setEmail("email@example.com");
         request.setOtp("123456");
 
-        Mockito.when(authenticationService.verifyPasswordResetOTP("email@example.com", "123456")).thenReturn(true);
+        Mockito.when(authenticationService.verifyPasswordResetOTP("email@example.com", "123456")).thenReturn("reset-token-123");
 
         mockMvc.perform(post("/api/auth/verify-reset-otp")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("OTP verified successfully. You can now reset your password."));
+                .andExpect(jsonPath("$.message").value("OTP verified successfully. Reset token valid for 3 minutes."))
+                .andExpect(jsonPath("$.data.resetToken").value("reset-token-123"));
     }
 
     @Test
@@ -192,7 +212,7 @@ class AuthenticationControllerTest {
         request.setEmail("email@example.com");
         request.setOtp("123456");
 
-        Mockito.when(authenticationService.verifyPasswordResetOTP("email@example.com", "123456")).thenReturn(false);
+        Mockito.when(authenticationService.verifyPasswordResetOTP("email@example.com", "123456")).thenReturn(null);
 
         mockMvc.perform(post("/api/auth/verify-reset-otp")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -203,12 +223,34 @@ class AuthenticationControllerTest {
     }
 
     @Test
+    void testVerifyResetOTP_IllegalArgumentException() throws Exception {
+        VerifyResetOTPRequest request = new VerifyResetOTPRequest();
+        request.setEmail("social-login@example.com");
+        request.setOtp("123456");
+
+        // Mock the service to throw IllegalArgumentException
+        String errorMessage = "Password reset is only available for email-registered users.";
+        Mockito.when(authenticationService.verifyPasswordResetOTP("social-login@example.com", "123456"))
+                .thenThrow(new IllegalArgumentException(errorMessage));
+
+        mockMvc.perform(post("/api/auth/verify-reset-otp")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value(errorMessage))
+                .andExpect(jsonPath("$.data").doesNotExist());
+    }
+
+    @Test
     void testResetPassword_Success() throws Exception {
         PasswordResetWithOTPRequest request = new PasswordResetWithOTPRequest();
         request.setEmail("email@example.com");
         request.setNewPassword("newPassword123");
+        request.setResetToken("valid-reset-token");
 
-        Mockito.doNothing().when(authenticationService).resetPassword("email@example.com", "newPassword123");
+        Mockito.doNothing().when(authenticationService).resetPassword(
+                "email@example.com", "newPassword123", "valid-reset-token");
 
         mockMvc.perform(post("/api/auth/reset-password")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -219,20 +261,21 @@ class AuthenticationControllerTest {
     }
 
     @Test
-    void testResetPassword_NotVerified() throws Exception {
+    void testResetPassword_InvalidToken() throws Exception {
         PasswordResetWithOTPRequest request = new PasswordResetWithOTPRequest();
         request.setEmail("email@example.com");
         request.setNewPassword("newPassword123");
+        request.setResetToken("invalid-token");
 
-        Mockito.doThrow(new InvalidCredentialsException("You must verify your OTP before resetting password."))
-                .when(authenticationService).resetPassword("email@example.com", "newPassword123");
+        Mockito.doThrow(new InvalidCredentialsException("Invalid or expired reset token. Please request a new OTP."))
+                .when(authenticationService).resetPassword("email@example.com", "newPassword123", "invalid-token");
 
         mockMvc.perform(post("/api/auth/reset-password")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("You must verify your OTP before resetting password."));
+                .andExpect(jsonPath("$.message").value("Invalid or expired reset token. Please request a new OTP."));
     }
 
     @Test

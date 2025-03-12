@@ -8,13 +8,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.time.LocalDateTime;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.anyString;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -213,53 +214,79 @@ class OTPServiceTest {
     }
 
     @Test
-    void testIsVerifiedForPasswordResetWhenEmailNotVerified() {
-        // Test when email is not in the verifiedResetEmails map
-        boolean result = otpService.isVerifiedForPasswordReset("notverified@example.com");
-        assertFalse(result, "Should return false for non-verified email");
+    void testGenerateResetToken() {
+        String email = "test@example.com";
+        String resetToken = otpService.generateResetToken(email);
+
+        assertNotNull(resetToken, "Generated reset token should not be null");
+        assertTrue(resetToken.length() > 0, "Reset token should not be empty");
     }
 
     @Test
-    void testIsVerifiedForPasswordResetWhenVerificationExpired() throws Exception {
-        String email = "expired@example.com";
-        
-        // Use reflection to access and modify the private verifiedResetEmails map
-        java.lang.reflect.Field verifiedResetEmailsField = OTPService.class.getDeclaredField("verifiedResetEmails");
-        verifiedResetEmailsField.setAccessible(true);
+    void testVerifyResetToken_Success() throws Exception {
+        String email = "test@example.com";
+        String resetToken = otpService.generateResetToken(email);
+
+        boolean isValid = otpService.verifyResetToken(resetToken, email);
+        assertTrue(isValid, "Reset token should be valid");
+
+        // Verify that the token has been removed after verification
+        Field resetTokenStorageField = OTPService.class.getDeclaredField("resetTokenStorage");
+        resetTokenStorageField.setAccessible(true);
         @SuppressWarnings("unchecked")
-        ConcurrentHashMap<String, LocalDateTime> verifiedResetEmails = 
-            (ConcurrentHashMap<String, LocalDateTime>) verifiedResetEmailsField.get(otpService);
-        
-        // Add an expired verification (more than 5 minutes old)
-        verifiedResetEmails.put(email, LocalDateTime.now().minusMinutes(6));
-        
-        // Verify that the method returns false for expired verification
-        boolean result = otpService.isVerifiedForPasswordReset(email);
-        assertFalse(result, "Should return false for expired verification");
-        
-        // Verify that the expired entry was removed
-        assertFalse(verifiedResetEmails.containsKey(email), "Expired entry should be removed from the map");
+        ConcurrentHashMap<String, Object> resetTokenStorage =
+                (ConcurrentHashMap<String, Object>) resetTokenStorageField.get(otpService);
+
+        assertFalse(resetTokenStorage.containsKey(resetToken), "Token should be removed after verification");
     }
 
     @Test
-    void testIsVerifiedForPasswordResetSuccess() throws Exception {
-        String email = "valid@example.com";
-        
-        // Use reflection to access and modify the private verifiedResetEmails map
-        java.lang.reflect.Field verifiedResetEmailsField = OTPService.class.getDeclaredField("verifiedResetEmails");
-        verifiedResetEmailsField.setAccessible(true);
+    void testVerifyResetToken_WrongEmail() {
+        String email = "test@example.com";
+        String resetToken = otpService.generateResetToken(email);
+
+        boolean isValid = otpService.verifyResetToken(resetToken, "wrong@example.com");
+        assertFalse(isValid, "Reset token should not be valid for different email");
+    }
+
+    @Test
+    void testVerifyResetToken_Expired() throws Exception {
+        String email = "test@example.com";
+        String resetToken = otpService.generateResetToken(email);
+
+        // Access the private resetTokenStorage field via reflection
+        Field resetTokenStorageField = OTPService.class.getDeclaredField("resetTokenStorage");
+        resetTokenStorageField.setAccessible(true);
         @SuppressWarnings("unchecked")
-        ConcurrentHashMap<String, LocalDateTime> verifiedResetEmails = 
-            (ConcurrentHashMap<String, LocalDateTime>) verifiedResetEmailsField.get(otpService);
+        ConcurrentHashMap<String, Object> resetTokenStorage =
+                (ConcurrentHashMap<String, Object>) resetTokenStorageField.get(otpService);
+
+        // Get the ResetTokenDetails class
+        Object tokenDetails = resetTokenStorage.get(resetToken);
+        assertNotNull(tokenDetails, "Token details should exist");
+
+        // Find the class and constructor of ResetTokenDetails
+        Class<?> resetTokenDetailsClass = tokenDetails.getClass();
+        Constructor<?> constructor = resetTokenDetailsClass.getDeclaredConstructor(String.class, LocalDateTime.class);
+        constructor.setAccessible(true);
         
-        // Add a valid verification time (just now)
-        verifiedResetEmails.put(email, LocalDateTime.now());
+        // Create a new ResetTokenDetails instance with an expired time (4 minutes ago)
+        Object expiredTokenDetails = constructor.newInstance(email, LocalDateTime.now().minusMinutes(4));
         
-        // Verify that the method returns true for valid verification
-        boolean result = otpService.isVerifiedForPasswordReset(email);
-        assertTrue(result, "Should return true for valid verification");
-        
-        // Verify that the entry remains in the map
-        assertTrue(verifiedResetEmails.containsKey(email), "Valid entry should remain in the map");
+        // Replace the original token details with the expired one
+        resetTokenStorage.put(resetToken, expiredTokenDetails);
+
+        // Verify that the token is now expired
+        boolean isValid = otpService.verifyResetToken(resetToken, email);
+        assertFalse(isValid, "Reset token should be expired");
+    }
+
+    @Test
+    void testVerifyResetToken_NotFound() {
+        String nonExistentToken = "non-existent-token";
+        String email = "test@example.com";
+
+        boolean isValid = otpService.verifyResetToken(nonExistentToken, email);
+        assertFalse(isValid, "Verification should fail for non-existent token");
     }
 }

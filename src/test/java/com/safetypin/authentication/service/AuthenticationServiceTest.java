@@ -274,9 +274,11 @@ class AuthenticationServiceTest {
 
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(user));
         when(otpService.verifyOTP("test@example.com", "123456")).thenReturn(true);
+        when(otpService.generateResetToken("test@example.com")).thenReturn("reset-token-123");
 
-        boolean result = authenticationService.verifyPasswordResetOTP("test@example.com", "123456");
-        assertTrue(result);
+        String resetToken = authenticationService.verifyPasswordResetOTP("test@example.com", "123456");
+        assertNotNull(resetToken);
+        assertEquals("reset-token-123", resetToken);
     }
 
     @Test
@@ -288,8 +290,8 @@ class AuthenticationServiceTest {
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(user));
         when(otpService.verifyOTP("test@example.com", "123456")).thenReturn(false);
 
-        boolean result = authenticationService.verifyPasswordResetOTP("test@example.com", "123456");
-        assertFalse(result);
+        String resetToken = authenticationService.verifyPasswordResetOTP("test@example.com", "123456");
+        assertNull(resetToken);
     }
 
     @Test
@@ -329,44 +331,56 @@ class AuthenticationServiceTest {
         when(userService.findByEmail("social@example.com")).thenReturn(Optional.of(user));
 
         Exception exception = assertThrows(IllegalArgumentException.class, () ->
-                authenticationService.resetPassword("social@example.com", "newPassword")
+                authenticationService.resetPassword("social@example.com", "newPassword", "reset-token")
         );
 
         assertTrue(exception.getMessage().contains("Password reset is only available for email-registered users"));
-        verify(otpService, never()).isVerifiedForPasswordReset(anyString());
         verify(userService, never()).save(any(User.class));
     }
 
-
     @Test
-    void testResetPassword_WithoutOTP_Success() {
+    void testResetPassword_Success() {
         User user = new User();
         user.setEmail("test@example.com");
         user.setPassword("oldEncodedPassword");
         user.setProvider("EMAIL");
 
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(user));
-        when(otpService.isVerifiedForPasswordReset("test@example.com")).thenReturn(true);
+        when(otpService.verifyResetToken("valid-token", "test@example.com")).thenReturn(true);
         when(passwordEncoder.encode("newPassword")).thenReturn("newEncodedPassword");
 
-        authenticationService.resetPassword("test@example.com", "newPassword");
+        authenticationService.resetPassword("test@example.com", "newPassword", "valid-token");
 
         verify(userService).save(user);
         assertEquals("newEncodedPassword", user.getPassword());
-        verify(otpService).clearPasswordResetVerification("test@example.com");
     }
 
     @Test
-    void testResetPassword_WithoutOTP_NotVerified() {
+    void testResetPassword_InvalidToken() {
         User user = new User();
         user.setEmail("test@example.com");
         user.setProvider("EMAIL");
 
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(user));
-        when(otpService.isVerifiedForPasswordReset("test@example.com")).thenReturn(false);
+        when(otpService.verifyResetToken("invalid-token", "test@example.com")).thenReturn(false);
 
         assertThrows(InvalidCredentialsException.class, () ->
-                authenticationService.resetPassword("test@example.com", "newPassword")
+                authenticationService.resetPassword("test@example.com", "newPassword", "invalid-token")
+        );
+
+        verify(userService, never()).save(any(User.class));
+    }
+
+    @Test
+    void testResetPassword_NullToken() {
+        User user = new User();
+        user.setEmail("test@example.com");
+        user.setProvider("EMAIL");
+
+        when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+
+        assertThrows(InvalidCredentialsException.class, () ->
+                authenticationService.resetPassword("test@example.com", "newPassword", null)
         );
 
         verify(userService, never()).save(any(User.class));
