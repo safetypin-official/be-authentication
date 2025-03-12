@@ -269,10 +269,10 @@ class OTPServiceTest {
         Class<?> resetTokenDetailsClass = tokenDetails.getClass();
         Constructor<?> constructor = resetTokenDetailsClass.getDeclaredConstructor(String.class, LocalDateTime.class);
         constructor.setAccessible(true);
-        
+
         // Create a new ResetTokenDetails instance with an expired time (4 minutes ago)
         Object expiredTokenDetails = constructor.newInstance(email, LocalDateTime.now().minusMinutes(4));
-        
+
         // Replace the original token details with the expired one
         resetTokenStorage.put(resetToken, expiredTokenDetails);
 
