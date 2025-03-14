@@ -18,6 +18,7 @@ import java.util.Optional;
 public class AuthenticationService {
     public static final String EMAIL_PROVIDER = "EMAIL";
     private static final Logger logger = LoggerFactory.getLogger(AuthenticationService.class);
+    private static final String PASSWORD_RESET_EMAIL_ERROR = "Password reset is only available for email-registered users.";
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
     private final OTPService otpService;
@@ -97,7 +98,7 @@ public class AuthenticationService {
     public void forgotPassword(String email) {
         Optional<User> userOpt = userService.findByEmail(email);
         if (userOpt.isEmpty() || !EMAIL_PROVIDER.equals(userOpt.get().getProvider())) {
-            throw new IllegalArgumentException("Password reset is only available for email-registered users.");
+            throw new IllegalArgumentException(PASSWORD_RESET_EMAIL_ERROR);
         }
 
         // Generate OTP for password reset
@@ -111,7 +112,7 @@ public class AuthenticationService {
     public String verifyPasswordResetOTP(String email, String otp) {
         Optional<User> userOpt = userService.findByEmail(email);
         if (userOpt.isEmpty() || !EMAIL_PROVIDER.equals(userOpt.get().getProvider())) {
-            throw new IllegalArgumentException("Password reset is only available for email-registered users.");
+            throw new IllegalArgumentException(PASSWORD_RESET_EMAIL_ERROR);
         }
 
         boolean isValid = otpService.verifyOTP(email, otp);
@@ -130,7 +131,7 @@ public class AuthenticationService {
     public void resetPassword(String email, String newPassword, String resetToken) {
         Optional<User> userOpt = userService.findByEmail(email);
         if (userOpt.isEmpty() || !EMAIL_PROVIDER.equals(userOpt.get().getProvider())) {
-            throw new IllegalArgumentException("Password reset is only available for email-registered users.");
+            throw new IllegalArgumentException(PASSWORD_RESET_EMAIL_ERROR);
         }
 
         if (resetToken == null || !otpService.verifyResetToken(resetToken, email)) {

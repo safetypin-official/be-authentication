@@ -219,7 +219,7 @@ class OTPServiceTest {
         String resetToken = otpService.generateResetToken(email);
 
         assertNotNull(resetToken, "Generated reset token should not be null");
-        assertTrue(resetToken.length() > 0, "Reset token should not be empty");
+        assertTrue(resetToken.isEmpty(), "Reset token should not be empty");
     }
 
     @Test
