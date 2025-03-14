@@ -21,15 +21,13 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class JwtServiceTest {
 
-    @Mock
-    private UserService userService;
-
-    private JwtService jwtService;
-
     private final String secretKey = "testSecretKeyWithAtLeast256BitsForHmacSha256Algorithm";
     private final UUID userId = UUID.randomUUID();
     private final User mockUser = mock(User.class);
     private final UserResponse mockUserResponse = mock(UserResponse.class);
+    @Mock
+    private UserService userService;
+    private JwtService jwtService;
 
     @BeforeEach
     void setUp() {
