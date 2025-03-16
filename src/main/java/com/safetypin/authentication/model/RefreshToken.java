@@ -16,7 +16,7 @@ public class RefreshToken {
     private String token;
 
     @Transient
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id", nullable = false)
     @OneToOne(fetch = FetchType.LAZY)
     private User user;
 
