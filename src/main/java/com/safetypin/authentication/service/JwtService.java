@@ -75,10 +75,4 @@ public class JwtService {
         }
     }
 
-    // TODO? method not used in any other impl classes???
-    // Helper method to extract claims directly from token
-    public Map<String, Object> extractClaims(String token) {
-        Claims claims = parseToken(token);
-        return new HashMap<>(claims);
-    }
 }
