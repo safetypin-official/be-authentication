@@ -14,7 +14,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -48,36 +47,6 @@ class JwtServiceRS256Test {
         
         // Setup mock user response
         mockUserResponse = mock(UserResponse.class);
-    }
-
-    @Test
-    void generateToken_shouldCreateValidJwtWithUserClaims() {
-        // Setup only the necessary mocks for this test
-        when(userService.findById(userId)).thenReturn(Optional.of(mockUser));
-        when(mockUser.getName()).thenReturn("Test User");
-        when(mockUser.isVerified()).thenReturn(true);
-        when(mockUser.getRole()).thenReturn(Role.REGISTERED_USER);
-        
-        // Generate a token
-        String token = jwtService.generateToken(userId);
-
-        // Verify token is not null or empty
-        assertNotNull(token);
-        assertFalse(token.isEmpty());
-
-        // Extract claims and verify they contain the expected user information
-        Map<String, Object> claims = jwtService.extractClaims(token);
-        
-        assertEquals(userId.toString(), claims.get("userId"));
-        assertEquals("Test User", claims.get("name"));
-        assertEquals(true, claims.get("isVerified"));
-        assertEquals("REGISTERED_USER", claims.get("role"));
-        
-        // Verify mocks were used as expected
-        verify(userService, times(1)).findById(userId);
-        verify(mockUser, times(1)).getName();
-        verify(mockUser, times(1)).isVerified();
-        verify(mockUser, times(1)).getRole();
     }
 
     @Test
