@@ -5,6 +5,7 @@ import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.UserAlreadyExistsException;
 import com.safetypin.authentication.model.Role;
 import com.safetypin.authentication.model.User;
+import com.safetypin.authentication.service.passwordreset.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,12 +24,14 @@ public class AuthenticationService {
     private final PasswordEncoder passwordEncoder;
     private final OTPService otpService;
     private final JwtService jwtService;
+    private final PasswordResetContext passwordResetContext;
 
     public AuthenticationService(UserService userService, PasswordEncoder passwordEncoder, OTPService otpService, JwtService jwtService) {
         this.userService = userService;
         this.passwordEncoder = passwordEncoder;
         this.otpService = otpService;
         this.jwtService = jwtService;
+        this.passwordResetContext = new PasswordResetContext(userService, otpService, passwordEncoder);
     }
 
     // Registration using email – includes birthdate and OTP generation
@@ -94,59 +97,31 @@ public class AuthenticationService {
         return result;
     }
 
-    // Forgot password – initiates password reset flow
+    // Forgot password – initiates password reset flow using State pattern
     public void forgotPassword(String email) {
-        Optional<User> userOpt = userService.findByEmail(email);
-        if (userOpt.isEmpty() || !EMAIL_PROVIDER.equals(userOpt.get().getProvider())) {
-            throw new IllegalArgumentException(PASSWORD_RESET_EMAIL_ERROR);
-        }
-
-        // Generate OTP for password reset
-        String otp = otpService.generateOTP(email);
-
-        // In production, send the OTP via email
-        logger.info("Password reset OTP generated for email {} at {}: {}", email, java.time.LocalDateTime.now(), otp);
+        passwordResetContext.setEmail(email);
+        passwordResetContext.setState(new InitiateResetState());
+        passwordResetContext.processState();
     }
 
-    // Verify OTP for password reset and generate a reset token
+    // Verify OTP for password reset and generate a reset token using State pattern
     public String verifyPasswordResetOTP(String email, String otp) {
-        Optional<User> userOpt = userService.findByEmail(email);
-        if (userOpt.isEmpty() || !EMAIL_PROVIDER.equals(userOpt.get().getProvider())) {
-            throw new IllegalArgumentException(PASSWORD_RESET_EMAIL_ERROR);
-        }
-
-        boolean isValid = otpService.verifyOTP(email, otp);
-        if (isValid) {
-            // Generate a reset token valid for 3 minutes
-            String resetToken = otpService.generateResetToken(email);
-            logger.info("Password reset OTP verified for {}. Reset token generated at {}", email, java.time.LocalDateTime.now());
-            return resetToken;
-        } else {
-            logger.warn("Invalid password reset OTP attempt for {} at {}", email, java.time.LocalDateTime.now());
-            return null;
-        }
+        passwordResetContext.setEmail(email);
+        passwordResetContext.setOtp(otp);
+        passwordResetContext.setState(new VerifyOTPState());
+        return (String) passwordResetContext.processState();
     }
 
-    // Reset password using the reset token
+    // Reset password using the reset token using State pattern
     public void resetPassword(String email, String newPassword, String resetToken) {
-        Optional<User> userOpt = userService.findByEmail(email);
-        if (userOpt.isEmpty() || !EMAIL_PROVIDER.equals(userOpt.get().getProvider())) {
-            throw new IllegalArgumentException(PASSWORD_RESET_EMAIL_ERROR);
-        }
-
-        if (resetToken == null || !otpService.verifyResetToken(resetToken, email)) {
-            throw new InvalidCredentialsException("Invalid or expired reset token. Please request a new OTP.");
-        }
-
-        User user = userOpt.get();
-        user.setPassword(passwordEncoder.encode(newPassword));
-        userService.save(user);
-
-        logger.info("Password reset successfully for {} at {}", email, java.time.LocalDateTime.now());
+        passwordResetContext.setEmail(email);
+        passwordResetContext.setNewPassword(newPassword);
+        passwordResetContext.setResetToken(resetToken);
+        passwordResetContext.setState(new ResetPasswordState());
+        passwordResetContext.processState();
     }
 
     private int calculateAge(LocalDate birthdate) {
         return Period.between(birthdate, LocalDate.now()).getYears();
     }
-
 }
