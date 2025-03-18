@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 
 import java.time.Instant;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -106,18 +107,19 @@ class RefreshTokenRepositoryTest {
     @Test
     void testFindByUserId_Exists() {
         // Find refreshTokens by the token
-        RefreshToken foundToken = refreshTokenRepository.findByUserId(registeredUser.getId());
+        Optional<RefreshToken> foundToken = refreshTokenRepository.findByUserId(registeredUser.getId());
 
-        assertNotNull(foundToken);
-        assertEquals("Test-token", foundToken.getToken());
-        assertEquals(registeredUser.getId(), foundToken.getUser().getId());
+        assertTrue(foundToken.isPresent());
+        assertEquals("Test-token", foundToken.get().getToken());
+        assertEquals(registeredUser.getId(), foundToken.get().getUser().getId());
     }
 
     @Test
     void testFindByToken_NotExists() {
         // Find refreshTokens by the token
-        RefreshToken foundToken = refreshTokenRepository.findByUserId(premiumUser.getId());
-        assertNull(foundToken);
+        Optional<RefreshToken> foundToken = refreshTokenRepository.findByUserId(premiumUser.getId());
+
+        assertFalse(foundToken.isPresent());
     }
 
     @Test
