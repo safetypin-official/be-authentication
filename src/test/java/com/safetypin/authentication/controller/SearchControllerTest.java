@@ -75,4 +75,15 @@ class SearchControllerTest {
                 .andExpect(jsonPath("$[1].name").value("John Richard"))
                 .andExpect(jsonPath("$[2].name").value("Koala Kom"));
     }
+
+    @Test
+    void testSearchAllUsersWhenEmptyQuery() throws Exception {
+        mockMvc.perform(get("/api/users/search")
+                        .param("query", "   "))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.size()").value(3)) // Expect all 3 users
+                .andExpect(jsonPath("$[0].name").value("John Doe"))
+                .andExpect(jsonPath("$[1].name").value("John Richard"))
+                .andExpect(jsonPath("$[2].name").value("Koala Kom"));
+    }
 }

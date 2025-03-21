@@ -26,7 +26,7 @@ public class SearchController {
         if (query == null || query.trim().isEmpty()) {
             users = userService.findAllUsers(); // Fetch all users if no query is provided
         } else {
-            users = userService.findUsersByNameContaining(query);
+            users = userService.findUsersByNameContaining(query.trim());
         }
         List<UserResponse> userResponses = users.stream()
                 .map(User::generateUserResponse)
