@@ -31,7 +31,7 @@ public class SearchController {
         }
         List<UserResponse> userResponses = users.stream()
                 .map(User::generateUserResponse)
-                .collect(Collectors.toList());
+                .toList();
         return ResponseEntity.ok(userResponses);
     }
 }

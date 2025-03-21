@@ -23,7 +23,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @TestInstance(TestInstance.Lifecycle.PER_CLASS) // Keep the same instance for DB setup
 @Transactional // Rollback after each test
-public class SearchControllerTest {
+class SearchControllerTest {
 
 
     @Autowired
