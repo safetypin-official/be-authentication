@@ -4,6 +4,7 @@ import com.safetypin.authentication.model.User;
 import com.safetypin.authentication.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -25,5 +26,12 @@ public class UserService {
 
     public User save(User user) {
         return userRepository.save(user);
+    }
+
+    public List<User> findUsersByNameContaining(String query) {
+        return userRepository.findByNameContainingIgnoreCase(query);
+    }
+    public List<User> findAllUsers() {
+        return userRepository.findAll();
     }
 }
