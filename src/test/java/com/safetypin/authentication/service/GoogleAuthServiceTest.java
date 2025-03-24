@@ -455,5 +455,116 @@ class GoogleAuthServiceTest {
         assertTrue(loggingEvent.getFormattedMessage().contains("IO error when fetching user data"));
     }
 
+    @Test
+    void authenticate_UserUnder16_ThrowsIllegalArgumentException() throws Exception {
+        // Mock verify ID token
+        doReturn(payload).when(googleAuthService).verifyIdToken(anyString());
+        when(payload.getEmail()).thenReturn("underage@example.com");
+        when(payload.get("name")).thenReturn("Underage User");
 
+        // Mock user service to return empty (new user)
+        when(userService.findByEmail(anyString())).thenReturn(Optional.empty());
+
+        // Mock getAccessToken
+        doReturn(testAccessToken).when(googleAuthService).getAccessToken(anyString());
+
+        // Mock getUserBirthdate to return a date less than 16 years ago
+        LocalDate underageBirthdate = LocalDate.now().minusYears(15);
+        doReturn(underageBirthdate).when(googleAuthService).getUserBirthdate(anyString());
+
+        // Execute and verify
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> googleAuthService.authenticate(googleAuthDTO)
+        );
+
+        assertEquals("User must be at least 16 years old", exception.getMessage());
+        verify(userService, never()).save(any(User.class));
+    }
+
+    @Test
+    void authenticate_UserExactly16_Success() throws Exception {
+        // Mock verify ID token
+        doReturn(payload).when(googleAuthService).verifyIdToken(anyString());
+        when(payload.getEmail()).thenReturn("sixteen@example.com");
+        when(payload.get("name")).thenReturn("Sixteen User");
+
+        // Mock user service
+        when(userService.findByEmail(anyString())).thenReturn(Optional.empty());
+
+        // Mock getAccessToken
+        doReturn(testAccessToken).when(googleAuthService).getAccessToken(anyString());
+
+        // Mock getUserBirthdate to return a date exactly 16 years ago
+        LocalDate sixteenBirthdate = LocalDate.now().minusYears(16);
+        doReturn(sixteenBirthdate).when(googleAuthService).getUserBirthdate(anyString());
+
+        // Mock user save
+        User savedUser = new User();
+        savedUser.setId(testUserId);
+        when(userService.save(any(User.class))).thenReturn(savedUser);
+
+        // Mock JWT generation
+        when(jwtService.generateToken(any(UUID.class))).thenReturn("test-jwt-token");
+
+        // Execute
+        String result = googleAuthService.authenticate(googleAuthDTO);
+
+        // Verify
+        assertEquals("test-jwt-token", result);
+        verify(userService).save(any(User.class));
+    }
+
+    @Test
+    void authenticate_EdgeCaseUser15YearsAnd364Days_ThrowsIllegalArgumentException() throws Exception {
+        // Mock verify ID token
+        doReturn(payload).when(googleAuthService).verifyIdToken(anyString());
+        when(payload.getEmail()).thenReturn("almost16@example.com");
+        when(payload.get("name")).thenReturn("Almost Sixteen User");
+
+        // Mock user service
+        when(userService.findByEmail(anyString())).thenReturn(Optional.empty());
+
+        // Mock getAccessToken
+        doReturn(testAccessToken).when(googleAuthService).getAccessToken(anyString());
+
+        // Mock getUserBirthdate to return a date 15 years and 364 days ago
+        LocalDate almostSixteenBirthdate = LocalDate.now().minusYears(15).minusDays(364);
+        doReturn(almostSixteenBirthdate).when(googleAuthService).getUserBirthdate(anyString());
+
+        // Execute and verify
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> googleAuthService.authenticate(googleAuthDTO)
+        );
+
+        assertEquals("User must be at least 16 years old", exception.getMessage());
+        verify(userService, never()).save(any(User.class));
+    }
+
+    @Test
+    void authenticate_UserWithNullBirthdate_ThrowsApiException() throws Exception {
+        // Mock verify ID token
+        doReturn(payload).when(googleAuthService).verifyIdToken(anyString());
+        when(payload.getEmail()).thenReturn("nobirth@example.com");
+        when(payload.get("name")).thenReturn("No Birthdate User");
+
+        // Mock user service
+        when(userService.findByEmail(anyString())).thenReturn(Optional.empty());
+
+        // Mock getAccessToken
+        doReturn(testAccessToken).when(googleAuthService).getAccessToken(anyString());
+
+        // Mock getUserBirthdate to return null (birthdate not available)
+        doReturn(null).when(googleAuthService).getUserBirthdate(anyString());
+
+        // Execute and verify
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> googleAuthService.authenticate(googleAuthDTO)
+        );
+
+        assertEquals("Authentication failed", exception.getMessage());
+        verify(userService, never()).save(any(User.class));
+    }
 }
