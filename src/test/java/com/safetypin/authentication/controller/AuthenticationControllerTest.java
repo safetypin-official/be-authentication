@@ -1,17 +1,16 @@
 package com.safetypin.authentication.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.safetypin.authentication.dto.GoogleAuthDTO;
-import com.safetypin.authentication.dto.PasswordResetRequest;
-import com.safetypin.authentication.dto.RegistrationRequest;
-import com.safetypin.authentication.dto.UserResponse;
+import com.safetypin.authentication.dto.*;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
+import com.safetypin.authentication.model.RefreshToken;
 import com.safetypin.authentication.model.Role;
 import com.safetypin.authentication.exception.UserAlreadyExistsException;
 import com.safetypin.authentication.model.User;
 import com.safetypin.authentication.service.AuthenticationService;
 import com.safetypin.authentication.service.GoogleAuthService;
 import com.safetypin.authentication.service.JwtService;
+import com.safetypin.authentication.service.RefreshTokenService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +47,9 @@ class AuthenticationControllerTest {
 
     @Autowired
     private JwtService jwtService;
+
+    @Autowired
+    private RefreshTokenService refreshTokenService;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -99,14 +101,19 @@ class AuthenticationControllerTest {
 
         UUID id = UUID.randomUUID();
         user.setId(id);
-        String token = jwtService.generateToken(user.getId());
-        Mockito.when(authenticationService.registerUser(any(RegistrationRequest.class))).thenReturn(token);
+
+        String accessToken = jwtService.generateToken(user.getId());
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
+        AuthToken returnToken = new AuthToken(accessToken, refreshToken.getToken());
+
+        Mockito.when(authenticationService.registerUser(any(RegistrationRequest.class))).thenReturn(returnToken);
 
         mockMvc.perform(post("/api/auth/register-email")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.tokenValue").value(token));
+                .andExpect(jsonPath("$.data.accessToken").value(accessToken))
+                .andExpect(jsonPath("$.data.refreshToken").value(refreshToken.getToken()));
     }
 
     @Test
@@ -122,14 +129,20 @@ class AuthenticationControllerTest {
 
         UUID id = UUID.randomUUID();
         user.setId(id);
-        String token = jwtService.generateToken(user.getId());
-        Mockito.when(authenticationService.loginUser("email@example.com", "password")).thenReturn(token);
+
+
+        String accessToken = jwtService.generateToken(user.getId());
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
+        AuthToken returnToken = new AuthToken(accessToken, refreshToken.getToken());
+
+        Mockito.when(authenticationService.loginUser("email@example.com", "password")).thenReturn(returnToken);
 
         mockMvc.perform(post("/api/auth/login-email")
                         .param("email", "email@example.com")
                         .param("password", "password"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.tokenValue").value(token));
+                .andExpect(jsonPath("$.data.accessToken").value(accessToken))
+                .andExpect(jsonPath("$.data.refreshToken").value(refreshToken.getToken()));
     }
 
     @Test
@@ -243,10 +256,12 @@ class AuthenticationControllerTest {
 
         // Generate a mock JWT token
         String mockJwt = "mockJwtToken123";
+        String refreshToken = "test-refreshToken123";
+        AuthToken returnToken = new AuthToken(mockJwt, refreshToken);
 
         // Mock the service method to return the JWT token
         Mockito.when(googleAuthService.authenticate(any(GoogleAuthDTO.class)))
-                .thenReturn(mockJwt);
+                .thenReturn(returnToken);
 
         // Perform the test
         mockMvc.perform(post("/api/auth/google")
@@ -255,7 +270,8 @@ class AuthenticationControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("OK"))
-                .andExpect(jsonPath("$.data.tokenValue").value(mockJwt));
+                .andExpect(jsonPath("$.data.accessToken").value(mockJwt))
+                .andExpect(jsonPath("$.data.refreshToken").value(refreshToken));
     }
 
     @Test
