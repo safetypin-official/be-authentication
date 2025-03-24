@@ -18,6 +18,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -386,5 +387,17 @@ class AuthenticationServiceTest {
         verify(userService, never()).save(any(User.class));
     }
 
-    // Add missing methods for other functionality if needed
+    @Test
+    void testResetPassword_UserNotFound() {
+        // Simulate user not found scenario
+        when(userService.findByEmail("nonexistent@example.com")).thenReturn(Optional.empty());
+        
+        Exception exception = assertThrows(IllegalArgumentException.class, () ->
+                authenticationService.resetPassword("nonexistent@example.com", "newPassword", "reset-token")
+        );
+        
+        assertTrue(exception.getMessage().contains("Password reset is only available for email-registered users"));
+        verify(otpService, never()).verifyResetToken(anyString(), anyString());
+        verify(userService, never()).save(any(User.class));
+    }
 }
