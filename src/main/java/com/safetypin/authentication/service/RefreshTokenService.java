@@ -1,6 +1,7 @@
 package com.safetypin.authentication.service;
 
 import com.safetypin.authentication.exception.ApiException;
+import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.model.RefreshToken;
 import com.safetypin.authentication.model.User;
 import com.safetypin.authentication.repository.RefreshTokenRepository;
@@ -66,9 +67,9 @@ public class RefreshTokenService {
     }
 
     // renew refresh token (verify, delete, create)
-    public RefreshToken renewRefreshToken(String token) throws ApiException {
+    public RefreshToken renewRefreshToken(String token) throws InvalidCredentialsException {
         if (!verifyRefreshToken(token)) {
-            throw new ApiException("Invalid refresh token");
+            throw new InvalidCredentialsException("Invalid refresh token");
         }
         // delete existing token
         RefreshToken refreshToken = refreshTokenRepository.findByToken(token);

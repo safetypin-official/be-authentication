@@ -1,6 +1,6 @@
 package com.safetypin.authentication.service;
 
-import com.safetypin.authentication.exception.ApiException;
+import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.model.RefreshToken;
 import com.safetypin.authentication.model.User;
 import com.safetypin.authentication.repository.RefreshTokenRepository;
@@ -231,7 +231,7 @@ class RefreshTokenServiceTest {
 
         // Act & Assert
         Exception exception = assertThrows(
-                ApiException.class,
+                InvalidCredentialsException.class,
                 () -> refreshTokenService.renewRefreshToken(token)
         );
 
