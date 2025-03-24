@@ -53,11 +53,6 @@ public class GoogleAuthService {
     @Value("${google.client.secret:default}")
     private String googleClientSecret;
 
-    private static final String EMAIL_PROVIDER = "GOOGLE";
-    private static final String PEOPLE_API_BASE_URL = "https://people.googleapis.com/v1/people/me";
-
-    private static final String BIRTHDAY = "birthdays";
-
     public GoogleAuthService(UserService userService, JwtService jwtService, RefreshTokenService refreshTokenService) {
         this.userService = userService;
         this.jwtService = jwtService;
