@@ -1,5 +1,6 @@
 package com.safetypin.authentication.service;
 
+import com.safetypin.authentication.exception.ApiException;
 import com.safetypin.authentication.model.RefreshToken;
 import com.safetypin.authentication.model.User;
 import com.safetypin.authentication.repository.RefreshTokenRepository;
@@ -27,7 +28,6 @@ public class RefreshTokenService {
         this.userRepository = userRepository;
     }
 
-
     public RefreshToken createRefreshToken(UUID userId) {
         Optional<User> userOptional = userRepository.findById(userId);
         if (userOptional.isEmpty()) {
@@ -53,7 +53,7 @@ public class RefreshTokenService {
         return refreshTokenRepository.save(refreshToken);
     }
 
-    public boolean verifyToken(String token) {
+    public boolean verifyRefreshToken(String token) {
         RefreshToken refreshToken = refreshTokenRepository.findByToken(token);
         return refreshToken != null && refreshToken.getExpiryTime().isAfter(Instant.now());
     }
@@ -63,5 +63,18 @@ public class RefreshTokenService {
         if (refreshToken != null) {
             refreshTokenRepository.delete(refreshToken);
         }
+    }
+
+    // renew refresh token (verify, delete, create)
+    public RefreshToken renewRefreshToken(String token) throws ApiException {
+        if (!verifyRefreshToken(token)) {
+            throw new ApiException("Invalid refresh token");
+        }
+        // delete existing token
+        RefreshToken refreshToken = refreshTokenRepository.findByToken(token);
+        this.deleteRefreshToken(refreshToken.getToken());
+
+        RefreshToken newRefreshToken = this.createRefreshToken(refreshToken.getUser().getId());
+        return refreshTokenRepository.save(newRefreshToken);
     }
 }

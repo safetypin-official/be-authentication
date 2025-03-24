@@ -1,5 +1,6 @@
 package com.safetypin.authentication.service;
 
+import com.safetypin.authentication.exception.ApiException;
 import com.safetypin.authentication.model.RefreshToken;
 import com.safetypin.authentication.model.User;
 import com.safetypin.authentication.repository.RefreshTokenRepository;
@@ -32,7 +33,7 @@ class RefreshTokenServiceTest {
 
     private User testUser;
     private UUID userId;
-    private RefreshToken testRefreshToken;
+    private RefreshToken testRefreshToken, newRefreshToken;
 
     @BeforeEach
     void setUp() {
@@ -49,6 +50,13 @@ class RefreshTokenServiceTest {
         testRefreshToken.setToken("test-token");
         testRefreshToken.setUser(testUser);
         testRefreshToken.setExpiryTime(Instant.now().plusSeconds(86400)); // 24 hours
+
+        // Setup new refresh token
+        newRefreshToken = new RefreshToken();
+        newRefreshToken.setId(2L);
+        newRefreshToken.setToken("new-test-token");
+        newRefreshToken.setUser(testUser);
+        newRefreshToken.setExpiryTime(Instant.now().plusSeconds(86400)); // 24 hours
     }
 
     @Test
@@ -112,7 +120,7 @@ class RefreshTokenServiceTest {
     }
 
     @Test
-    void verifyToken_ValidToken() {
+    void verifyRefreshToken_ValidToken() {
         // Arrange
         String token = "valid-token";
         RefreshToken validToken = new RefreshToken();
@@ -122,14 +130,14 @@ class RefreshTokenServiceTest {
         when(refreshTokenRepository.findByToken(token)).thenReturn(validToken);
 
         // Act
-        boolean result = refreshTokenService.verifyToken(token);
+        boolean result = refreshTokenService.verifyRefreshToken(token);
 
         // Assert
         assertTrue(result);
     }
 
     @Test
-    void verifyToken_ExpiredToken() {
+    void verifyRefreshToken_ExpiredToken() {
         // Arrange
         String token = "expired-token";
         RefreshToken expiredToken = new RefreshToken();
@@ -139,20 +147,20 @@ class RefreshTokenServiceTest {
         when(refreshTokenRepository.findByToken(token)).thenReturn(expiredToken);
 
         // Act
-        boolean result = refreshTokenService.verifyToken(token);
+        boolean result = refreshTokenService.verifyRefreshToken(token);
 
         // Assert
         assertFalse(result);
     }
 
     @Test
-    void verifyToken_TokenNotFound() {
+    void verifyRefreshToken_TokenNotFound() {
         // Arrange
         String token = "non-existent-token";
         when(refreshTokenRepository.findByToken(token)).thenReturn(null);
 
         // Act
-        boolean result = refreshTokenService.verifyToken(token);
+        boolean result = refreshTokenService.verifyRefreshToken(token);
 
         // Assert
         assertFalse(result);
@@ -186,4 +194,80 @@ class RefreshTokenServiceTest {
         // Assert
         verify(refreshTokenRepository, never()).delete(any());
     }
+
+    @Test
+    void renewRefreshToken_Success() throws Exception {
+        // Arrange
+        String token = testRefreshToken.getToken();
+
+        // Set up for verifyRefreshToken
+        when(refreshTokenRepository.findByToken(token)).thenReturn(testRefreshToken);
+
+        // Set up for createRefreshToken
+        when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
+        when(refreshTokenRepository.findByUserId(userId)).thenReturn(Optional.empty());
+
+        // Set up for final save
+        when(refreshTokenRepository.save(any(RefreshToken.class))).thenReturn(newRefreshToken);
+
+        // Act
+        RefreshToken result = refreshTokenService.renewRefreshToken(token);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(newRefreshToken, result);
+
+        // Verify the original token was deleted
+        verify(refreshTokenRepository).delete(testRefreshToken);
+
+        // Verify a new token was created and saved
+        verify(refreshTokenRepository, times(2)).save(any(RefreshToken.class));
+    }
+
+    @Test
+    void renewRefreshToken_InvalidToken() {
+        // Arrange
+        String token = "invalid-token";
+
+        // Act & Assert
+        Exception exception = assertThrows(
+                ApiException.class,
+                () -> refreshTokenService.renewRefreshToken(token)
+        );
+
+        assertEquals("Invalid refresh token", exception.getMessage());
+
+        // Verify we never tried to delete or create a new token
+        verify(refreshTokenRepository, never()).delete(any());
+        verify(userRepository, never()).findById(any());
+    }
+
+    @Test
+    void renewRefreshToken_CreateTokenFails() {
+        // Arrange
+        String token = testRefreshToken.getToken();
+
+        // Set up for verifyRefreshToken
+        when(refreshTokenRepository.findByToken(token)).thenReturn(testRefreshToken);
+
+        // Set up for createRefreshToken to throw an exception
+        when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
+        when(refreshTokenRepository.findByUserId(userId)).thenReturn(Optional.of(new RefreshToken())); // Token already exists
+
+        // Act & Assert
+        Exception exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> refreshTokenService.renewRefreshToken(token)
+        );
+
+        assertEquals("Refresh token already exists", exception.getMessage());
+
+        // Verify the original token was deleted
+        verify(refreshTokenRepository).delete(testRefreshToken);
+
+        // Verify we tried to find the user but failed to create a new token
+        verify(userRepository).findById(userId);
+        verify(refreshTokenRepository, never()).save(any(RefreshToken.class));
+    }
+
 }
