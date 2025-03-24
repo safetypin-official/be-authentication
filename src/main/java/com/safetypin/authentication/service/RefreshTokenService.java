@@ -1,6 +1,5 @@
 package com.safetypin.authentication.service;
 
-import com.safetypin.authentication.exception.ApiException;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.model.RefreshToken;
 import com.safetypin.authentication.model.User;
