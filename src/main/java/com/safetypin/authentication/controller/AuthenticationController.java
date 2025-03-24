@@ -48,7 +48,7 @@ public class AuthenticationController {
         if (verified) {
             return ResponseEntity.ok().body(new AuthResponse(true, "User verified successfully", null));
         } else {
-            return ResponseEntity.ok().body(new AuthResponse(false, "OTP verification failed", null));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new AuthResponse(false, "OTP verification failed", null));
         }
 
     }
