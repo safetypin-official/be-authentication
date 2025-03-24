@@ -1,7 +1,6 @@
 package com.safetypin.authentication.controller;
 
 import com.safetypin.authentication.dto.*;
-import com.safetypin.authentication.exception.ApiException;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.UserAlreadyExistsException;
 import com.safetypin.authentication.model.RefreshToken;
@@ -111,7 +110,7 @@ public class AuthenticationController {
         try {
             RefreshToken renewedRefreshToken = refreshTokenService.renewRefreshToken(token);
             return ResponseEntity.ok(new AuthResponse(true, "OK", renewedRefreshToken.getToken()));
-        } catch (ApiException|InvalidCredentialsException e) {
+        } catch (InvalidCredentialsException e) {
             AuthResponse response = new AuthResponse(false, e.getMessage(), null);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }

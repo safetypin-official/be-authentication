@@ -70,6 +70,11 @@ class AuthenticationControllerTest {
         public JwtService jwtService() {
             return Mockito.mock(JwtService.class);
         }
+
+        @Bean
+        public RefreshTokenService refreshTokenService() {
+            return Mockito.mock(RefreshTokenService.class);
+        }
     }
 
     @TestConfiguration
@@ -103,8 +108,8 @@ class AuthenticationControllerTest {
         user.setId(id);
 
         String accessToken = jwtService.generateToken(user.getId());
-        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
-        AuthToken returnToken = new AuthToken(accessToken, refreshToken.getToken());
+        String refreshToken = "test-refresh-token";
+        AuthToken returnToken = new AuthToken(accessToken, refreshToken);
 
         Mockito.when(authenticationService.registerUser(any(RegistrationRequest.class))).thenReturn(returnToken);
 
@@ -113,7 +118,7 @@ class AuthenticationControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.accessToken").value(accessToken))
-                .andExpect(jsonPath("$.data.refreshToken").value(refreshToken.getToken()));
+                .andExpect(jsonPath("$.data.refreshToken").value(refreshToken));
     }
 
     @Test
@@ -132,8 +137,8 @@ class AuthenticationControllerTest {
 
 
         String accessToken = jwtService.generateToken(user.getId());
-        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
-        AuthToken returnToken = new AuthToken(accessToken, refreshToken.getToken());
+        String refreshToken = "test-refresh-token";
+        AuthToken returnToken = new AuthToken(accessToken, refreshToken);
 
         Mockito.when(authenticationService.loginUser("email@example.com", "password")).thenReturn(returnToken);
 
@@ -142,7 +147,7 @@ class AuthenticationControllerTest {
                         .param("password", "password"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.accessToken").value(accessToken))
-                .andExpect(jsonPath("$.data.refreshToken").value(refreshToken.getToken()));
+                .andExpect(jsonPath("$.data.refreshToken").value(refreshToken));
     }
 
     @Test
@@ -392,4 +397,33 @@ class AuthenticationControllerTest {
                 .andExpect(jsonPath("$.data").doesNotExist()); // No data expected in case of error
     }
 
+
+    @Test
+    void renewRefreshToken_Success() throws Exception {
+        String mockToken = "new-refresh-token";
+        RefreshToken refreshToken = new RefreshToken();
+        refreshToken.setToken(mockToken);
+        Mockito.when(refreshTokenService.renewRefreshToken(any())).thenReturn(refreshToken);
+
+        mockMvc.perform(post("/api/auth/refresh-token")
+                        .param("token", "existing-token")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("OK"))
+                .andExpect(jsonPath("$.data").value(mockToken));
+    }
+
+    @Test
+    void renewRefreshToken_InvalidToken() throws Exception {
+        Mockito.when(refreshTokenService.renewRefreshToken(any())).thenThrow(
+                new InvalidCredentialsException("Invalid refresh token"));
+
+        mockMvc.perform(post("/api/auth/refresh-token")
+                        .param("token", "invalid-token")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Invalid refresh token"));
+    }
 }
