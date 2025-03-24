@@ -31,6 +31,7 @@ import java.net.URI;
 import java.net.URL;
 import java.security.GeneralSecurityException;
 import java.time.LocalDate;
+import java.time.Period;
 import java.time.Year;
 import java.util.Collections;
 import java.util.Optional;
@@ -72,6 +73,9 @@ public class GoogleAuthService {
             String accessToken = getAccessToken(googleAuthDTO.getServerAuthCode());
             LocalDate userBirthdate = getUserBirthdate(accessToken);
 
+            if (Period.between(userBirthdate, LocalDate.now()).getYears() < 16)
+                throw new IllegalArgumentException("User must be at least 16 years old");
+
             User newUser = new User();
             newUser.setEmail(email);
             newUser.setName(name);
@@ -85,7 +89,7 @@ public class GoogleAuthService {
             logger.info("New user registered via Google authentication: {}", email);
 
             return jwtService.generateToken(user.getId());
-        } catch (UserAlreadyExistsException e) {
+        } catch (UserAlreadyExistsException | IllegalArgumentException e) {
             throw e;
         } catch (Exception e) {
             logger.error("Google authentication failed: {}", e.getMessage());

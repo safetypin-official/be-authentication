@@ -17,4 +17,8 @@ public class GoogleAuthDTO {
 
     @NotBlank
     private String serverAuthCode;
+
+    private String email;
+
+    private String name;
 }

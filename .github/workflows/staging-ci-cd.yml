@@ -78,6 +78,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: java-app
+          path: target
       - name: check directory
         run: ls -al
       - name: Docker login
