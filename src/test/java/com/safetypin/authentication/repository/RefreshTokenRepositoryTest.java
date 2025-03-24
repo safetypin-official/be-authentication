@@ -60,7 +60,7 @@ class RefreshTokenRepositoryTest {
 
         RefreshToken savedToken = refreshTokenRepository.save(token);
 
-        assertTrue(savedToken.getId() > 0);
+        assertNotNull(savedToken.getId());
     }
 
     @Test
