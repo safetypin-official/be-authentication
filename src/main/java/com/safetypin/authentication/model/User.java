@@ -27,7 +27,6 @@ public class User {
     // May be null for social login users
     @Setter
     @Getter
-    @Column(nullable = true)
     private String password;
 
     @Setter
