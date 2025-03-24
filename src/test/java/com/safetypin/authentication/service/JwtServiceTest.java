@@ -28,7 +28,6 @@ class JwtServiceTest {
 
     private JwtService jwtService;
     private KeyPair keyPair;
-    private final String secretKey = "testSecretKeyWithAtLeast256BitsForHmacSha256Algorithm";
     private final UUID userId = UUID.randomUUID();
     private final User mockUser = mock(User.class);
     private final UserResponse mockUserResponse = mock(UserResponse.class);
