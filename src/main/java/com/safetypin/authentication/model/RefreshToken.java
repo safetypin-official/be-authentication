@@ -3,14 +3,15 @@ package com.safetypin.authentication.model;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.Instant;
+import java.util.UUID;
 
 @Data
 @NoArgsConstructor
 @Entity
 @Table(name = "refresh_tokens")
 public class RefreshToken {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id;
+    @Id @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     @Column(nullable = false, unique = true)
     private String token;
