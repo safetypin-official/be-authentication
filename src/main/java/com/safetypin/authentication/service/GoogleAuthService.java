@@ -11,10 +11,12 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import com.safetypin.authentication.dto.AuthToken;
 import com.safetypin.authentication.dto.GoogleAuthDTO;
 import com.safetypin.authentication.exception.ApiException;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.UserAlreadyExistsException;
+import com.safetypin.authentication.model.RefreshToken;
 import com.safetypin.authentication.model.Role;
 import com.safetypin.authentication.model.User;
 import org.slf4j.Logger;
@@ -36,6 +38,7 @@ public class GoogleAuthService {
 
     private final UserService userService;
     private final JwtService jwtService;
+    private final RefreshTokenService refreshTokenService;
 
     @Value("${google.client.id:default}")
     private String googleClientId;
@@ -48,12 +51,13 @@ public class GoogleAuthService {
 
     private static final String BIRTHDAY = "birthdays";
 
-    public GoogleAuthService(UserService userService, JwtService jwtService) {
+    public GoogleAuthService(UserService userService, JwtService jwtService, RefreshTokenService refreshTokenService) {
         this.userService = userService;
         this.jwtService = jwtService;
+        this.refreshTokenService = refreshTokenService;
     }
 
-    public String authenticate(GoogleAuthDTO googleAuthDTO) throws ApiException {
+    public AuthToken authenticate(GoogleAuthDTO googleAuthDTO) throws ApiException {
         try {
             GoogleIdToken.Payload payload = verifyIdToken(googleAuthDTO.getIdToken());
             String email = payload.getEmail();
@@ -66,7 +70,11 @@ public class GoogleAuthService {
                 if (!EMAIL_PROVIDER.equals(userProvider)) {
                     throw new UserAlreadyExistsException("An account with this email exists. Please sign in using " + userProvider);
                 }
-                return jwtService.generateToken(user.getId());
+                String accessToken = jwtService.generateToken(user.getId());
+                RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
+
+                logger.info("User logged in with Google Auth at {}", java.time.LocalDateTime.now());
+                return new AuthToken(accessToken, refreshToken.getToken());
             }
 
             String accessToken = getAccessToken(googleAuthDTO.getServerAuthCode());
@@ -84,7 +92,10 @@ public class GoogleAuthService {
             User user = userService.save(newUser);
             logger.info("New user registered via Google authentication: {}", email);
 
-            return jwtService.generateToken(user.getId());
+            String jwtAccessToken = jwtService.generateToken(user.getId());
+            RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
+
+            return new AuthToken(jwtAccessToken, refreshToken.getToken());
         } catch (UserAlreadyExistsException e) {
             throw e;
         } catch (Exception e) {
