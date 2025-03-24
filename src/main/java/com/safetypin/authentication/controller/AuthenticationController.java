@@ -3,9 +3,7 @@ package com.safetypin.authentication.controller;
 import com.safetypin.authentication.dto.*;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.UserAlreadyExistsException;
-import com.safetypin.authentication.model.RefreshToken;
 import com.safetypin.authentication.service.AuthenticationService;
-import com.safetypin.authentication.service.RefreshTokenService;
 import jakarta.validation.Valid;
 import com.safetypin.authentication.service.GoogleAuthService;
 import com.safetypin.authentication.service.JwtService;
@@ -21,14 +19,12 @@ public class AuthenticationController {
     private final AuthenticationService authenticationService;
     private final GoogleAuthService googleAuthService;
     private final JwtService jwtService;
-    private final RefreshTokenService refreshTokenService;
 
     @Autowired
-    public AuthenticationController(AuthenticationService authenticationService, GoogleAuthService googleAuthService, JwtService jwtService, RefreshTokenService refreshTokenService) {
+    public AuthenticationController(AuthenticationService authenticationService, GoogleAuthService googleAuthService, JwtService jwtService) {
         this.authenticationService = authenticationService;
         this.googleAuthService = googleAuthService;
         this.jwtService = jwtService;
-        this.refreshTokenService = refreshTokenService;
     }
 
 
@@ -108,8 +104,8 @@ public class AuthenticationController {
     @PostMapping("/refresh-token")
     public ResponseEntity<AuthResponse> renewRefreshToken(@RequestParam String token) {
         try {
-            RefreshToken renewedRefreshToken = refreshTokenService.renewRefreshToken(token);
-            return ResponseEntity.ok(new AuthResponse(true, "OK", renewedRefreshToken.getToken()));
+            AuthToken renewedTokens = authenticationService.renewRefreshToken(token);
+            return ResponseEntity.ok(new AuthResponse(true, "OK", renewedTokens));
         } catch (InvalidCredentialsException e) {
             AuthResponse response = new AuthResponse(false, e.getMessage(), null);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);

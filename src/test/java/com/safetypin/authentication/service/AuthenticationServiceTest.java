@@ -282,5 +282,42 @@ class AuthenticationServiceTest {
         assertTrue(exception.getMessage().contains("Password reset is only available for email-registered users"));
     }
 
+    @Test
+    void testRenewRefreshToken_Success() {
+        String oldRefreshToken = "validRefreshToken";
+        UUID userId = UUID.randomUUID();
+        User user = new User();
+        user.setId(userId);
+
+        RefreshToken existingToken = new RefreshToken();
+        existingToken.setToken(oldRefreshToken);
+        existingToken.setUser(user);
+
+        when(refreshTokenService.getAndVerifyRefreshToken(oldRefreshToken)).thenReturn(Optional.of(existingToken));
+        when(jwtService.generateToken(userId)).thenReturn("newAccessToken");
+
+        RefreshToken newRefreshToken = new RefreshToken();
+        newRefreshToken.setToken("newRefreshToken");
+        when(refreshTokenService.createRefreshToken(userId)).thenReturn(newRefreshToken);
+
+        AuthToken authToken = authenticationService.renewRefreshToken(oldRefreshToken);
+
+        assertNotNull(authToken);
+        assertEquals("newAccessToken", authToken.getAccessToken());
+        assertEquals("newRefreshToken", authToken.getRefreshToken());
+    }
+
+    @Test
+    void testRenewRefreshToken_InvalidToken() {
+        String invalidRefreshToken = "invalidToken";
+
+        when(refreshTokenService.getAndVerifyRefreshToken(invalidRefreshToken)).thenReturn(Optional.empty());
+
+        Exception exception = assertThrows(InvalidCredentialsException.class, () ->
+                authenticationService.renewRefreshToken(invalidRefreshToken)
+        );
+        assertEquals("Invalid token provided", exception.getMessage());
+    }
+
     // Add missing methods for other functionality if needed
 }

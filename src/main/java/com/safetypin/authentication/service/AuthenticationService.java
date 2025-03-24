@@ -118,6 +118,24 @@ public class AuthenticationService {
         logger.info("Password reset requested at {}", java.time.LocalDateTime.now());
     }
 
+    // Refresh access token, checking validity of token
+    public AuthToken renewRefreshToken (String refreshToken) throws InvalidCredentialsException {
+        Optional<RefreshToken> optOldToken = refreshTokenService.getAndVerifyRefreshToken(refreshToken);
+        // Check token validity
+        if (optOldToken.isEmpty()) {
+            throw new InvalidCredentialsException("Invalid token provided");
+        }
+
+        RefreshToken oldToken = optOldToken.get();
+        User user = oldToken.getUser();
+
+        String accessToken = jwtService.generateToken(user.getId());
+        RefreshToken newRefreshToken = refreshTokenService.createRefreshToken(user.getId());
+
+        logger.info("User with id: {}, refreshed new tokens", user.getId());
+        return new AuthToken(accessToken, newRefreshToken.getToken());
+    }
+
     private int calculateAge(LocalDate birthdate) {
         return Period.between(birthdate, LocalDate.now()).getYears();
     }
