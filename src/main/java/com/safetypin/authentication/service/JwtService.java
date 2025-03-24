@@ -6,12 +6,11 @@ import com.safetypin.authentication.model.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.beans.factory.annotation.Autowired;
 
-import java.security.KeyPair;
-import java.security.PrivateKey;
-import java.security.PublicKey;
+import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -21,14 +20,11 @@ import java.util.UUID;
 public class JwtService {
     private static final long EXPIRATION_TIME = 1000L * 60 * 10; // 1000 milliseconds * 60 seconds * 10 minutes
 
-    private final PrivateKey privateKey;
-    private final PublicKey publicKey;
+    private final Key key;
     private final UserService userService;
 
-    @Autowired
-    public JwtService(KeyPair rsaKeyPair, UserService userService) {
-        this.privateKey = rsaKeyPair.getPrivate();
-        this.publicKey = rsaKeyPair.getPublic();
+    public JwtService(@Value("${jwt.secret:biggerboysandstolensweethearts}") String secretKey, UserService userService) {
+        this.key = Keys.hmacShaKeyFor(secretKey.getBytes());
         this.userService = userService;
     }
 
@@ -47,13 +43,13 @@ public class JwtService {
                 .setSubject(userId.toString())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
-                .signWith(privateKey, SignatureAlgorithm.RS256)  // Fixed: Changed order of params
+                .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }
 
     public Claims parseToken(String token) {
         return Jwts.parserBuilder()
-                .setSigningKey(publicKey)
+                .setSigningKey(key)
                 .build()
                 .parseClaimsJws(token)
                 .getBody();

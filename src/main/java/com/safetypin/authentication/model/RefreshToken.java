@@ -1,7 +1,9 @@
 package com.safetypin.authentication.model;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.time.Instant;
 import java.util.UUID;
 
@@ -10,7 +12,8 @@ import java.util.UUID;
 @Entity
 @Table(name = "refresh_tokens")
 public class RefreshToken {
-    @Id @GeneratedValue(strategy = GenerationType.UUID)
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @Column(nullable = false, unique = true)

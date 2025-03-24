@@ -27,20 +27,16 @@ class JwtServiceTest {
     private UserService userService;
 
     private JwtService jwtService;
-    private KeyPair keyPair;
+    private String secretKey = "justanormalsecretkeyfortestingnothingsuspicioushere";
     private final UUID userId = UUID.randomUUID();
     private final User mockUser = mock(User.class);
     private final UserResponse mockUserResponse = mock(UserResponse.class);
 
     @BeforeEach
     void setUp() throws Exception {
-        // Create RSA KeyPair for testing
-        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
-        keyGen.initialize(2048);
-        keyPair = keyGen.generateKeyPair();
 
         // Create JwtService instance with the mocked UserService and test key pair
-        jwtService = new JwtService(keyPair, userService);
+        jwtService = new JwtService(secretKey, userService);
     }
 
     @Test

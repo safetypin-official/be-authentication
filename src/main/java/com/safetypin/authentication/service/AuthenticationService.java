@@ -161,7 +161,7 @@ public class AuthenticationService {
     }
 
     // Refresh access token, checking validity of token
-    public AuthToken renewRefreshToken (String refreshToken) throws InvalidCredentialsException {
+    public AuthToken renewRefreshToken(String refreshToken) throws InvalidCredentialsException {
         Optional<RefreshToken> optOldToken = refreshTokenService.getAndVerifyRefreshToken(refreshToken);
         // Check token validity
         if (optOldToken.isEmpty()) {

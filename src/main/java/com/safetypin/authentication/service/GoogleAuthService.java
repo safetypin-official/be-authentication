@@ -10,7 +10,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-
 import com.safetypin.authentication.dto.AuthToken;
 import com.safetypin.authentication.dto.GoogleAuthDTO;
 import com.safetypin.authentication.exception.ApiException;
