@@ -20,6 +20,7 @@ import java.util.Optional;
 public class AuthenticationService {
     public static final String EMAIL_PROVIDER = "EMAIL";
     private static final Logger logger = LoggerFactory.getLogger(AuthenticationService.class);
+    private static final String PASSWORD_RESET_EMAIL_ERROR = "Password reset is only available for email-registered users.";
 
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
@@ -108,14 +109,55 @@ public class AuthenticationService {
         return result;
     }
 
-    // Forgot password – only applicable for email-registered users
+    // Forgot password – initiates password reset flow
     public void forgotPassword(String email) {
-        Optional<User> user = userService.findByEmail(email);
-        if (user.isEmpty() || !EMAIL_PROVIDER.equals(user.get().getProvider())) {
-            throw new IllegalArgumentException("Password reset is only available for email-registered users.");
+        Optional<User> userOpt = userService.findByEmail(email);
+        if (userOpt.isEmpty() || !EMAIL_PROVIDER.equals(userOpt.get().getProvider())) {
+            throw new IllegalArgumentException(PASSWORD_RESET_EMAIL_ERROR);
         }
-        // In production, send a reset token via email.
-        logger.info("Password reset requested at {}", java.time.LocalDateTime.now());
+
+        // Generate OTP for password reset
+        String otp = otpService.generateOTP(email);
+
+        // In production, send the OTP via email
+        logger.info("Password reset OTP generated for email {} at {}: {}", email, java.time.LocalDateTime.now(), otp);
+    }
+
+    // Verify OTP for password reset and generate a reset token
+    public String verifyPasswordResetOTP(String email, String otp) {
+        Optional<User> userOpt = userService.findByEmail(email);
+        if (userOpt.isEmpty() || !EMAIL_PROVIDER.equals(userOpt.get().getProvider())) {
+            throw new IllegalArgumentException(PASSWORD_RESET_EMAIL_ERROR);
+        }
+
+        boolean isValid = otpService.verifyOTP(email, otp);
+        if (isValid) {
+            // Generate a reset token valid for 3 minutes
+            String resetToken = otpService.generateResetToken(email);
+            logger.info("Password reset OTP verified for {}. Reset token generated at {}", email, java.time.LocalDateTime.now());
+            return resetToken;
+        } else {
+            logger.warn("Invalid password reset OTP attempt for {} at {}", email, java.time.LocalDateTime.now());
+            return null;
+        }
+    }
+
+    // Reset password using the reset token
+    public void resetPassword(String email, String newPassword, String resetToken) {
+        Optional<User> userOpt = userService.findByEmail(email);
+        if (userOpt.isEmpty() || !EMAIL_PROVIDER.equals(userOpt.get().getProvider())) {
+            throw new IllegalArgumentException(PASSWORD_RESET_EMAIL_ERROR);
+        }
+
+        if (resetToken == null || !otpService.verifyResetToken(resetToken, email)) {
+            throw new InvalidCredentialsException("Invalid or expired reset token. Please request a new OTP.");
+        }
+
+        User user = userOpt.get();
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userService.save(user);
+
+        logger.info("Password reset successfully for {} at {}", email, java.time.LocalDateTime.now());
     }
 
     // Refresh access token, checking validity of token

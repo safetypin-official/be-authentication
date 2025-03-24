@@ -1,5 +1,9 @@
 package com.safetypin.authentication.service;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.Appender;
 import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeTokenRequest;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
@@ -16,70 +20,56 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.Appender;
 import org.slf4j.LoggerFactory;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.*;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class GoogleAuthServiceTest {
 
+    private final String testAccessToken = "test-access-token";
+    private final String testGoogleClientId = "test-client-id";
+    private final String testIdToken = "test-id-token";
     @Mock
     private UserService userService;
-
     @Mock
     private JwtService jwtService;
-
     @Mock
     private RefreshTokenService refreshTokenService;
 
     @Mock
     private GoogleIdToken idToken;
-
     @Mock
     private GoogleIdToken.Payload payload;
-
     @Mock
     private GoogleIdTokenVerifier verifier;
-
     @Mock
     private GoogleAuthorizationCodeTokenRequest tokenRequest;
-
     @Mock
     private GoogleTokenResponse tokenResponse;
-
     @Spy
     @InjectMocks
     private GoogleAuthService googleAuthService;
-
     @Mock
     private Appender<ILoggingEvent> mockAppender;
-
     @Captor
     private ArgumentCaptor<ILoggingEvent> loggingEventCaptor;
-
     private GoogleAuthDTO googleAuthDTO;
     private UUID testUserId;
-
-    private final String testAccessToken = "test-access-token";
-
-    private final String testGoogleClientId = "test-client-id";
-
-    private final String testIdToken = "test-id-token";
 
     @BeforeEach
     void setup() {

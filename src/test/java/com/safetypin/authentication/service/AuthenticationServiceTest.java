@@ -247,6 +247,7 @@ class AuthenticationServiceTest {
         user.setProvider("EMAIL");
 
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+        when(otpService.generateOTP("test@example.com")).thenReturn("123456");
 
         assertDoesNotThrow(() -> authenticationService.forgotPassword("test@example.com"));
     }
@@ -280,6 +281,126 @@ class AuthenticationServiceTest {
         );
 
         assertTrue(exception.getMessage().contains("Password reset is only available for email-registered users"));
+    }
+
+    @Test
+    void testVerifyPasswordResetOTP_Success() {
+        User user = new User();
+        user.setEmail("test@example.com");
+        user.setProvider("EMAIL");
+
+        when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+        when(otpService.verifyOTP("test@example.com", "123456")).thenReturn(true);
+        when(otpService.generateResetToken("test@example.com")).thenReturn("reset-token-123");
+
+        String resetToken = authenticationService.verifyPasswordResetOTP("test@example.com", "123456");
+        assertNotNull(resetToken);
+        assertEquals("reset-token-123", resetToken);
+    }
+
+    @Test
+    void testVerifyPasswordResetOTP_Failure() {
+        User user = new User();
+        user.setEmail("test@example.com");
+        user.setProvider("EMAIL");
+
+        when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+        when(otpService.verifyOTP("test@example.com", "123456")).thenReturn(false);
+
+        String resetToken = authenticationService.verifyPasswordResetOTP("test@example.com", "123456");
+        assertNull(resetToken);
+    }
+
+    @Test
+    void testVerifyPasswordResetOTP_UserNotFound() {
+        when(userService.findByEmail("nonexistent@example.com")).thenReturn(Optional.empty());
+
+        Exception exception = assertThrows(IllegalArgumentException.class, () ->
+                authenticationService.verifyPasswordResetOTP("nonexistent@example.com", "123456")
+        );
+
+        assertTrue(exception.getMessage().contains("Password reset is only available for email-registered users"));
+        verify(otpService, never()).verifyOTP(anyString(), anyString());
+    }
+
+    @Test
+    void testVerifyPasswordResetOTP_NonEmailProvider() {
+        User user = new User();
+        user.setEmail("social@example.com");
+        user.setProvider("GOOGLE");
+
+        when(userService.findByEmail("social@example.com")).thenReturn(Optional.of(user));
+
+        Exception exception = assertThrows(IllegalArgumentException.class, () ->
+                authenticationService.verifyPasswordResetOTP("social@example.com", "123456")
+        );
+
+        assertTrue(exception.getMessage().contains("Password reset is only available for email-registered users"));
+        verify(otpService, never()).verifyOTP(anyString(), anyString());
+    }
+
+    @Test
+    void testResetPassword_NonEmailProvider_WithoutOTP() {
+        User user = new User();
+        user.setEmail("social@example.com");
+        user.setProvider("GOOGLE");
+
+        when(userService.findByEmail("social@example.com")).thenReturn(Optional.of(user));
+
+        Exception exception = assertThrows(IllegalArgumentException.class, () ->
+                authenticationService.resetPassword("social@example.com", "newPassword", "reset-token")
+        );
+
+        assertTrue(exception.getMessage().contains("Password reset is only available for email-registered users"));
+        verify(userService, never()).save(any(User.class));
+    }
+
+    @Test
+    void testResetPassword_Success() {
+        User user = new User();
+        user.setEmail("test@example.com");
+        user.setPassword("oldEncodedPassword");
+        user.setProvider("EMAIL");
+
+        when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+        when(otpService.verifyResetToken("valid-token", "test@example.com")).thenReturn(true);
+        when(passwordEncoder.encode("newPassword")).thenReturn("newEncodedPassword");
+
+        authenticationService.resetPassword("test@example.com", "newPassword", "valid-token");
+
+        verify(userService).save(user);
+        assertEquals("newEncodedPassword", user.getPassword());
+    }
+
+    @Test
+    void testResetPassword_InvalidToken() {
+        User user = new User();
+        user.setEmail("test@example.com");
+        user.setProvider("EMAIL");
+
+        when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+        when(otpService.verifyResetToken("invalid-token", "test@example.com")).thenReturn(false);
+
+        assertThrows(InvalidCredentialsException.class, () ->
+                authenticationService.resetPassword("test@example.com", "newPassword", "invalid-token")
+        );
+
+        verify(userService, never()).save(any(User.class));
+    }
+
+    @Test
+    void testResetPassword_NullToken() {
+        User user = new User();
+        user.setEmail("test@example.com");
+        user.setProvider("EMAIL");
+
+        when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+
+        assertThrows(InvalidCredentialsException.class, () ->
+                authenticationService.resetPassword("test@example.com", "newPassword", null)
+        );
+
+        verify(userService, never()).save(any(User.class));
     }
 
     @Test

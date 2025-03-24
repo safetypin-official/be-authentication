@@ -1,7 +1,9 @@
 package com.safetypin.authentication.dto;
 
 import org.junit.jupiter.api.Test;
+
 import java.time.LocalDateTime;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class ErrorResponseTest {
@@ -26,7 +28,7 @@ class ErrorResponseTest {
         // Act
         ErrorResponse response = new ErrorResponse(status, message);
         LocalDateTime beforeTest = LocalDateTime.now().minusSeconds(1);
-        
+
         // Assert
         assertEquals(status, response.getStatus());
         assertEquals(message, response.getMessage());
@@ -73,10 +75,10 @@ class ErrorResponseTest {
     void testToString() {
         // Arrange
         ErrorResponse response = new ErrorResponse(404, "Not Found");
-        
+
         // Act
         String toStringResult = response.toString();
-        
+
         // Assert
         assertTrue(toStringResult.contains("404"));
         assertTrue(toStringResult.contains("Not Found"));

@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 
@@ -15,9 +16,12 @@ import java.util.concurrent.ExecutionException;
 public class OTPService {
     private static final long OTP_EXPIRATION_SECONDS = 120; // 2 minutes expiration
     private static final Logger log = LoggerFactory.getLogger(OTPService.class);
+    private static final long RESET_TOKEN_EXPIRATION_SECONDS = 180; // 3 minutes
     private final EmailService emailService;
     private final ConcurrentHashMap<String, OTPDetails> otpStorage = new ConcurrentHashMap<>();
     private final SecureRandom random = new SecureRandom();
+    // Store reset tokens with their expiration time
+    private final ConcurrentHashMap<String, ResetTokenDetails> resetTokenStorage = new ConcurrentHashMap<>();
 
     @Autowired
     public OTPService(EmailService emailService) {
@@ -47,7 +51,7 @@ public class OTPService {
         if (otp == null) {
             throw new NullPointerException("OTP cannot be null");
         }
-        
+
         OTPDetails details = otpStorage.get(email);
         if (details == null) {
             return false;
@@ -64,6 +68,55 @@ public class OTPService {
         return false;
     }
 
+    /**
+     * Generate a reset token after OTP verification
+     *
+     * @param email the email address
+     * @return the reset token
+     */
+    public String generateResetToken(String email) {
+        String token = UUID.randomUUID().toString();
+        resetTokenStorage.put(token, new ResetTokenDetails(email, LocalDateTime.now()));
+        log.info("Generated reset token for {}", email);
+        return token;
+    }
+
+    /**
+     * Verify if a reset token is valid
+     *
+     * @param token the reset token
+     * @param email the email associated with the token
+     * @return true if valid, false otherwise
+     */
+    public boolean verifyResetToken(String token, String email) {
+        ResetTokenDetails details = resetTokenStorage.get(token);
+
+        if (details == null) {
+            log.warn("Reset token not found: {}", token);
+            return false;
+        }
+
+        // Check if token has expired
+        if (details.generatedAt.plusSeconds(RESET_TOKEN_EXPIRATION_SECONDS).isBefore(LocalDateTime.now())) {
+            log.warn("Reset token expired: {}", token);
+            resetTokenStorage.remove(token);
+            return false;
+        }
+
+        // Check if token matches the email
+        if (!details.email.equals(email)) {
+            log.warn("Email mismatch for token. Expected: {}, Actual: {}", details.email, email);
+            return false;
+        }
+
+        // Token is valid, remove it to prevent reuse
+        resetTokenStorage.remove(token);
+        return true;
+    }
+
     private record OTPDetails(String otp, LocalDateTime generatedAt) {
+    }
+
+    private record ResetTokenDetails(String email, LocalDateTime generatedAt) {
     }
 }

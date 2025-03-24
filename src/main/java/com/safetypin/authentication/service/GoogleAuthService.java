@@ -24,8 +24,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.io.*;
-import java.net.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URL;
 import java.security.GeneralSecurityException;
 import java.time.LocalDate;
 import java.time.Year;
@@ -35,14 +41,15 @@ import java.util.Optional;
 @Service
 public class GoogleAuthService {
     private static final Logger logger = LoggerFactory.getLogger(GoogleAuthService.class);
-
+    private static final String EMAIL_PROVIDER = "GOOGLE";
+    private static final String PEOPLE_API_BASE_URL = "https://people.googleapis.com/v1/people/me";
+    private static final String BIRTHDAY = "birthdays";
     private final UserService userService;
     private final JwtService jwtService;
     private final RefreshTokenService refreshTokenService;
 
     @Value("${google.client.id:default}")
     private String googleClientId;
-
     @Value("${google.client.secret:default}")
     private String googleClientSecret;
 

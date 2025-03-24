@@ -1,6 +1,5 @@
 package com.safetypin.authentication.service;
 
-import com.safetypin.authentication.dto.UserResponse;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.model.User;
 import com.safetypin.authentication.repository.UserRepository;
@@ -83,7 +82,7 @@ class TokenExpirationTest {
         }
 
         // This method simulates the token expiration check portion of getUserFromJwtToken
-        public UserResponse testTokenExpiration(UUID userId) {
+        public void testTokenExpiration(UUID userId) {
             try {
                 // Mock a Claims object with an expired date
                 Claims claims = Jwts.claims()
@@ -103,7 +102,7 @@ class TokenExpirationTest {
                 if (user.isEmpty()) {
                     throw new InvalidCredentialsException("User not found");
                 }
-                return user.get().generateUserResponse();
+                user.get().generateUserResponse();
             } catch (JwtException | IllegalArgumentException e) {
                 throw new InvalidCredentialsException("Invalid token");
             }

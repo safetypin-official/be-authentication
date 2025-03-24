@@ -28,6 +28,7 @@ class JwtServiceTest {
 
     private JwtService jwtService;
     private KeyPair keyPair;
+    private final String secretKey = "testSecretKeyWithAtLeast256BitsForHmacSha256Algorithm";
     private final UUID userId = UUID.randomUUID();
     private final User mockUser = mock(User.class);
     private final UserResponse mockUserResponse = mock(UserResponse.class);
@@ -38,7 +39,7 @@ class JwtServiceTest {
         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
         keyGen.initialize(2048);
         keyPair = keyGen.generateKeyPair();
-        
+
         // Create JwtService instance with the mocked UserService and test key pair
         jwtService = new JwtService(keyPair, userService);
     }
@@ -77,7 +78,7 @@ class JwtServiceTest {
         when(mockUser.getName()).thenReturn("Test User");
         when(mockUser.isVerified()).thenReturn(true);
         when(mockUser.getRole()).thenReturn(com.safetypin.authentication.model.Role.REGISTERED_USER);
-        
+
         // Generate a token
         String token = jwtService.generateToken(userId);
 
@@ -108,13 +109,13 @@ class JwtServiceTest {
         when(mockUser.isVerified()).thenReturn(true);
         when(mockUser.getRole()).thenReturn(com.safetypin.authentication.model.Role.REGISTERED_USER);
         when(mockUser.generateUserResponse()).thenReturn(mockUserResponse);
-        
+
         // Generate a token
         String token = jwtService.generateToken(userId);
-        
+
         // Reset the mock to clear previous interactions
         reset(userService);
-        
+
         // Setup mock again for the getUserFromJwtToken call
         when(userService.findById(userId)).thenReturn(Optional.of(mockUser));
         when(mockUser.generateUserResponse()).thenReturn(mockUserResponse);
@@ -133,10 +134,10 @@ class JwtServiceTest {
         when(mockUser.getName()).thenReturn("Test User");
         when(mockUser.isVerified()).thenReturn(true);
         when(mockUser.getRole()).thenReturn(com.safetypin.authentication.model.Role.REGISTERED_USER);
-        
+
         // Generate a token
         String token = jwtService.generateToken(userId);
-        
+
         // Then setup user not found scenario
         when(userService.findById(userId)).thenReturn(Optional.empty());
 
@@ -145,7 +146,7 @@ class JwtServiceTest {
                 InvalidCredentialsException.class,
                 () -> jwtService.getUserFromJwtToken(token)
         );
-        
+
         assertEquals("User not found", exception.getMessage());
     }
 }
