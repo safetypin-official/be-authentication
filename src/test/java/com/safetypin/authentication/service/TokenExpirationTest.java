@@ -39,6 +39,9 @@ class TokenExpirationTest {
     @Mock
     private JwtService jwtService;
 
+    @Mock
+    private RefreshTokenService refreshTokenService;
+
 
     @BeforeEach
     void setUp() {
@@ -76,7 +79,7 @@ class TokenExpirationTest {
                                          PasswordEncoder passwordEncoder,
                                          OTPService otpService,
                                          JwtService jwtService) {
-            super(userService, passwordEncoder, otpService, jwtService);
+            super(userService, passwordEncoder, otpService, jwtService, refreshTokenService);
         }
 
         // This method simulates the token expiration check portion of getUserFromJwtToken
