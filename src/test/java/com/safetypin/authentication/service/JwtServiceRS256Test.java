@@ -11,10 +11,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.security.Key;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -28,15 +24,15 @@ class JwtServiceRS256Test {
     private UserService userService;
 
     private JwtService jwtService;
-    private String secretKey = "justanormalsecretkeyfortestingnothingsuspicioushere";
     private final UUID userId = UUID.randomUUID();
     private User mockUser;
     private UserResponse mockUserResponse;
 
     @BeforeEach
-    void setUp() throws NoSuchAlgorithmException {
+    void setUp(){
         
         // Create JwtService instance with the test key pair
+        String secretKey = "justanormalsecretkeyfortestingnothingsuspicioushere";
         jwtService = new JwtService(secretKey, userService);
         
         // Create a proper mock for User

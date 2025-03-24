@@ -11,8 +11,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
 import java.util.Date;
 import java.util.Optional;
 import java.util.UUID;
@@ -27,15 +25,15 @@ class JwtServiceTest {
     private UserService userService;
 
     private JwtService jwtService;
-    private String secretKey = "justanormalsecretkeyfortestingnothingsuspicioushere";
     private final UUID userId = UUID.randomUUID();
     private final User mockUser = mock(User.class);
     private final UserResponse mockUserResponse = mock(UserResponse.class);
 
     @BeforeEach
-    void setUp() throws Exception {
+    void setUp(){
 
         // Create JwtService instance with the mocked UserService and test key pair
+        String secretKey = "justanormalsecretkeyfortestingnothingsuspicioushere";
         jwtService = new JwtService(secretKey, userService);
     }
 
