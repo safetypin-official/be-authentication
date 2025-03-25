@@ -52,6 +52,25 @@ public class User {
     @Getter
     private String provider;  // "EMAIL", "GOOGLE", "APPLE"
 
+    @Setter
+    @Getter
+    private String instagram;
+
+    @Setter
+    @Getter
+    private String twitter;
+
+    @Setter
+    @Getter
+    private String line;
+
+    @Setter
+    @Getter
+    private String tiktok;
+
+    @Setter
+    @Getter
+    private String discord;
 
     // Getters and setters
 
