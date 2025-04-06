@@ -32,8 +32,8 @@ public class AuthenticationController {
     @PostMapping("/register-email")
     public ResponseEntity<AuthResponse> registerEmail(@Valid @RequestBody RegistrationRequest request) {
         try {
-            String jwt = authenticationService.registerUser(request);
-            return ResponseEntity.ok().body(new AuthResponse(true, "OK", new Token(jwt)));
+            AuthToken tokens = authenticationService.registerUser(request);
+            return ResponseEntity.ok().body(new AuthResponse(true, "OK", tokens));
         } catch (IllegalArgumentException | UserAlreadyExistsException e) {
             AuthResponse response = new AuthResponse(false, e.getMessage(), null);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
@@ -58,8 +58,8 @@ public class AuthenticationController {
     @PostMapping("/login-email")
     public ResponseEntity<AuthResponse> loginEmail(@RequestBody LoginRequest loginRequest) {
         try {
-            String jwt = authenticationService.loginUser(loginRequest.getEmail(), loginRequest.getPassword());
-            return ResponseEntity.ok(new AuthResponse(true, "OK", new Token(jwt)));
+            AuthToken tokens = authenticationService.loginUser(loginRequest.getEmail(), loginRequest.getPassword());
+            return ResponseEntity.ok().body(new AuthResponse(true, "OK", tokens));
         } catch (InvalidCredentialsException e) {
             AuthResponse response = new AuthResponse(false, e.getMessage(), null);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
@@ -70,8 +70,8 @@ public class AuthenticationController {
     @PostMapping("/google")
     public ResponseEntity<AuthResponse> authenticateGoogle(@Valid @RequestBody GoogleAuthDTO googleAuthData) {
         try {
-            String jwt = googleAuthService.authenticate(googleAuthData);
-            return ResponseEntity.ok(new AuthResponse(true, "OK", new Token(jwt)));
+            AuthToken tokens = googleAuthService.authenticate(googleAuthData);
+            return ResponseEntity.ok(new AuthResponse(true, "OK", tokens));
         } catch (UserAlreadyExistsException e) {
             AuthResponse response = new AuthResponse(false, e.getMessage(), null);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
@@ -137,6 +137,19 @@ public class AuthenticationController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
     }
+
+
+    @PostMapping("/refresh-token")
+    public ResponseEntity<AuthResponse> renewRefreshToken(@RequestParam String token) {
+        try {
+            AuthToken renewedTokens = authenticationService.renewRefreshToken(token);
+            return ResponseEntity.ok(new AuthResponse(true, "OK", renewedTokens));
+        } catch (InvalidCredentialsException e) {
+            AuthResponse response = new AuthResponse(false, e.getMessage(), null);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+    }
+
 
     // On successful login, return an empty map as a placeholder for future reports
     @GetMapping("/dashboard")

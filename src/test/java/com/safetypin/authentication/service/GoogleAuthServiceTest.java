@@ -9,10 +9,12 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.googleapis.auth.oauth2.GoogleTokenResponse;
 import com.google.api.client.http.javanet.NetHttpTransport;
+import com.safetypin.authentication.dto.AuthToken;
 import com.safetypin.authentication.dto.GoogleAuthDTO;
 import com.safetypin.authentication.exception.ApiException;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.UserAlreadyExistsException;
+import com.safetypin.authentication.model.RefreshToken;
 import com.safetypin.authentication.model.User;
 
 import org.junit.jupiter.api.AfterEach;
@@ -55,27 +57,42 @@ class GoogleAuthServiceTest {
     private final String testAccessToken = "test-access-token";
     private final String testGoogleClientId = "test-client-id";
     private final String testIdToken = "test-id-token";
+    private final String testRefreshToken = "test-refresh-token";
+    
     @Mock
     private UserService userService;
+    
     @Mock
     private JwtService jwtService;
+    
+    @Mock
+    private RefreshTokenService refreshTokenService;
+    
     @Mock
     private GoogleIdToken idToken;
+    
     @Mock
     private GoogleIdToken.Payload payload;
+    
     @Mock
     private GoogleIdTokenVerifier verifier;
+    
     @Mock
     private GoogleAuthorizationCodeTokenRequest tokenRequest;
+    
     @Mock
     private GoogleTokenResponse tokenResponse;
+    
     @Spy
     @InjectMocks
     private GoogleAuthService googleAuthService;
+    
     @Mock
     private Appender<ILoggingEvent> mockAppender;
+    
     @Captor
     private ArgumentCaptor<ILoggingEvent> loggingEventCaptor;
+    
     private GoogleAuthDTO googleAuthDTO;
     private UUID testUserId;
 
@@ -148,15 +165,22 @@ class GoogleAuthServiceTest {
 
         // Mock JWT generation
         when(jwtService.generateToken(any(UUID.class))).thenReturn("test-jwt-token");
+        
+        // Mock refresh token creation
+        RefreshToken mockRefreshToken = new RefreshToken();
+        mockRefreshToken.setToken(testRefreshToken);
+        when(refreshTokenService.createRefreshToken(any(UUID.class))).thenReturn(mockRefreshToken);
 
         // Execute
-        String result = googleAuthService.authenticate(googleAuthDTO);
+        AuthToken result = googleAuthService.authenticate(googleAuthDTO);
 
         // Verify
-        assertEquals("test-jwt-token", result);
+        assertEquals("test-jwt-token", result.getAccessToken());
+        assertEquals(testRefreshToken, result.getRefreshToken());
         verify(userService).findByEmail("test@example.com");
         verify(userService).save(any(User.class));
         verify(jwtService).generateToken(testUserId);
+        verify(refreshTokenService).createRefreshToken(testUserId);
     }
 
     @Test
@@ -173,15 +197,22 @@ class GoogleAuthServiceTest {
 
         // Mock JWT generation
         when(jwtService.generateToken(any(UUID.class))).thenReturn("test-jwt-token");
+        
+        // Mock refresh token creation
+        RefreshToken mockRefreshToken = new RefreshToken();
+        mockRefreshToken.setToken(testRefreshToken);
+        when(refreshTokenService.createRefreshToken(any(UUID.class))).thenReturn(mockRefreshToken);
 
         // Execute
-        String result = googleAuthService.authenticate(googleAuthDTO);
+        AuthToken result = googleAuthService.authenticate(googleAuthDTO);
 
         // Verify
-        assertEquals("test-jwt-token", result);
+        assertEquals("test-jwt-token", result.getAccessToken());
+        assertEquals(testRefreshToken, result.getRefreshToken());
         verify(userService).findByEmail("test@example.com");
         verify(userService, never()).save(any(User.class));
         verify(jwtService).generateToken(testUserId);
+        verify(refreshTokenService).createRefreshToken(testUserId);
     }
 
     @Test
@@ -725,13 +756,20 @@ class GoogleAuthServiceTest {
 
         // Mock JWT generation
         when(jwtService.generateToken(any(UUID.class))).thenReturn("test-jwt-token");
+        
+        // Mock refresh token creation
+        RefreshToken mockRefreshToken = new RefreshToken();
+        mockRefreshToken.setToken(testRefreshToken);
+        when(refreshTokenService.createRefreshToken(any(UUID.class))).thenReturn(mockRefreshToken);
 
         // Execute
-        String result = googleAuthService.authenticate(googleAuthDTO);
+        AuthToken result = googleAuthService.authenticate(googleAuthDTO);
 
         // Verify
-        assertEquals("test-jwt-token", result);
+        assertEquals("test-jwt-token", result.getAccessToken());
+        assertEquals(testRefreshToken, result.getRefreshToken());
         verify(userService).save(any(User.class));
+        verify(refreshTokenService).createRefreshToken(testUserId);
     }
 
     @Test
@@ -802,7 +840,7 @@ class GoogleAuthServiceTest {
         // Create a special test class that overrides fetchUserData
         class TestService extends GoogleAuthService {
             public TestService() {
-                super(userService, jwtService);
+                super(userService, jwtService, refreshTokenService);
             }
 
             @Override
@@ -832,7 +870,7 @@ class GoogleAuthServiceTest {
             // Create a special test class that overrides fetchUserData to test the error path
             class TestService extends GoogleAuthService {
                 public TestService() {
-                    super(userService, jwtService);
+                    super(userService, jwtService, refreshTokenService);
                 }
 
                 @Override
@@ -875,7 +913,7 @@ class GoogleAuthServiceTest {
             // Create a special test class that overrides fetchUserData
             class TestService extends GoogleAuthService {
                 public TestService() {
-                    super(userService, jwtService);
+                    super(userService, jwtService, refreshTokenService);
                 }
 
                 @Override
@@ -927,7 +965,7 @@ class GoogleAuthServiceTest {
         // Create a subclass that overrides the method to test
         class TestService extends GoogleAuthService {
             public TestService() {
-                super(userService, jwtService);
+                super(userService, jwtService, refreshTokenService);
             }
             
             @Override
@@ -960,7 +998,7 @@ class GoogleAuthServiceTest {
         // Create a subclass that overrides the method to throw an exception
         class TestService extends GoogleAuthService {
             public TestService() {
-                super(userService, jwtService);
+                super(userService, jwtService, refreshTokenService);
             }
             
             @Override
@@ -990,7 +1028,7 @@ class GoogleAuthServiceTest {
         // Create a subclass that overrides the method to test
         class TestService extends GoogleAuthService {
             public TestService() {
-                super(userService, jwtService);
+                super(userService, jwtService, refreshTokenService);
             }
             
             @Override
@@ -1028,7 +1066,7 @@ class GoogleAuthServiceTest {
         // Create a subclass that overrides the method to throw an exception
         class TestService extends GoogleAuthService {
             public TestService() {
-                super(userService, jwtService);
+                super(userService, jwtService, refreshTokenService);
             }
             
             @Override
@@ -1055,7 +1093,7 @@ class GoogleAuthServiceTest {
         // Create a subclass that simulates HTTPS proxy configuration
         class TestService extends GoogleAuthService {
             public TestService() {
-                super(userService, jwtService);
+                super(userService, jwtService, refreshTokenService);
             }
             
             @Override
@@ -1112,7 +1150,7 @@ class GoogleAuthServiceTest {
         // Create a subclass that simulates HTTP proxy configuration
         class TestService extends GoogleAuthService {
             public TestService() {
-                super(userService, jwtService);
+                super(userService, jwtService, refreshTokenService);
             }
             
             @Override
@@ -1168,7 +1206,7 @@ class GoogleAuthServiceTest {
         // Create a subclass that simulates no proxy configuration
         class TestService extends GoogleAuthService {
             public TestService() {
-                super(userService, jwtService);
+                super(userService, jwtService, refreshTokenService);
             }
             
             @Override
@@ -1302,7 +1340,7 @@ class GoogleAuthServiceTest {
         // Create a subclass that simulates empty HTTPS proxy configuration
         class TestService extends GoogleAuthService {
             public TestService() {
-                super(userService, jwtService);
+                super(userService, jwtService, refreshTokenService);
             }
             
             @Override
@@ -1372,7 +1410,7 @@ class GoogleAuthServiceTest {
         // Create a subclass that simulates HTTP proxy with malformed URL
         class TestService extends GoogleAuthService {
             public TestService() {
-                super(userService, jwtService);
+                super(userService, jwtService, refreshTokenService);
             }
             
             @Override
@@ -1445,7 +1483,7 @@ class GoogleAuthServiceTest {
         // Create a subclass that simulates empty HTTP proxy configuration
         class TestService extends GoogleAuthService {
             public TestService() {
-                super(userService, jwtService);
+                super(userService, jwtService, refreshTokenService);
             }
             
             @Override
@@ -1775,7 +1813,7 @@ class GoogleAuthServiceTest {
     @Test
     void testDirectOpenProxyConnection() throws Exception {
         // Create a real GoogleAuthService instance
-        GoogleAuthService service = new GoogleAuthService(userService, jwtService);
+        GoogleAuthService service = new GoogleAuthService(userService, jwtService, refreshTokenService);
         
         // Create test URL 
         URL testUrl = new URL("https://example.com");
