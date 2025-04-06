@@ -56,7 +56,7 @@ class AsyncConfigTest {
     @Test
     void asyncExecutor_shouldBeConfiguredCorrectly() {
         assertNotNull(asyncExecutor);
-        assertTrue(asyncExecutor instanceof ThreadPoolTaskExecutor);
+        assertInstanceOf(ThreadPoolTaskExecutor.class, asyncExecutor);
 
         ThreadPoolTaskExecutor taskExecutor = (ThreadPoolTaskExecutor) asyncExecutor;
         assertEquals(2, taskExecutor.getCorePoolSize());
@@ -67,6 +67,6 @@ class AsyncConfigTest {
         // Verify the threadPoolExecutor instead of trying to get the rejection handler directly
         ThreadPoolExecutor threadPoolExecutor = taskExecutor.getThreadPoolExecutor();
         assertNotNull(threadPoolExecutor);
-        assertTrue(threadPoolExecutor.getRejectedExecutionHandler() instanceof ThreadPoolExecutor.CallerRunsPolicy);
+        assertInstanceOf(ThreadPoolExecutor.CallerRunsPolicy.class, threadPoolExecutor.getRejectedExecutionHandler());
     }
 }

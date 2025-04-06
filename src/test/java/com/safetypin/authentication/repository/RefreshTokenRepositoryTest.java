@@ -1,6 +1,8 @@
 package com.safetypin.authentication.repository;
 
-import com.safetypin.authentication.model.*;
+import com.safetypin.authentication.model.RefreshToken;
+import com.safetypin.authentication.model.Role;
+import com.safetypin.authentication.model.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,7 +21,7 @@ class RefreshTokenRepositoryTest {
     @Autowired
     private UserRepository userRepository;
 
-    private User registeredUser,  premiumUser;
+    private User registeredUser, premiumUser;
     private RefreshToken refreshToken;
 
     @BeforeEach

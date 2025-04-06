@@ -20,7 +20,7 @@ public class ResetPasswordState implements PasswordResetState {
         String email = context.getEmail();
         String newPassword = context.getNewPassword();
         String resetToken = context.getResetToken();
-        
+
         Optional<User> userOpt = context.findUserByEmail();
         if (userOpt.isEmpty() || !EMAIL_PROVIDER.equals(userOpt.get().getProvider())) {
             throw new IllegalArgumentException(PASSWORD_RESET_EMAIL_ERROR);

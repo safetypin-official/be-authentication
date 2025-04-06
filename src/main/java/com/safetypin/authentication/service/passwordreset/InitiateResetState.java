@@ -18,18 +18,18 @@ public class InitiateResetState implements PasswordResetState {
     public Object handle(PasswordResetContext context) {
         String email = context.getEmail();
         Optional<User> userOpt = context.findUserByEmail();
-        
+
         if (userOpt.isEmpty() || !EMAIL_PROVIDER.equals(userOpt.get().getProvider())) {
             throw new IllegalArgumentException(PASSWORD_RESET_EMAIL_ERROR);
         }
-        
+
         // Generate OTP for password reset
         String otp = context.generateOTP();
-        
+
         // Log the action
-        logger.info("Password reset OTP generated for email {} at {}: {}", email, 
+        logger.info("Password reset OTP generated for email {} at {}: {}", email,
                 java.time.LocalDateTime.now(), otp);
-                
+
         return null;
     }
 }

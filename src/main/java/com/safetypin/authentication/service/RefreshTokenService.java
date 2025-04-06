@@ -15,11 +15,10 @@ import java.util.UUID;
 
 @Service
 public class RefreshTokenService {
-    private final RefreshTokenRepository refreshTokenRepository;
-    private final UserRepository userRepository;
-
     private static final long EXPIRATION_TIME = 24 * 60 * 60L; // 1 day in seconds
     private static final SecureRandom random = new SecureRandom();
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final UserRepository userRepository;
 
     @Autowired
     public RefreshTokenService(RefreshTokenRepository refreshTokenRepository, UserRepository userRepository) {

@@ -20,24 +20,23 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class JwtServiceRS256Test {
 
+    private final UUID userId = UUID.randomUUID();
     @Mock
     private UserService userService;
-
     private JwtService jwtService;
-    private final UUID userId = UUID.randomUUID();
     private User mockUser;
     private UserResponse mockUserResponse;
 
     @BeforeEach
-    void setUp(){
-        
+    void setUp() {
+
         // Create JwtService instance with the test key pair
         String secretKey = "justanormalsecretkeyfortestingnothingsuspicioushere";
         jwtService = new JwtService(secretKey, userService);
-        
+
         // Create a proper mock for User
         mockUser = mock(User.class);
-        
+
         // Setup mock user response
         mockUserResponse = mock(UserResponse.class);
     }
@@ -79,7 +78,7 @@ class JwtServiceRS256Test {
         when(mockUser.getName()).thenReturn("Test User");
         when(mockUser.isVerified()).thenReturn(true);
         when(mockUser.getRole()).thenReturn(Role.REGISTERED_USER);
-        
+
         // Generate a token
         String token = jwtService.generateToken(userId);
 
@@ -91,7 +90,7 @@ class JwtServiceRS256Test {
         assertEquals(userId.toString(), claims.getSubject());
         assertNotNull(claims.getIssuedAt());
         assertNotNull(claims.getExpiration());
-        
+
         // Verify mocks were used as expected
         verify(userService, times(1)).findById(userId);
     }
@@ -106,10 +105,10 @@ class JwtServiceRS256Test {
         when(mockUser.generateUserResponse()).thenReturn(mockUserResponse);
         when(mockUserResponse.getId()).thenReturn(userId);
         when(mockUserResponse.getName()).thenReturn("Test User");
-        
+
         // Generate a token
         String token = jwtService.generateToken(userId);
-        
+
         // Clear invocations instead of resetting to maintain stubbing
         clearInvocations(userService);
 
@@ -120,7 +119,7 @@ class JwtServiceRS256Test {
         assertNotNull(userResponse);
         assertEquals(userId, userResponse.getId());
         assertEquals("Test User", userResponse.getName());
-        
+
         // Verify userService was called exactly once after clearing invocations
         verify(userService, times(1)).findById(userId);
     }

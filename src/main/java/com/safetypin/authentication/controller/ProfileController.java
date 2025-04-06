@@ -43,11 +43,11 @@ public class ProfileController {
             @PathVariable UUID id,
             @RequestBody UpdateProfileRequest request,
             @RequestHeader("Authorization") String authHeader) {
-        
+
         try {
             // Extract the token from the Authorization header
             String token = authHeader.replace("Bearer ", "");
-            
+
             ProfileResponse updatedProfile = profileService.updateProfile(id, request, token);
             return ResponseEntity.ok(new AuthResponse(true, "Profile updated successfully", updatedProfile));
         } catch (InvalidCredentialsException e) {

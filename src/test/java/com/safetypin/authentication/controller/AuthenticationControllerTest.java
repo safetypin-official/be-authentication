@@ -51,40 +51,6 @@ class AuthenticationControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @TestConfiguration
-    static class TestConfig {
-        @Bean
-        public AuthenticationService authenticationService() {
-            return Mockito.mock(AuthenticationService.class);
-        }
-
-        @Bean
-        public GoogleAuthService googleAuthService() {
-            return Mockito.mock(GoogleAuthService.class);
-        }
-
-        @Bean
-        public JwtService jwtService() {
-            return Mockito.mock(JwtService.class);
-        }
-
-        @Bean
-        public RefreshTokenService refreshTokenService() {
-            return Mockito.mock(RefreshTokenService.class);
-        }
-    }
-
-    @TestConfiguration
-    static class TestSecurityConfig {
-        @Bean
-        public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-            http.csrf(AbstractHttpConfigurer::disable)
-                    .authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll());
-            return http.build();
-        }
-    }
-
-
     @Test
     void testRegisterEmail() throws Exception {
         RegistrationRequest request = new RegistrationRequest();
@@ -501,7 +467,6 @@ class AuthenticationControllerTest {
                 .andExpect(jsonPath("$.data").doesNotExist()); // No data expected in case of error
     }
 
-
     @Test
     void renewRefreshToken_Success() throws Exception {
         String accessToken = "test-jwt";
@@ -530,5 +495,38 @@ class AuthenticationControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Invalid refresh token"));
+    }
+
+    @TestConfiguration
+    static class TestConfig {
+        @Bean
+        public AuthenticationService authenticationService() {
+            return Mockito.mock(AuthenticationService.class);
+        }
+
+        @Bean
+        public GoogleAuthService googleAuthService() {
+            return Mockito.mock(GoogleAuthService.class);
+        }
+
+        @Bean
+        public JwtService jwtService() {
+            return Mockito.mock(JwtService.class);
+        }
+
+        @Bean
+        public RefreshTokenService refreshTokenService() {
+            return Mockito.mock(RefreshTokenService.class);
+        }
+    }
+
+    @TestConfiguration
+    static class TestSecurityConfig {
+        @Bean
+        public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+            http.csrf(AbstractHttpConfigurer::disable)
+                    .authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll());
+            return http.build();
+        }
     }
 }
