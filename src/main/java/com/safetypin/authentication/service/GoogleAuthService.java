@@ -47,6 +47,7 @@ public class GoogleAuthService {
 
     private final UserService userService;
     private final JwtService jwtService;
+
     private final String httpsProxy;
     private final String httpProxy;
 
