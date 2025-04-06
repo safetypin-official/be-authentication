@@ -1,8 +1,10 @@
 package com.safetypin.authentication.service;
 
+import com.safetypin.authentication.dto.AuthToken;
 import com.safetypin.authentication.dto.RegistrationRequest;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.UserAlreadyExistsException;
+import com.safetypin.authentication.model.RefreshToken;
 import com.safetypin.authentication.model.Role;
 import com.safetypin.authentication.model.User;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,11 +37,15 @@ class AuthenticationServiceTest {
     @Mock
     private JwtService jwtService;
 
+    @Mock
+    private RefreshTokenService refreshTokenService;
+
     private AuthenticationService authenticationService;
 
     @BeforeEach
     void setUp() {
-        authenticationService = new AuthenticationService(userService, passwordEncoder, otpService, jwtService);
+        authenticationService = new AuthenticationService(
+                userService, passwordEncoder, otpService, jwtService, refreshTokenService);
     }
 
     // registerUser tests
@@ -101,13 +107,19 @@ class AuthenticationServiceTest {
 
         when(userService.save(any(User.class))).thenReturn(savedUser);
         when(jwtService.generateToken(id)).thenReturn("jwtToken");
+        RefreshToken expectedRefreshToken = new RefreshToken();
+        expectedRefreshToken.setToken("refreshToken");
+        expectedRefreshToken.setUser(savedUser);
+        when(refreshTokenService.createRefreshToken(id)).thenReturn(expectedRefreshToken);
 
-        String token = authenticationService.registerUser(request);
+        AuthToken token = authenticationService.registerUser(request);
 
         assertNotNull(token);
-        assertEquals("jwtToken", token);
+        assertEquals("jwtToken", token.getAccessToken());
+        assertEquals("refreshToken", token.getRefreshToken());
         verify(otpService, times(1)).generateOTP("test@example.com");
         verify(userService, times(1)).save(any(User.class));
+        verify(refreshTokenService, times(1)).createRefreshToken(id);
     }
 
     // loginUser tests
@@ -161,11 +173,16 @@ class AuthenticationServiceTest {
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("password", "encodedPassword")).thenReturn(true);
         when(jwtService.generateToken(id)).thenReturn("jwtToken");
+        RefreshToken expectedRefreshToken = new RefreshToken();
+        expectedRefreshToken.setToken("refreshToken");
+        expectedRefreshToken.setUser(user);
+        when(refreshTokenService.createRefreshToken(id)).thenReturn(expectedRefreshToken);
 
-        String token = authenticationService.loginUser("test@example.com", "password");
+        AuthToken token = authenticationService.loginUser("test@example.com", "password");
 
         assertNotNull(token);
-        assertEquals("jwtToken", token);
+        assertEquals("jwtToken", token.getAccessToken());
+        assertEquals("refreshToken", token.getRefreshToken());
     }
 
     // verifyOTP tests
@@ -384,6 +401,43 @@ class AuthenticationServiceTest {
         );
 
         verify(userService, never()).save(any(User.class));
+    }
+
+    @Test
+    void testRenewRefreshToken_Success() {
+        String oldRefreshToken = "validRefreshToken";
+        UUID userId = UUID.randomUUID();
+        User user = new User();
+        user.setId(userId);
+
+        RefreshToken existingToken = new RefreshToken();
+        existingToken.setToken(oldRefreshToken);
+        existingToken.setUser(user);
+
+        when(refreshTokenService.getAndVerifyRefreshToken(oldRefreshToken)).thenReturn(Optional.of(existingToken));
+        when(jwtService.generateToken(userId)).thenReturn("newAccessToken");
+
+        RefreshToken newRefreshToken = new RefreshToken();
+        newRefreshToken.setToken("newRefreshToken");
+        when(refreshTokenService.createRefreshToken(userId)).thenReturn(newRefreshToken);
+
+        AuthToken authToken = authenticationService.renewRefreshToken(oldRefreshToken);
+
+        assertNotNull(authToken);
+        assertEquals("newAccessToken", authToken.getAccessToken());
+        assertEquals("newRefreshToken", authToken.getRefreshToken());
+    }
+
+    @Test
+    void testRenewRefreshToken_InvalidToken() {
+        String invalidRefreshToken = "invalidToken";
+
+        when(refreshTokenService.getAndVerifyRefreshToken(invalidRefreshToken)).thenReturn(Optional.empty());
+
+        Exception exception = assertThrows(InvalidCredentialsException.class, () ->
+                authenticationService.renewRefreshToken(invalidRefreshToken)
+        );
+        assertEquals("Invalid token provided", exception.getMessage());
     }
 
     // Add missing methods for other functionality if needed

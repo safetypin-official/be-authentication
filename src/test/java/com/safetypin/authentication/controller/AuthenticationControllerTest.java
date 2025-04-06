@@ -9,6 +9,7 @@ import com.safetypin.authentication.model.User;
 import com.safetypin.authentication.service.AuthenticationService;
 import com.safetypin.authentication.service.GoogleAuthService;
 import com.safetypin.authentication.service.JwtService;
+import com.safetypin.authentication.service.RefreshTokenService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +27,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -49,6 +51,40 @@ class AuthenticationControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @TestConfiguration
+    static class TestConfig {
+        @Bean
+        public AuthenticationService authenticationService() {
+            return Mockito.mock(AuthenticationService.class);
+        }
+
+        @Bean
+        public GoogleAuthService googleAuthService() {
+            return Mockito.mock(GoogleAuthService.class);
+        }
+
+        @Bean
+        public JwtService jwtService() {
+            return Mockito.mock(JwtService.class);
+        }
+
+        @Bean
+        public RefreshTokenService refreshTokenService() {
+            return Mockito.mock(RefreshTokenService.class);
+        }
+    }
+
+    @TestConfiguration
+    static class TestSecurityConfig {
+        @Bean
+        public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+            http.csrf(AbstractHttpConfigurer::disable)
+                    .authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll());
+            return http.build();
+        }
+    }
+
+
     @Test
     void testRegisterEmail() throws Exception {
         RegistrationRequest request = new RegistrationRequest();
@@ -67,14 +103,19 @@ class AuthenticationControllerTest {
 
         UUID id = UUID.randomUUID();
         user.setId(id);
-        String token = jwtService.generateToken(user.getId());
-        Mockito.when(authenticationService.registerUser(any(RegistrationRequest.class))).thenReturn(token);
+
+        String accessToken = jwtService.generateToken(user.getId());
+        String refreshToken = "test-refresh-token";
+        AuthToken returnToken = new AuthToken(accessToken, refreshToken);
+
+        Mockito.when(authenticationService.registerUser(any(RegistrationRequest.class))).thenReturn(returnToken);
 
         mockMvc.perform(post("/api/auth/register-email")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.tokenValue").value(token));
+                .andExpect(jsonPath("$.data.accessToken").value(accessToken))
+                .andExpect(jsonPath("$.data.refreshToken").value(refreshToken));
     }
 
     @Test
@@ -90,14 +131,20 @@ class AuthenticationControllerTest {
 
         UUID id = UUID.randomUUID();
         user.setId(id);
-        String token = jwtService.generateToken(user.getId());
-        Mockito.when(authenticationService.loginUser("email@example.com", "password")).thenReturn(token);
+
+
+        String accessToken = jwtService.generateToken(user.getId());
+        String refreshToken = "test-refresh-token";
+        AuthToken returnToken = new AuthToken(accessToken, refreshToken);
+
+        Mockito.when(authenticationService.loginUser("email@example.com", "password")).thenReturn(returnToken);
 
         mockMvc.perform(post("/api/auth/login-email")
                         .param("email", "email@example.com")
                         .param("password", "password"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.tokenValue").value(token));
+                .andExpect(jsonPath("$.data.accessToken").value(accessToken))
+                .andExpect(jsonPath("$.data.refreshToken").value(refreshToken));
     }
 
     @Test
@@ -318,10 +365,12 @@ class AuthenticationControllerTest {
 
         // Generate a mock JWT token
         String mockJwt = "mockJwtToken123";
+        String refreshToken = "test-refreshToken123";
+        AuthToken returnToken = new AuthToken(mockJwt, refreshToken);
 
         // Mock the service method to return the JWT token
         Mockito.when(googleAuthService.authenticate(any(GoogleAuthDTO.class)))
-                .thenReturn(mockJwt);
+                .thenReturn(returnToken);
 
         // Perform the test
         mockMvc.perform(post("/api/auth/google")
@@ -330,7 +379,8 @@ class AuthenticationControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("OK"))
-                .andExpect(jsonPath("$.data.tokenValue").value(mockJwt));
+                .andExpect(jsonPath("$.data.accessToken").value(mockJwt))
+                .andExpect(jsonPath("$.data.refreshToken").value(refreshToken));
     }
 
     @Test
@@ -451,32 +501,34 @@ class AuthenticationControllerTest {
                 .andExpect(jsonPath("$.data").doesNotExist()); // No data expected in case of error
     }
 
-    @TestConfiguration
-    static class TestConfig {
-        @Bean
-        public AuthenticationService authenticationService() {
-            return Mockito.mock(AuthenticationService.class);
-        }
 
-        @Bean
-        public GoogleAuthService googleAuthService() {
-            return Mockito.mock(GoogleAuthService.class);
-        }
+    @Test
+    void renewRefreshToken_Success() throws Exception {
+        String accessToken = "test-jwt";
+        String refreshToken = "test-refresh-token";
+        AuthToken returnToken = new AuthToken(accessToken, refreshToken);
+        Mockito.when(authenticationService.renewRefreshToken(anyString())).thenReturn(returnToken);
 
-        @Bean
-        public JwtService jwtService() {
-            return Mockito.mock(JwtService.class);
-        }
+        mockMvc.perform(post("/api/auth/refresh-token")
+                        .param("token", "existing-token")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("OK"))
+                .andExpect(jsonPath("$.data.accessToken").value(accessToken))
+                .andExpect(jsonPath("$.data.refreshToken").value(refreshToken));
     }
 
-    @TestConfiguration
-    static class TestSecurityConfig {
-        @Bean
-        public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-            http.csrf(AbstractHttpConfigurer::disable)
-                    .authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll());
-            return http.build();
-        }
-    }
+    @Test
+    void renewRefreshToken_InvalidToken() throws Exception {
+        Mockito.when(authenticationService.renewRefreshToken(anyString())).thenThrow(
+                new InvalidCredentialsException("Invalid refresh token"));
 
+        mockMvc.perform(post("/api/auth/refresh-token")
+                        .param("token", "invalid-token")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Invalid refresh token"));
+    }
 }

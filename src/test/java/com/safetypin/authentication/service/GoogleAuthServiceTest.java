@@ -8,10 +8,12 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeToken
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.googleapis.auth.oauth2.GoogleTokenResponse;
+import com.safetypin.authentication.dto.AuthToken;
 import com.safetypin.authentication.dto.GoogleAuthDTO;
 import com.safetypin.authentication.exception.ApiException;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.UserAlreadyExistsException;
+import com.safetypin.authentication.model.RefreshToken;
 import com.safetypin.authentication.model.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,6 +48,9 @@ class GoogleAuthServiceTest {
     private UserService userService;
     @Mock
     private JwtService jwtService;
+    @Mock
+    private RefreshTokenService refreshTokenService;
+
     @Mock
     private GoogleIdToken idToken;
     @Mock
@@ -118,14 +123,24 @@ class GoogleAuthServiceTest {
         // Mock JWT generation
         when(jwtService.generateToken(any(UUID.class))).thenReturn("test-jwt-token");
 
+        // Mock Refresh token
+        RefreshToken expectedRefreshToken = new RefreshToken();
+        expectedRefreshToken.setToken("test-refresh-token");
+        expectedRefreshToken.setUser(savedUser);
+        when(refreshTokenService.createRefreshToken(any(UUID.class))).thenReturn(expectedRefreshToken);
+
         // Execute
-        String result = googleAuthService.authenticate(googleAuthDTO);
+        AuthToken result = googleAuthService.authenticate(googleAuthDTO);
 
         // Verify
-        assertEquals("test-jwt-token", result);
+        assertNotNull(result);
+        assertEquals("test-jwt-token", result.getAccessToken());
+        assertEquals("test-refresh-token", result.getRefreshToken());
+
         verify(userService).findByEmail("test@example.com");
         verify(userService).save(any(User.class));
         verify(jwtService).generateToken(testUserId);
+        verify(refreshTokenService).createRefreshToken(testUserId);
     }
 
     @Test
@@ -143,11 +158,20 @@ class GoogleAuthServiceTest {
         // Mock JWT generation
         when(jwtService.generateToken(any(UUID.class))).thenReturn("test-jwt-token");
 
+        // Mock Refresh token
+        RefreshToken expectedRefreshToken = new RefreshToken();
+        expectedRefreshToken.setToken("test-refresh-token");
+        expectedRefreshToken.setUser(existingUser);
+        when(refreshTokenService.createRefreshToken(any(UUID.class))).thenReturn(expectedRefreshToken);
+
         // Execute
-        String result = googleAuthService.authenticate(googleAuthDTO);
+        AuthToken result = googleAuthService.authenticate(googleAuthDTO);
 
         // Verify
-        assertEquals("test-jwt-token", result);
+        assertNotNull(result);
+        assertEquals("test-jwt-token", result.getAccessToken());
+        assertEquals("test-refresh-token", result.getRefreshToken());
+
         verify(userService).findByEmail("test@example.com");
         verify(userService, never()).save(any(User.class));
         verify(jwtService).generateToken(testUserId);
@@ -340,7 +364,7 @@ class GoogleAuthServiceTest {
     @Test
     void testCreateIdTokenVerifier_Configurations() throws Exception {
         // Create a real instance of GoogleAuthService for this test
-        GoogleAuthService realService = new GoogleAuthService(userService, jwtService);
+        GoogleAuthService realService = new GoogleAuthService(userService, jwtService, refreshTokenService);
 
         // Use reflection to set the client ID for testing
         setPrivateField(realService, "googleClientId", testGoogleClientId);
@@ -355,7 +379,7 @@ class GoogleAuthServiceTest {
     @Test
     void testCreateTokenRequests_Configurations() throws Exception {
         // Create a real instance of GoogleAuthService for this test
-        GoogleAuthService realService = new GoogleAuthService(userService, jwtService);
+        GoogleAuthService realService = new GoogleAuthService(userService, jwtService, refreshTokenService);
 
         // Use reflection to set the client ID for testing
         setPrivateField(realService, "googleClientId", testGoogleClientId);
@@ -366,7 +390,7 @@ class GoogleAuthServiceTest {
     @Test
     void testFetchUserData_Successful() {
         // Create a test GoogleAuthService with a protected method for URL creation
-        GoogleAuthService spyService = spy(new GoogleAuthService(userService, jwtService) {
+        GoogleAuthService spyService = spy(new GoogleAuthService(userService, jwtService, refreshTokenService) {
             @Override
             protected URL createURL(String urlString) throws IOException {
                 URL mockUrl = mock(URL.class);
@@ -429,7 +453,7 @@ class GoogleAuthServiceTest {
     @Test
     void testFetchUserData_IOException() {
         // Create a test GoogleAuthService with a protected method for URL creation
-        GoogleAuthService spyService = spy(new GoogleAuthService(userService, jwtService) {
+        GoogleAuthService spyService = spy(new GoogleAuthService(userService, jwtService, refreshTokenService) {
             @Override
             protected URL createURL(String urlString) throws IOException {
                 URL mockUrl = mock(URL.class);
