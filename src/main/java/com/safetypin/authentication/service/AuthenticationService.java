@@ -7,6 +7,7 @@ import com.safetypin.authentication.exception.UserAlreadyExistsException;
 import com.safetypin.authentication.model.RefreshToken;
 import com.safetypin.authentication.model.Role;
 import com.safetypin.authentication.model.User;
+import com.safetypin.authentication.service.passwordreset.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -27,6 +28,7 @@ public class AuthenticationService {
     private final OTPService otpService;
     private final RefreshTokenService refreshTokenService;
     private final JwtService jwtService;
+    private final PasswordResetContext passwordResetContext;
 
     public AuthenticationService(
             UserService userService, PasswordEncoder passwordEncoder,
@@ -36,6 +38,7 @@ public class AuthenticationService {
         this.passwordEncoder = passwordEncoder;
         this.otpService = otpService;
         this.jwtService = jwtService;
+        this.passwordResetContext = new PasswordResetContext(userService, otpService, passwordEncoder);
         this.refreshTokenService = refreshTokenService;
     }
 
@@ -181,5 +184,4 @@ public class AuthenticationService {
     private int calculateAge(LocalDate birthdate) {
         return Period.between(birthdate, LocalDate.now()).getYears();
     }
-
 }
