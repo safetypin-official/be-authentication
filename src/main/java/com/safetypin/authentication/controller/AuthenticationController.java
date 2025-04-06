@@ -58,7 +58,7 @@ public class AuthenticationController {
     @PostMapping("/login-email")
     public ResponseEntity<AuthResponse> loginEmail(@RequestBody LoginRequest loginRequest) {
         try {
-            AuthToken tokens = authenticationService.loginUser(email, password);
+            AuthToken tokens = authenticationService.loginUser(loginRequest.getEmail(), loginRequest.getPassword());
             return ResponseEntity.ok(new AuthResponse(true, "OK", tokens));
         } catch (InvalidCredentialsException e) {
             AuthResponse response = new AuthResponse(false, e.getMessage(), null);
