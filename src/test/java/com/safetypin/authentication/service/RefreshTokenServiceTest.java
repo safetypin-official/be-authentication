@@ -32,7 +32,7 @@ class RefreshTokenServiceTest {
 
     private User testUser;
     private UUID userId;
-    private RefreshToken testRefreshToken;
+    private RefreshToken testRefreshToken, newTestRefreshToken;
 
     @BeforeEach
     void setUp() {
@@ -49,6 +49,13 @@ class RefreshTokenServiceTest {
         testRefreshToken.setToken("test-token");
         testRefreshToken.setUser(testUser);
         testRefreshToken.setExpiryTime(Instant.now().plusSeconds(86400)); // 24 hours
+
+        // Setup new test refresh token
+        newTestRefreshToken = new RefreshToken();
+        newTestRefreshToken.setId(UUID.randomUUID());
+        newTestRefreshToken.setToken("new-test-token");
+        newTestRefreshToken.setUser(testUser);
+        newTestRefreshToken.setExpiryTime(Instant.now().plusSeconds(86400)); // 24 hours
     }
 
     @Test
@@ -100,15 +107,28 @@ class RefreshTokenServiceTest {
         // Arrange
         when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
         when(refreshTokenRepository.findByUserId(userId)).thenReturn(Optional.of(testRefreshToken));
+        when(refreshTokenRepository.save(any(RefreshToken.class))).thenReturn(newTestRefreshToken);
 
-        // Act & Assert
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
-                () -> refreshTokenService.createRefreshToken(userId)
-        );
+        // Act
+        RefreshToken result = refreshTokenService.createRefreshToken(userId);
 
-        assertEquals("Refresh token already exists", exception.getMessage());
-        verify(refreshTokenRepository, never()).save(any());
+        // Assert
+        assertNotNull(result);
+        assertEquals(newTestRefreshToken, result);
+        assertNotEquals(testRefreshToken, result);
+
+        // Verify token is created with correct properties
+        ArgumentCaptor<RefreshToken> tokenCaptor = ArgumentCaptor.forClass(RefreshToken.class);
+        verify(refreshTokenRepository).save(tokenCaptor.capture());
+
+        RefreshToken capturedToken = tokenCaptor.getValue();
+        assertNotNull(capturedToken.getToken());
+        // Check that token length is greater than 40 characters
+        assertTrue(capturedToken.getToken().length() > 40,
+                "Token should be longer than 40 characters for security reasons");
+        assertEquals(testUser, capturedToken.getUser());
+        assertNotNull(capturedToken.getExpiryTime());
+        assertTrue(capturedToken.getExpiryTime().isAfter(Instant.now()));
     }
 
     @Test
