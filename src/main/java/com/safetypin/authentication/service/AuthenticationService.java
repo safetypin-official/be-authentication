@@ -7,7 +7,6 @@ import com.safetypin.authentication.exception.UserAlreadyExistsException;
 import com.safetypin.authentication.model.RefreshToken;
 import com.safetypin.authentication.model.Role;
 import com.safetypin.authentication.model.User;
-import com.safetypin.authentication.service.passwordreset.PasswordResetContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -37,7 +36,6 @@ public class AuthenticationService {
         this.passwordEncoder = passwordEncoder;
         this.otpService = otpService;
         this.jwtService = jwtService;
-        PasswordResetContext passwordResetContext = new PasswordResetContext(userService, otpService, passwordEncoder);
         this.refreshTokenService = refreshTokenService;
     }
 
