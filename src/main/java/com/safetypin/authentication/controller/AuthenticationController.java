@@ -43,12 +43,12 @@ public class AuthenticationController {
 
     // OTP verification endpoint
     @PostMapping("/verify-otp")
-    public ResponseEntity<AuthResponse> verifyOTP(@RequestParam String email, @RequestParam String otp) {
-        boolean verified = authenticationService.verifyOTP(email, otp);
+    public ResponseEntity<AuthResponse> verifyOTP(@RequestBody OTPRequest otpRequest) {
+        boolean verified = authenticationService.verifyOTP(otpRequest.getEmail(), otpRequest.getOtp());
         if (verified) {
             return ResponseEntity.ok().body(new AuthResponse(true, "User verified successfully", null));
         } else {
-            return ResponseEntity.ok().body(new AuthResponse(false, "OTP verification failed", null));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new AuthResponse(false, "OTP verification failed", null));
         }
 
     }
@@ -56,9 +56,9 @@ public class AuthenticationController {
 
     // Endpoint for email login
     @PostMapping("/login-email")
-    public ResponseEntity<AuthResponse> loginEmail(@RequestParam String email, @RequestParam String password) {
+    public ResponseEntity<AuthResponse> loginEmail(@RequestBody LoginRequest loginRequest) {
         try {
-            AuthToken tokens = authenticationService.loginUser(email, password);
+            AuthToken tokens = authenticationService.loginUser(loginRequest.getEmail(), loginRequest.getPassword());
             return ResponseEntity.ok(new AuthResponse(true, "OK", tokens));
         } catch (InvalidCredentialsException e) {
             AuthResponse response = new AuthResponse(false, e.getMessage(), null);

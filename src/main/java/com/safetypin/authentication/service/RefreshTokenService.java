@@ -32,11 +32,6 @@ public class RefreshTokenService {
             throw new IllegalArgumentException("User not found");
         }
 
-        Optional<RefreshToken> refreshTokenWithUser = refreshTokenRepository.findByUserId(userId);
-        if (refreshTokenWithUser.isPresent()) {
-            throw new IllegalArgumentException("Refresh token already exists");
-        }
-
         User user = userOptional.get();
         RefreshToken refreshToken = new RefreshToken();
 

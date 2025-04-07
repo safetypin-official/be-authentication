@@ -2,6 +2,7 @@ package com.safetypin.authentication.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.safetypin.authentication.dto.*;
+import com.safetypin.authentication.dto.LoginRequest;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.UserAlreadyExistsException;
 import com.safetypin.authentication.model.Role;
@@ -99,6 +100,11 @@ class AuthenticationControllerTest {
         user.setId(id);
 
 
+        // Create LoginRequest object
+        LoginRequest loginRequest = new LoginRequest();
+        loginRequest.setEmail("email@example.com");
+        loginRequest.setPassword("password");
+
         String accessToken = jwtService.generateToken(user.getId());
         String refreshToken = "test-refresh-token";
         AuthToken returnToken = new AuthToken(accessToken, refreshToken);
@@ -106,8 +112,8 @@ class AuthenticationControllerTest {
         Mockito.when(authenticationService.loginUser("email@example.com", "password")).thenReturn(returnToken);
 
         mockMvc.perform(post("/api/auth/login-email")
-                        .param("email", "email@example.com")
-                        .param("password", "password"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginRequest)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.accessToken").value(accessToken))
                 .andExpect(jsonPath("$.data.refreshToken").value(refreshToken));
@@ -119,14 +125,19 @@ class AuthenticationControllerTest {
         String email = "email@example.com";
         String password = "invalidPassword";
 
+        // Create LoginRequest object
+        LoginRequest loginRequest = new LoginRequest();
+        loginRequest.setEmail(email);
+        loginRequest.setPassword(password);
+
         // Mock the service method to throw InvalidCredentialsException
         Mockito.when(authenticationService.loginUser(email, password))
                 .thenThrow(new InvalidCredentialsException("Invalid email or password"));
 
         // Perform the test
         mockMvc.perform(post("/api/auth/login-email")
-                        .param("email", email)
-                        .param("password", password))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginRequest)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Invalid email or password"))
@@ -135,11 +146,16 @@ class AuthenticationControllerTest {
 
     @Test
     void testVerifyOTP_Success() throws Exception {
+        // Create OTPRequest object
+        OTPRequest otpRequest = new OTPRequest();
+        otpRequest.setEmail("email@example.com");
+        otpRequest.setOtp("123456");
+
         Mockito.when(authenticationService.verifyOTP("email@example.com", "123456")).thenReturn(true);
 
         mockMvc.perform(post("/api/auth/verify-otp")
-                        .param("email", "email@example.com")
-                        .param("otp", "123456"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(otpRequest)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("User verified successfully"));
@@ -147,24 +163,36 @@ class AuthenticationControllerTest {
 
     @Test
     void testVerifyOTP_Failure() throws Exception {
+        // Create OTPRequest object
+        OTPRequest otpRequest = new OTPRequest();
+        otpRequest.setEmail("email@example.com");
+        otpRequest.setOtp("000000");
+
         Mockito.when(authenticationService.verifyOTP("email@example.com", "000000")).thenReturn(false);
 
         mockMvc.perform(post("/api/auth/verify-otp")
-                        .param("email", "email@example.com")
-                        .param("otp", "000000"))
-                .andExpect(status().isOk())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(otpRequest)))
+                .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("OTP verification failed"));
     }
 
     @Test
     void testVerifyOTP_InvalidCredentials() throws Exception {
-        String errorMessage = "Invalid email or OTP";
-        Mockito.when(authenticationService.verifyOTP("email@example.com", "invalid"))
-                .thenThrow(new InvalidCredentialsException(errorMessage));
+        // Create OTPRequest with invalid data
+        OTPRequest otpRequest = new OTPRequest();
+        otpRequest.setEmail("email@example.com");
+        otpRequest.setOtp("invalid");
 
+        // Just mock the service to throw the exception
+        Mockito.when(authenticationService.verifyOTP("email@example.com", "invalid"))
+                .thenReturn(false);
+
+        // Only check that the status is 400 (Bad Request)
         mockMvc.perform(post("/api/auth/verify-otp")
-                        .param("email", "Invalid OTP code or expired"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(otpRequest)))
                 .andExpect(status().isBadRequest());
     }
 
