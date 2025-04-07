@@ -62,7 +62,6 @@ class RefreshTokenServiceTest {
     void createRefreshToken_Success() {
         // Arrange
         when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
-        when(refreshTokenRepository.findByUserId(userId)).thenReturn(Optional.empty());
         when(refreshTokenRepository.save(any(RefreshToken.class))).thenReturn(testRefreshToken);
 
         // Act
@@ -106,7 +105,6 @@ class RefreshTokenServiceTest {
     void createRefreshToken_TokenAlreadyExists() {
         // Arrange
         when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
-        when(refreshTokenRepository.findByUserId(userId)).thenReturn(Optional.of(testRefreshToken));
         when(refreshTokenRepository.save(any(RefreshToken.class))).thenReturn(newTestRefreshToken);
 
         // Act
