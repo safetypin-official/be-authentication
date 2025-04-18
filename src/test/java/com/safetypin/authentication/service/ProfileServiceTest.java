@@ -2,6 +2,7 @@ package com.safetypin.authentication.service;
 
 import com.safetypin.authentication.dto.ProfileResponse;
 import com.safetypin.authentication.dto.UpdateProfileRequest;
+import com.safetypin.authentication.dto.UserPostResponse;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.ResourceNotFoundException;
 import com.safetypin.authentication.model.Role;
@@ -16,6 +17,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
 import java.util.UUID;
+import java.util.List;
+import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -306,5 +309,91 @@ class ProfileServiceTest {
         // Test with empty string
         String result4 = (String) method.invoke(profileService, "");
         assertNull(result4);
+    }
+
+    @Test
+    void getAllProfiles_ReturnsAllUsersAsUserPostResponses() {
+        // Arrange
+        User user1 = new User();
+        user1.setId(UUID.randomUUID());
+        user1.setName("User 1");
+        user1.setProfilePicture("pic1.jpg");
+        user1.setProfileBanner("banner1.jpg");
+
+        User user2 = new User();
+        user2.setId(UUID.randomUUID());
+        user2.setName("User 2");
+        user2.setProfilePicture("pic2.jpg");
+        user2.setProfileBanner("banner2.jpg");
+
+        List<User> users = Arrays.asList(user1, user2);
+        when(userService.findAllUsers()).thenReturn(users);
+
+        // Act
+        List<UserPostResponse> result = profileService.getAllProfiles();
+
+        // Assert
+        assertEquals(2, result.size());
+        
+        assertEquals(user1.getId(), result.get(0).getId());
+        assertEquals(user1.getName(), result.get(0).getName());
+        assertEquals(user1.getProfilePicture(), result.get(0).getProfilePicture());
+        assertEquals(user1.getProfileBanner(), result.get(0).getProfileBanner());
+        
+        assertEquals(user2.getId(), result.get(1).getId());
+        assertEquals(user2.getName(), result.get(1).getName());
+        assertEquals(user2.getProfilePicture(), result.get(1).getProfilePicture());
+        assertEquals(user2.getProfileBanner(), result.get(1).getProfileBanner());
+        
+        verify(userService, times(1)).findAllUsers();
+    }
+
+    @Test
+    void updateProfile_UserWithNullRole_ReturnsProfileResponseWithNullRole() {
+        // Arrange
+        // Create a user with null role
+        User userWithNullRole = new User();
+        userWithNullRole.setId(userId);
+        userWithNullRole.setRole(null); // null role
+        userWithNullRole.setVerified(true);
+        
+        when(jwtService.parseToken(validToken)).thenReturn(claims);
+        when(claims.getSubject()).thenReturn(userId.toString());
+        when(userService.findById(userId)).thenReturn(Optional.of(userWithNullRole));
+        when(userService.save(any(User.class))).thenReturn(userWithNullRole);
+
+        UpdateProfileRequest request = new UpdateProfileRequest();
+        
+        // Act
+        ProfileResponse response = profileService.updateProfile(userId, request, validToken);
+
+        // Assert
+        assertNotNull(response);
+        assertNull(response.getRole());
+        
+        verify(jwtService, times(1)).parseToken(validToken);
+        verify(userService, times(1)).findById(userId);
+        verify(userService, times(1)).save(any(User.class));
+    }
+
+    @Test
+    void getProfile_UserWithNullRole_ReturnsProfileResponseWithNullRole() {
+        // Arrange
+        User userWithNullRole = new User();
+        userWithNullRole.setId(userId);
+        userWithNullRole.setRole(null); // null role
+        userWithNullRole.setVerified(true);
+        
+        when(userService.findById(userId)).thenReturn(Optional.of(userWithNullRole));
+
+        // Act
+        ProfileResponse response = profileService.getProfile(userId);
+
+        // Assert
+        assertNotNull(response);
+        assertNull(response.getRole());
+        assertTrue(response.isVerified());
+        
+        verify(userService, times(1)).findById(userId);
     }
 }
