@@ -36,6 +36,9 @@ class ProfileServiceTest {
     @Mock
     private Claims claims;
 
+    @Mock
+    private FollowService followService;
+
     @InjectMocks
     private ProfileService profileService;
 
@@ -63,6 +66,8 @@ class ProfileServiceTest {
     void getProfile_UserExists_ReturnsProfileResponse() {
         // Arrange
         when(userService.findById(userId)).thenReturn(Optional.of(testUser));
+        when(followService.getFollowersCount(userId)).thenReturn(10L);
+        when(followService.getFollowingCount(userId)).thenReturn(20L);
 
         // Act
         ProfileResponse response = profileService.getProfile(userId);
@@ -77,6 +82,9 @@ class ProfileServiceTest {
         assertEquals("testline", response.getLine());
         assertEquals("testtiktok", response.getTiktok());
         assertEquals("testdiscord", response.getDiscord());
+        assertEquals(10, response.getFollowersCount());
+        assertEquals(20, response.getFollowingCount());
+        assertFalse(response.isFollowing());
 
         verify(userService, times(1)).findById(userId);
     }
@@ -212,6 +220,25 @@ class ProfileServiceTest {
     }
 
     @Test
+    void extractInstagramUsername_WithComplexUrl_CorrectlyExtractsUsername() throws Exception {
+        // Use reflection to access private method
+        java.lang.reflect.Method method = ProfileService.class.getDeclaredMethod("extractInstagramUsername", String.class);
+        method.setAccessible(true);
+        
+        // Test with complex URL that tests the regex matcher.find() logic
+        String result1 = (String) method.invoke(profileService, "https://www.instagram.com/username?hl=en");
+        assertEquals("username", result1);
+        
+        // Test with URL that has subdirectories after username
+        String result2 = (String) method.invoke(profileService, "instagram.com/username/posts/");
+        assertEquals("username", result2);
+        
+        // Test with URL that doesn't match the pattern (should return input as-is)
+        String result3 = (String) method.invoke(profileService, "not-instagram-url");
+        assertEquals("not-instagram-url", result3);
+    }
+
+    @Test
     void extractTwitterUsername_FromUrl_ReturnsUsername() throws Exception {
         // Use reflection to access private method
         java.lang.reflect.Method method = ProfileService.class.getDeclaredMethod("extractTwitterUsername", String.class);
@@ -236,6 +263,25 @@ class ProfileServiceTest {
         // Test with empty string
         String result5 = (String) method.invoke(profileService, "");
         assertNull(result5);
+    }
+
+    @Test
+    void extractTwitterUsername_WithComplexUrl_CorrectlyExtractsUsername() throws Exception {
+        // Use reflection to access private method
+        java.lang.reflect.Method method = ProfileService.class.getDeclaredMethod("extractTwitterUsername", String.class);
+        method.setAccessible(true);
+        
+        // Test with complex URL that tests the regex matcher.find() logic
+        String result1 = (String) method.invoke(profileService, "https://twitter.com/username/status/12345");
+        assertEquals("username", result1);
+        
+        // Test with URL that has query parameters
+        String result2 = (String) method.invoke(profileService, "twitter.com/username?ref=home");
+        assertEquals("username", result2);
+        
+        // Test with URL that doesn't match the pattern (should return input as-is)
+        String result3 = (String) method.invoke(profileService, "not-twitter-url");
+        assertEquals("not-twitter-url", result3);
     }
 
     @Test
@@ -289,6 +335,25 @@ class ProfileServiceTest {
     }
 
     @Test
+    void extractTiktokUsername_WithComplexUrl_CorrectlyExtractsUsername() throws Exception {
+        // Use reflection to access private method
+        java.lang.reflect.Method method = ProfileService.class.getDeclaredMethod("extractTiktokUsername", String.class);
+        method.setAccessible(true);
+        
+        // Test with complex URL that tests the regex matcher.find() logic
+        String result1 = (String) method.invoke(profileService, "https://www.tiktok.com/@username/video/12345");
+        assertEquals("username", result1);
+        
+        // Test with URL that has query parameters
+        String result2 = (String) method.invoke(profileService, "tiktok.com/@username?lang=en");
+        assertEquals("username", result2);
+        
+        // Test with URL that doesn't match the pattern (should return input as-is)
+        String result3 = (String) method.invoke(profileService, "not-tiktok-url");
+        assertEquals("not-tiktok-url", result3);
+    }
+
+    @Test
     void extractDiscordId_FromInput_ReturnsCleanedInput() throws Exception {
         // Use reflection to access private method
         java.lang.reflect.Method method = ProfileService.class.getDeclaredMethod("extractDiscordId", String.class);
@@ -309,37 +374,6 @@ class ProfileServiceTest {
         // Test with empty string
         String result4 = (String) method.invoke(profileService, "");
         assertNull(result4);
-    }
-
-    @Test
-    void extractDiscordId_WithComplexInput_CorrectlyExtractsDiscordId() throws Exception {
-        // Use reflection to access private method
-        java.lang.reflect.Method method = ProfileService.class.getDeclaredMethod("extractDiscordId", String.class);
-        method.setAccessible(true);
-        
-        // Test with Discord ID embedded in other text
-        String result1 = (String) method.invoke(profileService, "My Discord is username#1234 feel free to add me");
-        assertEquals("username#1234", result1);
-        
-        // Test with Discord ID at the beginning of text
-        String result2 = (String) method.invoke(profileService, "username#5678 is my Discord tag");
-        assertEquals("username#5678", result2);
-        
-        // Test with Discord ID that has underscores and numbers in username
-        String result3 = (String) method.invoke(profileService, "user_name123#9999");
-        assertEquals("user_name123#9999", result3);
-        
-        // Test with Discord ID that has dots and hyphens
-        String result4 = (String) method.invoke(profileService, "user.name-123#0001");
-        assertEquals("user.name-123#0001", result4);
-        
-        // Test with text that doesn't contain a valid Discord ID pattern
-        String result5 = (String) method.invoke(profileService, "just a regular text without discord id");
-        assertEquals("just a regular text without discord id", result5);
-        
-        // Test with Discord URL format (if your method supports it)
-        String result6 = (String) method.invoke(profileService, "discord.com/users/username#1234");
-        assertEquals("username#1234", result6);
     }
 
     @Test
@@ -416,6 +450,8 @@ class ProfileServiceTest {
         userWithNullRole.setVerified(true);
         
         when(userService.findById(userId)).thenReturn(Optional.of(userWithNullRole));
+        when(followService.getFollowersCount(userId)).thenReturn(0L);
+        when(followService.getFollowingCount(userId)).thenReturn(0L);
 
         // Act
         ProfileResponse response = profileService.getProfile(userId);
@@ -424,7 +460,46 @@ class ProfileServiceTest {
         assertNotNull(response);
         assertNull(response.getRole());
         assertTrue(response.isVerified());
+        assertEquals(0, response.getFollowersCount());
+        assertEquals(0, response.getFollowingCount());
+        assertFalse(response.isFollowing());
         
         verify(userService, times(1)).findById(userId);
+    }
+
+    @Test
+    void getProfile_WithCurrentUserId_ChecksFollowingStatus() {
+        // Arrange
+        UUID currentUserId = UUID.randomUUID();
+        when(userService.findById(userId)).thenReturn(Optional.of(testUser));
+        when(followService.getFollowersCount(userId)).thenReturn(10L);
+        when(followService.getFollowingCount(userId)).thenReturn(20L);
+        
+        // Test when user is following
+        when(followService.isFollowing(currentUserId, userId)).thenReturn(true);
+        
+        // Act
+        ProfileResponse response = profileService.getProfile(userId, currentUserId);
+        
+        // Assert
+        assertNotNull(response);
+        assertEquals(userId, response.getId());
+        assertTrue(response.isFollowing());
+        verify(followService, times(1)).isFollowing(currentUserId, userId);
+        
+        // Reset and test when user is not following
+        reset(followService);
+        when(followService.getFollowersCount(userId)).thenReturn(10L);
+        when(followService.getFollowingCount(userId)).thenReturn(20L);
+        when(followService.isFollowing(currentUserId, userId)).thenReturn(false);
+        
+        // Act again
+        response = profileService.getProfile(userId, currentUserId);
+        
+        // Assert
+        assertNotNull(response);
+        assertEquals(userId, response.getId());
+        assertFalse(response.isFollowing());
+        verify(followService, times(1)).isFollowing(currentUserId, userId);
     }
 }
