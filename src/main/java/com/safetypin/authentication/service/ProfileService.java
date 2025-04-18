@@ -2,6 +2,7 @@ package com.safetypin.authentication.service;
 
 import com.safetypin.authentication.dto.ProfileResponse;
 import com.safetypin.authentication.dto.UpdateProfileRequest;
+import com.safetypin.authentication.dto.UserPostResponse;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.ResourceNotFoundException;
 import com.safetypin.authentication.model.User;
@@ -9,9 +10,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 public class ProfileService {
@@ -38,6 +41,9 @@ public class ProfileService {
                 .line(user.getLine())
                 .tiktok(user.getTiktok())
                 .discord(user.getDiscord())
+                .name(user.getName())
+                .profilePicture(user.getProfilePicture())
+                .profileBanner(user.getProfileBanner())
                 .build();
     }
 
@@ -61,6 +67,8 @@ public class ProfileService {
             user.setLine(extractLineUsername(request.getLine()));
             user.setTiktok(extractTiktokUsername(request.getTiktok()));
             user.setDiscord(extractDiscordId(request.getDiscord()));
+            user.setProfilePicture(request.getProfilePicture());
+            user.setProfileBanner(request.getProfileBanner());
 
             User savedUser = userService.save(user);
 
@@ -73,6 +81,9 @@ public class ProfileService {
                     .line(savedUser.getLine())
                     .tiktok(savedUser.getTiktok())
                     .discord(savedUser.getDiscord())
+                    .name(savedUser.getName())
+                    .profilePicture(savedUser.getProfilePicture())
+                    .profileBanner(savedUser.getProfileBanner())
                     .build();
 
         } catch (Exception e) {
@@ -80,7 +91,19 @@ public class ProfileService {
         }
     }
 
-    // Helper methods to extract usernames from social media URLs
+    public List<UserPostResponse> getAllProfiles() {
+        List<User> users = userService.findAllUsers();
+        
+        return users.stream()
+            .map(user -> UserPostResponse.builder()
+                .id(user.getId())
+                .name(user.getName())
+                .profilePicture(user.getProfilePicture())
+                .profileBanner(user.getProfileBanner())
+                .build())
+            .collect(Collectors.toList());
+    }
+
 
     private String extractInstagramUsername(String input) {
         if (input == null || input.trim().isEmpty()) {

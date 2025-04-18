@@ -2,6 +2,7 @@ package com.safetypin.authentication.model;
 
 import com.safetypin.authentication.dto.UserResponse;
 import jakarta.persistence.*;
+import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -12,6 +13,7 @@ import java.util.UUID;
 @Entity
 @Table(name = "users")
 @NoArgsConstructor
+@Data
 public class User {
     @Id
     @Setter
@@ -71,6 +73,9 @@ public class User {
     @Getter
     private String discord;
 
+    private String profilePicture;
+    private String profileBanner;
+
     // Getters and setters
 
     public boolean isVerified() {
@@ -90,6 +95,8 @@ public class User {
                 .role(role != null ? role.name() : null)
                 .name(name)
                 .isVerified(isVerified)
+                .profilePicture(profilePicture)
+                .profileBanner(profileBanner)
                 .build();
     }
 }

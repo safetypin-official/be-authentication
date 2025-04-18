@@ -20,4 +20,7 @@ public class ProfileResponse {
     private String line;
     private String tiktok;
     private String discord;
+    private String name;
+    private String profilePicture;
+    private String profileBanner;
 }
