@@ -312,6 +312,37 @@ class ProfileServiceTest {
     }
 
     @Test
+    void extractDiscordId_WithComplexInput_CorrectlyExtractsDiscordId() throws Exception {
+        // Use reflection to access private method
+        java.lang.reflect.Method method = ProfileService.class.getDeclaredMethod("extractDiscordId", String.class);
+        method.setAccessible(true);
+        
+        // Test with Discord ID embedded in other text
+        String result1 = (String) method.invoke(profileService, "My Discord is username#1234 feel free to add me");
+        assertEquals("username#1234", result1);
+        
+        // Test with Discord ID at the beginning of text
+        String result2 = (String) method.invoke(profileService, "username#5678 is my Discord tag");
+        assertEquals("username#5678", result2);
+        
+        // Test with Discord ID that has underscores and numbers in username
+        String result3 = (String) method.invoke(profileService, "user_name123#9999");
+        assertEquals("user_name123#9999", result3);
+        
+        // Test with Discord ID that has dots and hyphens
+        String result4 = (String) method.invoke(profileService, "user.name-123#0001");
+        assertEquals("user.name-123#0001", result4);
+        
+        // Test with text that doesn't contain a valid Discord ID pattern
+        String result5 = (String) method.invoke(profileService, "just a regular text without discord id");
+        assertEquals("just a regular text without discord id", result5);
+        
+        // Test with Discord URL format (if your method supports it)
+        String result6 = (String) method.invoke(profileService, "discord.com/users/username#1234");
+        assertEquals("username#1234", result6);
+    }
+
+    @Test
     void getAllProfiles_ReturnsAllUsersAsUserPostResponses() {
         // Arrange
         User user1 = new User();
