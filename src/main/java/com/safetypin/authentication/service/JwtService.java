@@ -18,7 +18,7 @@ import java.util.UUID;
 
 @Service
 public class JwtService {
-    private static final long EXPIRATION_TIME = 1000L * 60 * 10; // 1000 milliseconds * 60 seconds * 10 minutes
+    private static final long EXPIRATION_TIME = 100000L * 60 * 10; // 1000 milliseconds * 60 seconds * 10 minutes
 
     private final Key key;
     private final UserService userService;
