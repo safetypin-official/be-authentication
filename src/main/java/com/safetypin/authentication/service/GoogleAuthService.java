@@ -204,95 +204,89 @@ public class GoogleAuthService {
         try {
             String apiUrl = PEOPLE_API_BASE_URL + "?personFields=" + BIRTHDAY;
             URL url = createURL(apiUrl);
-
-            // Log the URL we're trying to connect to
             logger.info("Attempting to connect to Google API: {}", apiUrl);
 
-            HttpURLConnection conn;
-
-            // Simple approach: use HTTPS proxy if available, otherwise try HTTP proxy, otherwise direct connection
-            if (httpsProxy != null) {
-                if (!httpsProxy.isEmpty()) {
-                    try {
-                        URL proxyUrl = createURL(httpsProxy);
-                        java.net.Proxy proxy = new java.net.Proxy(
-                                java.net.Proxy.Type.HTTP,
-                                new java.net.InetSocketAddress(proxyUrl.getHost(), proxyUrl.getPort())
-                        );
-                        logger.info("Using HTTPS proxy: {}:{}", proxyUrl.getHost(), proxyUrl.getPort());
-                        conn = openProxyConnection(url, proxy);
-                    } catch (MalformedURLException e) {
-                        logger.error("Invalid HTTPS proxy URL, falling back to direct connection", e);
-                        conn = openDirectConnection(url);
-                    }
-                }
-                else {
-                    logger.info("No HTTPS proxy configured, using direct connection");
-                    conn = openDirectConnection(url);
-                }
-            }
-            else if (httpProxy != null) {
-                if (!httpProxy.isEmpty()) {
-                    try {
-                        URL proxyUrl = createURL(httpProxy);
-                        java.net.Proxy proxy = new java.net.Proxy(
-                                java.net.Proxy.Type.HTTP,
-                                new java.net.InetSocketAddress(proxyUrl.getHost(), proxyUrl.getPort())
-                        );
-                        logger.info("Using HTTP proxy: {}:{}", proxyUrl.getHost(), proxyUrl.getPort());
-                        conn = openProxyConnection(url, proxy);
-                    } catch (MalformedURLException e) {
-                        logger.error("Invalid HTTP proxy URL, falling back to direct connection", e);
-                        conn = openDirectConnection(url);
-                    }
-                } else {
-                    logger.info("No HTTP proxy configured, using direct connection");
-                    conn = openDirectConnection(url);
-                }
-            }
-            else {
-                logger.info("No proxy configured, using direct connection");
-                conn = openDirectConnection(url);
-            }
-
-            try {
-                // Set connection timeout to detect issues faster
-                conn.setConnectTimeout(10000); // 10 seconds
-                conn.setReadTimeout(10000);    // 10 seconds
-
-                conn.setRequestMethod("GET");
-                conn.setRequestProperty("Authorization", "Bearer " + accessToken);
-                conn.setRequestProperty("Accept", "application/json");
-
-                // Log before connecting
-                logger.info("Opening connection to Google API...");
-
-                int responseCode = conn.getResponseCode();
-                logger.info("Google API response code: {}", responseCode);
-
-                if (responseCode == HttpURLConnection.HTTP_OK) {
-                    String response = readResponse(conn.getInputStream());
-                    logger.info("Successfully received data from Google API");
-                    return response;
-                } else {
-                    // Log error response if available
-                    String errorResponse = null;
-                    try {
-                        errorResponse = readResponse(conn.getErrorStream());
-                    } catch (Exception e) {
-                        logger.error("Could not read error response", e);
-                    }
-                    logger.error("Error fetching data from Google API: HTTP {}, Error: {}",
-                            responseCode, errorResponse);
-                    return null;
-                }
-            } finally {
-                conn.disconnect();
-            }
+            HttpURLConnection conn = createConnectionWithProxy(url);
+            return executeRequest(conn, accessToken);
         } catch (IOException e) {
             logger.error("IO error when fetching user data: {}", e.getMessage(), e);
             return null;
         }
+    }
+    
+    private HttpURLConnection createConnectionWithProxy(URL url) throws IOException {
+        // Try HTTPS proxy
+        if (httpsProxy != null && !httpsProxy.isEmpty()) {
+            HttpURLConnection conn = tryProxyConnection(url, httpsProxy, "HTTPS");
+            if (conn != null) return conn;
+        }
+        
+        // Try HTTP proxy
+        if (httpProxy != null && !httpProxy.isEmpty()) {
+            HttpURLConnection conn = tryProxyConnection(url, httpProxy, "HTTP");
+            if (conn != null) return conn;
+        }
+        
+        // Use direct connection
+        logger.info("No proxy configured, using direct connection");
+        return openDirectConnection(url);
+    }
+    
+    private HttpURLConnection tryProxyConnection(URL url, String proxyUrl, String proxyType) throws IOException {
+        try {
+            URL parsedProxyUrl = createURL(proxyUrl);
+            java.net.Proxy proxy = new java.net.Proxy(
+                    java.net.Proxy.Type.HTTP,
+                    new java.net.InetSocketAddress(parsedProxyUrl.getHost(), parsedProxyUrl.getPort())
+            );
+            logger.info("Using {} proxy: {}:{}", proxyType, parsedProxyUrl.getHost(), parsedProxyUrl.getPort());
+            return openProxyConnection(url, proxy);
+        } catch (MalformedURLException e) {
+            logger.error("Invalid {} proxy URL, falling back to direct connection", proxyType, e);
+            return null;
+        }
+    }
+    
+    private String executeRequest(HttpURLConnection conn, String accessToken) throws IOException {
+        try {
+            // Set connection properties
+            conn.setConnectTimeout(10000); // 10 seconds
+            conn.setReadTimeout(10000);    // 10 seconds
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Authorization", "Bearer " + accessToken);
+            conn.setRequestProperty("Accept", "application/json");
+            
+            logger.info("Opening connection to Google API...");
+            
+            int responseCode = conn.getResponseCode();
+            logger.info("Google API response code: {}", responseCode);
+            
+            return handleResponse(conn, responseCode);
+        } finally {
+            conn.disconnect();
+        }
+    }
+    
+    private String handleResponse(HttpURLConnection conn, int responseCode) throws IOException {
+        if (responseCode == HttpURLConnection.HTTP_OK) {
+            String response = readResponse(conn.getInputStream());
+            logger.info("Successfully received data from Google API");
+            return response;
+        } else {
+            return handleErrorResponse(conn, responseCode);
+        }
+    }
+    
+    private String handleErrorResponse(HttpURLConnection conn, int responseCode) {
+        String errorResponse = null;
+        try {
+            errorResponse = readResponse(conn.getErrorStream());
+        } catch (Exception e) {
+            logger.error("Could not read error response", e);
+        }
+        logger.error("Error fetching data from Google API: HTTP {}, Error: {}", 
+                responseCode, errorResponse);
+        return null;
     }
 
     private String readResponse(InputStream inputStream) throws IOException {
