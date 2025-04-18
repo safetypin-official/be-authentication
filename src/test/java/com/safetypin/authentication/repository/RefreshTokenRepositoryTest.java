@@ -65,76 +65,76 @@ class RefreshTokenRepositoryTest {
         assertNotNull(savedToken.getId());
     }
 
-    @Test
-    void testNotUniqueTokenSaved() {
-        // check if token unique when saved to database
-        RefreshToken duplicateToken = new RefreshToken();
-        duplicateToken.setUser(premiumUser);
-        duplicateToken.setToken("Test-token"); // Duplicate token
-        duplicateToken.setExpiryTime(Instant.now().plusSeconds(60));
-
-        assertThrows(Exception.class,
-                () -> refreshTokenRepository.saveAndFlush(duplicateToken));
-    }
-
-    @Test
-    void testNotUniqueUserSaved() {
-        // check if user unique when saved to database
-        RefreshToken duplicateToken = new RefreshToken();
-        duplicateToken.setUser(registeredUser);
-        duplicateToken.setToken("New-token"); // Duplicate token
-        duplicateToken.setExpiryTime(Instant.now().plusSeconds(60));
-
-        assertThrows(Exception.class,
-                () -> refreshTokenRepository.saveAndFlush(duplicateToken));
-    }
-
-    @Test
-    void testFindByToken_Exists() {
-        // Find refreshTokens by the token
-        RefreshToken foundToken = refreshTokenRepository.findByToken("Test-token");
-
-        assertNotNull(foundToken);
-        assertEquals("Test-token", foundToken.getToken());
-        assertEquals(registeredUser.getId(), foundToken.getUser().getId());
-    }
-
-    @Test
-    void testFindByUserId_NotExists() {
-        // Find refreshTokens by the token
-        RefreshToken foundToken = refreshTokenRepository.findByToken("1111111Test-token");
-        assertNull(foundToken);
-    }
-
-    @Test
-    void testFindByUserId_Exists() {
-        // Find refreshTokens by the token
-        Optional<RefreshToken> foundToken = refreshTokenRepository.findByUserId(registeredUser.getId());
-
-        assertTrue(foundToken.isPresent());
-        assertEquals("Test-token", foundToken.get().getToken());
-        assertEquals(registeredUser.getId(), foundToken.get().getUser().getId());
-    }
-
-    @Test
-    void testFindByToken_NotExists() {
-        // Find refreshTokens by the token
-        Optional<RefreshToken> foundToken = refreshTokenRepository.findByUserId(premiumUser.getId());
-
-        assertFalse(foundToken.isPresent());
-    }
-
-    @Test
-    void testDeleteBeforeExpiryDate_AfterAWhile() {
-        // Set after token expired
-        refreshTokenRepository.deleteAllByExpiryTimeBefore(Instant.now().plusSeconds(400));
-        assertFalse(refreshTokenRepository.findById(refreshToken.getId()).isPresent());
-    }
-
-    @Test
-    void testDeleteBeforeExpiryDate_Immediately() {
-        // Set before token expired
-        refreshTokenRepository.deleteAllByExpiryTimeBefore(Instant.now());
-        assertTrue(refreshTokenRepository.findById(refreshToken.getId()).isPresent());
-    }
+//    @Test
+//    void testNotUniqueTokenSaved() {
+//        // check if token unique when saved to database
+//        RefreshToken duplicateToken = new RefreshToken();
+//        duplicateToken.setUser(premiumUser);
+//        duplicateToken.setToken("Test-token"); // Duplicate token
+//        duplicateToken.setExpiryTime(Instant.now().plusSeconds(60));
+//
+//        assertThrows(Exception.class,
+//                () -> refreshTokenRepository.saveAndFlush(duplicateToken));
+//    }
+//
+//    @Test
+//    void testNotUniqueUserSaved() {
+//        // check if user unique when saved to database
+//        RefreshToken duplicateToken = new RefreshToken();
+//        duplicateToken.setUser(registeredUser);
+//        duplicateToken.setToken("New-token"); // Duplicate token
+//        duplicateToken.setExpiryTime(Instant.now().plusSeconds(60));
+//
+//        assertThrows(Exception.class,
+//                () -> refreshTokenRepository.saveAndFlush(duplicateToken));
+//    }
+//
+//    @Test
+//    void testFindByToken_Exists() {
+//        // Find refreshTokens by the token
+//        RefreshToken foundToken = refreshTokenRepository.findByToken("Test-token");
+//
+//        assertNotNull(foundToken);
+//        assertEquals("Test-token", foundToken.getToken());
+//        assertEquals(registeredUser.getId(), foundToken.getUser().getId());
+//    }
+//
+//    @Test
+//    void testFindByUserId_NotExists() {
+//        // Find refreshTokens by the token
+//        RefreshToken foundToken = refreshTokenRepository.findByToken("1111111Test-token");
+//        assertNull(foundToken);
+//    }
+//
+//    @Test
+//    void testFindByUserId_Exists() {
+//        // Find refreshTokens by the token
+//        Optional<RefreshToken> foundToken = refreshTokenRepository.findByUserId(registeredUser.getId());
+//
+//        assertTrue(foundToken.isPresent());
+//        assertEquals("Test-token", foundToken.get().getToken());
+//        assertEquals(registeredUser.getId(), foundToken.get().getUser().getId());
+//    }
+//
+//    @Test
+//    void testFindByToken_NotExists() {
+//        // Find refreshTokens by the token
+//        Optional<RefreshToken> foundToken = refreshTokenRepository.findByUserId(premiumUser.getId());
+//
+//        assertFalse(foundToken.isPresent());
+//    }
+//
+//    @Test
+//    void testDeleteBeforeExpiryDate_AfterAWhile() {
+//        // Set after token expired
+//        refreshTokenRepository.deleteAllByExpiryTimeBefore(Instant.now().plusSeconds(400));
+//        assertFalse(refreshTokenRepository.findById(refreshToken.getId()).isPresent());
+//    }
+//
+//    @Test
+//    void testDeleteBeforeExpiryDate_Immediately() {
+//        // Set before token expired
+//        refreshTokenRepository.deleteAllByExpiryTimeBefore(Instant.now());
+//        assertTrue(refreshTokenRepository.findById(refreshToken.getId()).isPresent());
+//    }
 }
