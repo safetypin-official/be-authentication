@@ -32,9 +32,15 @@ public class ProfileController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<AuthResponse> getProfile(@PathVariable UUID id) {
+    public ResponseEntity<AuthResponse> getProfile(@PathVariable UUID id, @RequestHeader("Authorization") String authHeader) {
         try {
-            ProfileResponse profile = profileService.getProfile(id);
+            String token = authHeader.replace("Bearer ", "");
+            
+            UserResponse user = jwtService.getUserFromJwtToken(token);
+
+            UUID userId = user.getId();
+
+            ProfileResponse profile = profileService.getProfile(id, userId);
             return ResponseEntity.ok(new AuthResponse(true, "Profile retrieved successfully", profile));
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)

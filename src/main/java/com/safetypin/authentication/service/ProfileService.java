@@ -14,23 +14,35 @@ import java.util.List;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 @Service
 public class ProfileService {
 
     private final UserService userService;
     private final JwtService jwtService;
+    private final FollowService followService;
 
     @Autowired
-    public ProfileService(UserService userService, JwtService jwtService) {
+    public ProfileService(UserService userService, JwtService jwtService, FollowService followService) {
         this.userService = userService;
         this.jwtService = jwtService;
+        this.followService = followService;
     }
 
     public ProfileResponse getProfile(UUID userId) {
+        return getProfile(userId, null);
+    }
+
+    public ProfileResponse getProfile(UUID userId, UUID currentUserId) {
         User user = userService.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + userId));
+
+        // If currentUserId is provided, check if the user is following the profile
+        boolean isFollowing = false;
+
+        if (currentUserId != null) {
+            isFollowing = followService.isFollowing(currentUserId, userId);
+        }
 
         return ProfileResponse.builder()
                 .id(user.getId())
@@ -44,6 +56,9 @@ public class ProfileService {
                 .name(user.getName())
                 .profilePicture(user.getProfilePicture())
                 .profileBanner(user.getProfileBanner())
+                .followersCount(followService.getFollowersCount(userId))
+                .followingCount(followService.getFollowingCount(userId))
+                .isFollowing(isFollowing)
                 .build();
     }
 
@@ -84,6 +99,9 @@ public class ProfileService {
                     .name(savedUser.getName())
                     .profilePicture(savedUser.getProfilePicture())
                     .profileBanner(savedUser.getProfileBanner())
+                    .followersCount(followService.getFollowersCount(userId))
+                    .followingCount(followService.getFollowingCount(userId))
+                    .isFollowing(false)
                     .build();
 
         } catch (Exception e) {
@@ -101,7 +119,7 @@ public class ProfileService {
                 .profilePicture(user.getProfilePicture())
                 .profileBanner(user.getProfileBanner())
                 .build())
-            .collect(Collectors.toList());
+            .toList();
     }
 
 
