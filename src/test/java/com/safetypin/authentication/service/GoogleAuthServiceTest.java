@@ -796,7 +796,7 @@ class GoogleAuthServiceTest {
     }
 
     @Test
-    void authenticate_UserWithNullBirthdate_ThrowsApiException() throws Exception {
+    void authenticate_UserWithNullBirthdate_ThrowsIllegalArgumentException() throws Exception {
         // Mock verify ID token
         doReturn(payload).when(googleAuthService).verifyIdToken(anyString());
         when(payload.getEmail()).thenReturn("nobirth@example.com");
@@ -812,12 +812,12 @@ class GoogleAuthServiceTest {
         doReturn(null).when(googleAuthService).getUserBirthdate(anyString());
 
         // Execute and verify
-        ApiException exception = assertThrows(
-                ApiException.class,
-                () -> googleAuthService.authenticate(googleAuthDTO)
+        IllegalArgumentException exception = assertThrows(
+            IllegalArgumentException.class,
+            () -> googleAuthService.authenticate(googleAuthDTO)
         );
 
-        assertEquals("Authentication failed", exception.getMessage());
+        assertEquals("Permission denied: Birthdate not provided", exception.getMessage());
         verify(userService, never()).save(any(User.class));
     }
 
