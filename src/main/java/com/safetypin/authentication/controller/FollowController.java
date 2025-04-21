@@ -85,20 +85,18 @@ public class FollowController {
     @GetMapping("/stats/{userId}")
     public ResponseEntity<FollowStats> getFollowStats(
             @PathVariable UUID userId,
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+            @RequestHeader(value = "Authorization") String authHeader) {
         
         boolean isFollowing = false;
-        
-        if (authHeader != null && !authHeader.isEmpty()) {
-            try {
-                String token = authHeader.replace(BEARER_PREFIX, "");
-                UserResponse user = jwtService.getUserFromJwtToken(token);
-                UUID currentUserId = user.getId();
-                
-                isFollowing = followService.isFollowing(currentUserId, userId);
-            } catch (Exception e) {
-                // Invalid token, keep isFollowing as false
-            }
+
+        try {
+            String token = authHeader.replace(BEARER_PREFIX, "");
+            UserResponse user = jwtService.getUserFromJwtToken(token);
+            UUID currentUserId = user.getId();
+            
+            isFollowing = followService.isFollowing(currentUserId, userId);
+        } catch (Exception e) {
+            // Invalid token, keep isFollowing as false
         }
         
         FollowStats stats = FollowStats.builder()
