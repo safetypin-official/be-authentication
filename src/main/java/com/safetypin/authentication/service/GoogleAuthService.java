@@ -94,6 +94,10 @@ public class GoogleAuthService {
             String accessToken = getAccessToken(googleAuthDTO.getServerAuthCode());
             LocalDate userBirthdate = getUserBirthdate(accessToken);
 
+            if (userBirthdate == null) {
+                throw new IllegalArgumentException("Permission denied: Birthdate not provided");
+            }
+
             if (Period.between(userBirthdate, LocalDate.now()).getYears() < 16)
                 throw new IllegalArgumentException("User must be at least 16 years old");
 
