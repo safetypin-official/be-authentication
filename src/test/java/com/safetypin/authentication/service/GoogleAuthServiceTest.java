@@ -29,21 +29,16 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
-import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.LocalDate;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.Assume.assumeNoException;
-import static org.junit.Assume.assumeTrue;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -93,7 +88,7 @@ class GoogleAuthServiceTest {
     @Captor
     private ArgumentCaptor<ILoggingEvent> loggingEventCaptor;
     
-    private GoogleAuthDTO googleAuthDTO;
+    private GoogleAuthDTO googleAuthDTO, googleAuthDTOWithBirthdate;
     private UUID testUserId;
 
     @BeforeEach
@@ -104,6 +99,11 @@ class GoogleAuthServiceTest {
         googleAuthDTO = new GoogleAuthDTO();
         googleAuthDTO.setIdToken(testIdToken);
         googleAuthDTO.setServerAuthCode("test-auth-code");
+
+        googleAuthDTOWithBirthdate = new GoogleAuthDTO();
+        googleAuthDTOWithBirthdate.setIdToken(testIdToken);
+        googleAuthDTOWithBirthdate.setServerAuthCode("test-auth-code");
+        googleAuthDTOWithBirthdate.setBirthdate(LocalDate.of(2000, 1, 1));
 
         testUserId = UUID.randomUUID();
 
@@ -800,7 +800,7 @@ class GoogleAuthServiceTest {
     }
 
     @Test
-    void authenticate_UserWithNullBirthdate_ThrowsApiException() throws Exception {
+    void authenticate_UserWithNullBirthdate_ThrowsIllegalArgumentException() throws Exception {
         // Mock verify ID token
         doReturn(payload).when(googleAuthService).verifyIdToken(anyString());
         when(payload.getEmail()).thenReturn("nobirth@example.com");
@@ -816,13 +816,52 @@ class GoogleAuthServiceTest {
         doReturn(null).when(googleAuthService).getUserBirthdate(anyString());
 
         // Execute and verify
-        ApiException exception = assertThrows(
-                ApiException.class,
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
                 () -> googleAuthService.authenticate(googleAuthDTO)
         );
 
-        assertEquals("Authentication failed", exception.getMessage());
+        assertEquals("Birthdate is required to verify age", exception.getMessage());
         verify(userService, never()).save(any(User.class));
+    }
+
+    @Test
+    void authenticate_GoogleNullBirthdateAndRequestHasBirthdate_Success() throws Exception {
+        // Mock verify ID token
+        doReturn(payload).when(googleAuthService).verifyIdToken(anyString());
+        when(payload.getEmail()).thenReturn("sixteen@example.com");
+        when(payload.get("name")).thenReturn("Sixteen User");
+
+        // Mock user service
+        when(userService.findByEmail(anyString())).thenReturn(Optional.empty());
+
+        // Mock getAccessToken
+        doReturn(testAccessToken).when(googleAuthService).getAccessToken(anyString());
+
+        // Mock getUserBirthdate to return null (birthdate not available)
+        doReturn(null).when(googleAuthService).getUserBirthdate(anyString());
+
+        // Mock user save
+        User savedUser = new User();
+        savedUser.setId(testUserId);
+        when(userService.save(any(User.class))).thenReturn(savedUser);
+
+        // Mock JWT generation
+        when(jwtService.generateToken(any(UUID.class))).thenReturn("test-jwt-token");
+
+        // Mock refresh token creation
+        RefreshToken mockRefreshToken = new RefreshToken();
+        mockRefreshToken.setToken(testRefreshToken);
+        when(refreshTokenService.createRefreshToken(any(UUID.class))).thenReturn(mockRefreshToken);
+
+        // Execute
+        AuthToken result = googleAuthService.authenticate(googleAuthDTOWithBirthdate);
+
+        // Verify
+        assertEquals("test-jwt-token", result.getAccessToken());
+        assertEquals(testRefreshToken, result.getRefreshToken());
+        verify(userService).save(any(User.class));
+        verify(refreshTokenService).createRefreshToken(testUserId);
     }
 
     @Test

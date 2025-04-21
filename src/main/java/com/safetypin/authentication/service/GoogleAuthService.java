@@ -82,7 +82,8 @@ public class GoogleAuthService {
                 User user = existingUser.get();
                 String userProvider = user.getProvider();
                 if (!EMAIL_PROVIDER.equals(userProvider)) {
-                    throw new UserAlreadyExistsException("An account with this email exists. Please sign in using " + userProvider);
+                    throw new UserAlreadyExistsException(
+                            "An account with this email exists. Please sign in using " + userProvider);
                 }
                 String accessToken = jwtService.generateToken(user.getId());
                 RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
@@ -92,7 +93,17 @@ public class GoogleAuthService {
             }
 
             String accessToken = getAccessToken(googleAuthDTO.getServerAuthCode());
+
+            // Try retrieving the user's birthdate from Google API first
             LocalDate userBirthdate = getUserBirthdate(accessToken);
+            // If the birthdate is not available, use the one provided in the request (if any)
+            if (userBirthdate == null) {
+                // Check if the birthdate is null
+                if (googleAuthDTO.getBirthdate() == null) {
+                    throw new IllegalArgumentException("Birthdate is required to verify age");
+                }
+                userBirthdate = googleAuthDTO.getBirthdate();
+            }
 
             if (Period.between(userBirthdate, LocalDate.now()).getYears() < 16)
                 throw new IllegalArgumentException("User must be at least 16 years old");
