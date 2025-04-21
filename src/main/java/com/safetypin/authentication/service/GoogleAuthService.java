@@ -100,13 +100,9 @@ public class GoogleAuthService {
             if (userBirthdate == null) {
                 // Check if the birthdate is null
                 if (googleAuthDTO.getBirthdate() == null) {
-                    throw new IllegalArgumentException("Birthdate is required to verify age");
+                    throw new IllegalArgumentException("Permission denied: Birthdate not provided");
                 }
                 userBirthdate = googleAuthDTO.getBirthdate();
-            }
-
-            if (userBirthdate == null) {
-                throw new IllegalArgumentException("Permission denied: Birthdate not provided");
             }
 
             if (Period.between(userBirthdate, LocalDate.now()).getYears() < 16)
