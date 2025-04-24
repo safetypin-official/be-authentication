@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Data
@@ -22,7 +23,7 @@ public class ProfileView {
     @ManyToOne(fetch = FetchType.LAZY)
     private User viewer;
 
-    private LocalDate viewedAt;
+    private LocalDateTime viewedAt;
 }
 
 
