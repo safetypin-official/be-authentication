@@ -71,6 +71,15 @@ public class User {
     @Getter
     private String discord;
 
+    @Setter
+    @Getter
+    private String profilePicture;
+
+    @Setter
+    @Getter
+    private String profileBanner;
+
+
     // Getters and setters
 
     public boolean isVerified() {
@@ -81,6 +90,7 @@ public class User {
         isVerified = verified;
     }
 
+    // used for jwt
     public UserResponse generateUserResponse() {
         return UserResponse.builder()
                 .email(email)

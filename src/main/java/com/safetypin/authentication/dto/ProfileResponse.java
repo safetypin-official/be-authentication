@@ -11,8 +11,10 @@ import java.util.UUID;
 @Getter
 @Setter
 @Builder
+// used for get & edit profile
 public class ProfileResponse {
     private UUID id;
+    private String name;
     private String role;
     private boolean isVerified;
     private String instagram;
@@ -22,4 +24,5 @@ public class ProfileResponse {
     private String discord;
     private String profilePicture;
     private String profileBanner;
+
 }

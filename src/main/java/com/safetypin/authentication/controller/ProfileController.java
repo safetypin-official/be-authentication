@@ -1,16 +1,20 @@
 package com.safetypin.authentication.controller;
 
 import com.safetypin.authentication.dto.AuthResponse;
+import com.safetypin.authentication.dto.PostedByData;
 import com.safetypin.authentication.dto.ProfileResponse;
 import com.safetypin.authentication.dto.UpdateProfileRequest;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.ResourceNotFoundException;
 import com.safetypin.authentication.service.ProfileService;
+import com.safetypin.authentication.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -18,10 +22,12 @@ import java.util.UUID;
 public class ProfileController {
 
     private final ProfileService profileService;
+    private final UserService userService;
 
     @Autowired
-    public ProfileController(ProfileService profileService) {
+    public ProfileController(ProfileService profileService, UserService userService) {
         this.profileService = profileService;
+        this.userService = userService;
     }
 
     @GetMapping("/{id}")
@@ -60,5 +66,10 @@ public class ProfileController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new AuthResponse(false, "Error updating profile: " + e.getMessage(), null));
         }
+    }
+
+    @PostMapping("/batch")
+    public Map<UUID, PostedByData> getUsersBatch(@RequestBody List<UUID> userIds) {
+        return profileService.getUsersBatch(userIds);
     }
 }

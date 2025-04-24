@@ -1,28 +1,35 @@
 package com.safetypin.authentication.service;
 
+import com.safetypin.authentication.dto.PostedByData;
 import com.safetypin.authentication.dto.ProfileResponse;
 import com.safetypin.authentication.dto.UpdateProfileRequest;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.ResourceNotFoundException;
 import com.safetypin.authentication.model.User;
+import com.safetypin.authentication.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 public class ProfileService {
 
     private final UserService userService;
     private final JwtService jwtService;
+    private final UserRepository userRepository;
 
     @Autowired
-    public ProfileService(UserService userService, JwtService jwtService) {
+    public ProfileService(UserService userService, JwtService jwtService, UserRepository userRepository) {
         this.userService = userService;
         this.jwtService = jwtService;
+        this.userRepository = userRepository;
     }
 
     public ProfileResponse getProfile(UUID userId) {
@@ -31,6 +38,7 @@ public class ProfileService {
 
         return ProfileResponse.builder()
                 .id(user.getId())
+                .name(user.getName())
                 .role(user.getRole() != null ? user.getRole().name() : null)
                 .isVerified(user.isVerified())
                 .instagram(user.getInstagram())
@@ -38,6 +46,8 @@ public class ProfileService {
                 .line(user.getLine())
                 .tiktok(user.getTiktok())
                 .discord(user.getDiscord())
+                .profileBanner(user.getProfileBanner())
+                .profilePicture(user.getProfilePicture())
                 .build();
     }
 
@@ -66,6 +76,7 @@ public class ProfileService {
 
             return ProfileResponse.builder()
                     .id(savedUser.getId())
+                    .name(savedUser.getName())
                     .role(savedUser.getRole() != null ? savedUser.getRole().name() : null)
                     .isVerified(savedUser.isVerified())
                     .instagram(savedUser.getInstagram())
@@ -73,6 +84,8 @@ public class ProfileService {
                     .line(savedUser.getLine())
                     .tiktok(savedUser.getTiktok())
                     .discord(savedUser.getDiscord())
+                    .profileBanner(savedUser.getProfileBanner())
+                    .profilePicture(savedUser.getProfilePicture())
                     .build();
 
         } catch (Exception e) {
@@ -149,5 +162,19 @@ public class ProfileService {
 
         // For Discord, we just store the Discord ID/username as provided
         return input.trim();
+    }
+
+    public Map<UUID, PostedByData> getUsersBatch(List<UUID> userIds) {
+        return userRepository.findAllById(userIds).stream()
+                .collect(
+                        Collectors.toMap(
+                            User::getId,
+                            user -> PostedByData.builder()
+                            .userId(user.getId())
+                            .name(user.getName())
+                            .profilePicture(user.getProfilePicture())
+                            .build()
+                        )
+                );
     }
 }
