@@ -1,5 +1,6 @@
 package com.safetypin.authentication.service;
 
+import com.safetypin.authentication.dto.PostedByData;
 import com.safetypin.authentication.dto.ProfileResponse;
 import com.safetypin.authentication.dto.UpdateProfileRequest;
 import com.safetypin.authentication.dto.UserPostResponse;
@@ -7,6 +8,7 @@ import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.ResourceNotFoundException;
 import com.safetypin.authentication.model.Role;
 import com.safetypin.authentication.model.User;
+import com.safetypin.authentication.repository.UserRepository;
 import io.jsonwebtoken.Claims;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,10 +17,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Optional;
-import java.util.UUID;
-import java.util.List;
-import java.util.Arrays;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -35,6 +34,9 @@ class ProfileServiceTest {
 
     @Mock
     private Claims claims;
+
+    @Mock
+    private UserRepository userRepository;
 
     @InjectMocks
     private ProfileService profileService;
@@ -186,28 +188,38 @@ class ProfileServiceTest {
 
     @Test
     void extractInstagramUsername_FromUrl_ReturnsUsername() throws Exception {
+
+
         // Use reflection to access private method
         java.lang.reflect.Method method = ProfileService.class.getDeclaredMethod("extractInstagramUsername", String.class);
         method.setAccessible(true);
 
+        List<String> testUrls = Arrays.asList(
+                "instagram.com/username",
+                "instagram.com/@username",
+                "username",
+                null,
+                ""
+        );
+
         // Test with URL format
-        String result1 = (String) method.invoke(profileService, "instagram.com/username");
+        String result1 = (String) method.invoke(profileService, testUrls.get(0));
         assertEquals("username", result1);
 
         // Test with @ in URL
-        String result2 = (String) method.invoke(profileService, "instagram.com/@username");
+        String result2 = (String) method.invoke(profileService, testUrls.get(1));
         assertEquals("username", result2);
 
         // Test with just username
-        String result3 = (String) method.invoke(profileService, "username");
+        String result3 = (String) method.invoke(profileService, testUrls.get(2));
         assertEquals("username", result3);
 
         // Test with null
-        String result4 = (String) method.invoke(profileService, (Object) null);
+        String result4 = (String) method.invoke(profileService, testUrls.get(3));
         assertNull(result4);
 
         // Test with empty string
-        String result5 = (String) method.invoke(profileService, "");
+        String result5 = (String) method.invoke(profileService, testUrls.get(4));
         assertNull(result5);
     }
 
@@ -395,5 +407,45 @@ class ProfileServiceTest {
         assertTrue(response.isVerified());
         
         verify(userService, times(1)).findById(userId);
+    }
+
+    @Test
+    void getUsersBatch_ReturnsMapOfUUIDToPostedByData() {
+        // Arrange
+        UUID userId1 = UUID.randomUUID();
+        UUID userId2 = UUID.randomUUID();
+
+        User user1 = new User();
+        user1.setId(userId1);
+        user1.setName("User 1");
+        user1.setProfilePicture("pic1.jpg");
+
+        User user2 = new User();
+        user2.setId(userId2);
+        user2.setName("User 2");
+        user2.setProfilePicture("pic2.jpg");
+
+        List<UUID> userIds = Arrays.asList(userId1, userId2);
+        List<User> users = Arrays.asList(user1, user2);
+
+        when(userRepository.findAllById(userIds)).thenReturn(users);
+
+        // Act
+        Map<UUID, PostedByData> result = profileService.getUsersBatch(userIds);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(2, result.size());
+
+        assertTrue(result.containsKey(userId1));
+        assertTrue(result.containsKey(userId2));
+
+        assertEquals("User 1", result.get(userId1).getName());
+        assertEquals("pic1.jpg", result.get(userId1).getProfilePicture());
+
+        assertEquals("User 2", result.get(userId2).getName());
+        assertEquals("pic2.jpg", result.get(userId2).getProfilePicture());
+
+        verify(userRepository, times(1)).findAllById(userIds);
     }
 }
