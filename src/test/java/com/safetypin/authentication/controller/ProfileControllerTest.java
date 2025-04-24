@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -327,5 +328,25 @@ class ProfileControllerTest {
         assertFalse(body.isSuccess());
         assertEquals("Error retrieving profiles: " + errorMessage, body.getMessage());
         assertNull(body.getData());
+    }
+
+    @Test
+    void getUsersBatch_Success() {
+        // Arrange
+        List<UUID> userIds = Arrays.asList(UUID.randomUUID(), UUID.randomUUID());
+        Map<UUID, PostedByData> expectedResponse = Map.of(
+                userIds.get(0), new PostedByData(userIds.get(0), "User1", "user1@example.com"),
+                userIds.get(1), new PostedByData( userIds.get(1), "User2", "user2@example.com")
+        );
+
+        when(profileService.getUsersBatch(userIds)).thenReturn(expectedResponse);
+
+        // Act
+        Map<UUID, PostedByData> response = profileController.getUsersBatch(userIds);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(expectedResponse, response);
+        assertEquals(2, response.size());
     }
 }
