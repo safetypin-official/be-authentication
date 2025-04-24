@@ -427,6 +427,8 @@ class AuthenticationServiceTest {
         assertNotNull(authToken);
         assertEquals("newAccessToken", authToken.getAccessToken());
         assertEquals("newRefreshToken", authToken.getRefreshToken());
+
+        verify(refreshTokenService).deleteRefreshToken(oldRefreshToken);
     }
 
     @Test

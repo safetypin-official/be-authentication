@@ -174,6 +174,8 @@ public class AuthenticationService {
         String accessToken = jwtService.generateToken(user.getId());
         RefreshToken newRefreshToken = refreshTokenService.createRefreshToken(user.getId());
 
+        refreshTokenService.deleteRefreshToken(oldToken.getToken());
+
         logger.info("User with id: {}, refreshed new tokens", user.getId());
         return new AuthToken(accessToken, newRefreshToken.getToken());
     }

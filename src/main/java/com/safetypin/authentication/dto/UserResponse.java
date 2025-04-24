@@ -28,5 +28,7 @@ public class UserResponse {
 
     private String provider;  // "EMAIL", "GOOGLE", "APPLE"
 
+    private String profilePicture;
 
+    private String profileBanner;
 }
