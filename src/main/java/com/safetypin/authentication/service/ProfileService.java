@@ -28,24 +28,15 @@ public class ProfileService {
         this.jwtService = jwtService;
     }
 
+    // anonymous get profile?
     public ProfileResponse getProfile(UUID userId) {
         User user = userService.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + userId));
 
-        return ProfileResponse.builder()
-                .id(user.getId())
-                .role(user.getRole() != null ? user.getRole().name() : null)
-                .isVerified(user.isVerified())
-                .instagram(user.getInstagram())
-                .twitter(user.getTwitter())
-                .line(user.getLine())
-                .tiktok(user.getTiktok())
-                .discord(user.getDiscord())
-                .name(user.getName())
-                .profilePicture(user.getProfilePicture())
-                .profileBanner(user.getProfileBanner())
-                .build();
+        return ProfileResponse.fromUser(user);
     }
+
+
 
     @Transactional
     public ProfileResponse updateProfile(UUID userId, UpdateProfileRequest request, String token) {
@@ -72,19 +63,7 @@ public class ProfileService {
 
             User savedUser = userService.save(user);
 
-            return ProfileResponse.builder()
-                    .id(savedUser.getId())
-                    .role(savedUser.getRole() != null ? savedUser.getRole().name() : null)
-                    .isVerified(savedUser.isVerified())
-                    .instagram(savedUser.getInstagram())
-                    .twitter(savedUser.getTwitter())
-                    .line(savedUser.getLine())
-                    .tiktok(savedUser.getTiktok())
-                    .discord(savedUser.getDiscord())
-                    .name(savedUser.getName())
-                    .profilePicture(savedUser.getProfilePicture())
-                    .profileBanner(savedUser.getProfileBanner())
-                    .build();
+            return ProfileResponse.fromUser(savedUser);
 
         } catch (Exception e) {
             throw new InvalidCredentialsException("Invalid or expired token");
