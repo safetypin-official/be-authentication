@@ -39,7 +39,6 @@ class ProfileControllerTest {
     private UpdateProfileRequest testUpdateRequest;
     private String testAuthHeader;
     private String testToken;
-    private UserResponse testUserResponse;
     private List<UserPostResponse> testAllProfiles;
 
     @BeforeEach
@@ -50,7 +49,7 @@ class ProfileControllerTest {
         testAuthHeader = "Bearer " + testToken;
 
         // Set up test user response from JWT
-        testUserResponse = UserResponse.builder()
+        UserResponse testUserResponse = UserResponse.builder()
                 .id(testUserId)
                 .name("testuser")
                 .email("test@example.com")
