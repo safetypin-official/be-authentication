@@ -17,7 +17,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -26,14 +25,12 @@ import java.util.UUID;
 public class ProfileController {
 
     private final ProfileService profileService;
-    private final UserService userService;
 
     private final JwtService jwtService;
 
     @Autowired
-    public ProfileController(ProfileService profileService, UserService userService, JwtService jwtService) {
+    public ProfileController(ProfileService profileService, JwtService jwtService) {
         this.profileService = profileService;
-        this.userService = userService;
         this.jwtService = jwtService;
     }
 
