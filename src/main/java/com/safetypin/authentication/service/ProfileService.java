@@ -37,11 +37,11 @@ public class ProfileService {
     // TODO: Change all invocations to the other one (getProfile(UUID, String)) instead
     // DEPRECATED
     public ProfileResponse getProfile(UUID userId) {
-        return null;
+        return getProfile(userId, null);
     }
 
     public ProfileResponse getProfile(UUID userId, UUID viewerId) {
-
+        
 
         User user = userService.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + userId));
@@ -49,13 +49,11 @@ public class ProfileService {
         return ProfileResponse.fromUser(user);
     }
 
-    // TODO: Change all invocations to the other one (updateProfile(UUID, UpdateProfileRequest) instead
-    @Transactional
+    // TODO: Change all invocations to the other one (updateProfile(UUID, UpdateProfileRequest)) instead
     public ProfileResponse updateProfile(UUID userId, UpdateProfileRequest request, String token) {
-        return null;
+        return updateProfile(userId, request);
     }
 
-    @Transactional
     public ProfileResponse updateProfile(UUID userId, UpdateProfileRequest request) {
         User user = userService.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + userId));
@@ -74,23 +72,16 @@ public class ProfileService {
         return ProfileResponse.fromUser(savedUser);
     }
 
-    // If user is premium, return all profile views to that user
-    public List<ProfileViewDTO> getProfileViews(UUID userId) throws InvalidCredentialsException {
-        // Check if the user is premium
-        User user = userService.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + userId));
-        if (!user.getRole().toString().contains("PREMIUM")) {
-            throw new InvalidCredentialsException("You need to be a premium user to view profile views.");
-        }
+    // Get all profiles
+    public List<UserPostResponse> getAllProfiles() {
+        List<User> users = userService.findAllUsers();
 
-        List<ProfileView> profileViews = profileViewRepository.findByUser_Id(userId);
-
-        return profileViews.stream()
-            .map(profileView -> ProfileViewDTO.builder()
-                .viewerUserId(profileView.getViewer().getId())
-                .name(profileView.getViewer().getName())
-                .profilePicture(profileView.getViewer().getProfilePicture())
-                .viewedAt(profileView.getViewedAt())
+        return users.stream()
+            .map(user -> UserPostResponse.builder()
+                .id(user.getId())
+                .name(user.getName())
+                .profilePicture(user.getProfilePicture())
+                .profileBanner(user.getProfileBanner())
                 .build())
             .toList();
     }

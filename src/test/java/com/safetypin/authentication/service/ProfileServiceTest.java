@@ -7,7 +7,10 @@ import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.ResourceNotFoundException;
 import com.safetypin.authentication.model.Role;
 import com.safetypin.authentication.model.User;
-import io.jsonwebtoken.Claims;
+import com.safetypin.authentication.model.ProfileView;
+import com.safetypin.authentication.repository.ProfileViewRepository;
+import com.safetypin.authentication.repository.ProfileViewRepository;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,10 +34,7 @@ class ProfileServiceTest {
     private UserService userService;
 
     @Mock
-    private JwtService jwtService;
-
-    @Mock
-    private Claims claims;
+    private ProfileViewRepository profileViewRepository;
 
     @InjectMocks
     private ProfileService profileService;
@@ -97,10 +97,8 @@ class ProfileServiceTest {
     }
 
     @Test
-    void updateProfile_ValidTokenAndUser_UpdatesProfile() {
+    void updateProfile_UserExists_UpdatesProfile() {
         // Arrange
-        when(jwtService.parseToken(validToken)).thenReturn(claims);
-        when(claims.getSubject()).thenReturn(userId.toString());
         when(userService.findById(userId)).thenReturn(Optional.of(testUser));
         when(userService.save(any(User.class))).thenReturn(testUser);
 
@@ -118,69 +116,26 @@ class ProfileServiceTest {
         assertNotNull(response);
         assertEquals(userId, response.getId());
 
-        verify(jwtService, times(1)).parseToken(validToken);
         verify(userService, times(1)).findById(userId);
         verify(userService, times(1)).save(any(User.class));
     }
 
     @Test
-    void updateProfile_TokenUserIdDoesNotMatch_ThrowsInvalidCredentialsException() {
-        // Arrange
-        UUID differentUserId = UUID.randomUUID();
-        when(jwtService.parseToken(validToken)).thenReturn(claims);
-        when(claims.getSubject()).thenReturn(differentUserId.toString());
-
-        UpdateProfileRequest request = new UpdateProfileRequest();
-
-        // Act & Assert
-        InvalidCredentialsException exception = assertThrows(
-                InvalidCredentialsException.class,
-                () -> profileService.updateProfile(userId, request, validToken)
-        );
-
-        assertEquals("Invalid or expired token", exception.getMessage());
-        verify(jwtService, times(1)).parseToken(validToken);
-        verify(userService, never()).findById(any());
-        verify(userService, never()).save(any());
-    }
-
-    @Test
     void updateProfile_UserNotFound_ThrowsResourceNotFoundException() {
         // Arrange
-        when(jwtService.parseToken(validToken)).thenReturn(claims);
-        when(claims.getSubject()).thenReturn(userId.toString());
         when(userService.findById(userId)).thenReturn(Optional.empty());
 
         UpdateProfileRequest request = new UpdateProfileRequest();
 
         // Act & Assert
-        InvalidCredentialsException exception = assertThrows(
-                InvalidCredentialsException.class,
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
                 () -> profileService.updateProfile(userId, request, validToken)
         );
 
-        assertEquals("Invalid or expired token", exception.getMessage());
-        verify(jwtService, times(1)).parseToken(validToken);
+        assertTrue(exception.getMessage().contains("User not found with id"));
+        assertTrue(exception.getMessage().contains(userId.toString()));
         verify(userService, times(1)).findById(userId);
-        verify(userService, never()).save(any());
-    }
-
-    @Test
-    void updateProfile_InvalidToken_ThrowsInvalidCredentialsException() {
-        // Arrange
-        when(jwtService.parseToken(validToken)).thenThrow(new RuntimeException("Invalid token"));
-
-        UpdateProfileRequest request = new UpdateProfileRequest();
-
-        // Act & Assert
-        InvalidCredentialsException exception = assertThrows(
-                InvalidCredentialsException.class,
-                () -> profileService.updateProfile(userId, request, validToken)
-        );
-
-        assertEquals("Invalid or expired token", exception.getMessage());
-        verify(jwtService, times(1)).parseToken(validToken);
-        verify(userService, never()).findById(any());
         verify(userService, never()).save(any());
     }
 
@@ -356,9 +311,7 @@ class ProfileServiceTest {
         userWithNullRole.setId(userId);
         userWithNullRole.setRole(null); // null role
         userWithNullRole.setVerified(true);
-        
-        when(jwtService.parseToken(validToken)).thenReturn(claims);
-        when(claims.getSubject()).thenReturn(userId.toString());
+
         when(userService.findById(userId)).thenReturn(Optional.of(userWithNullRole));
         when(userService.save(any(User.class))).thenReturn(userWithNullRole);
 
@@ -370,8 +323,7 @@ class ProfileServiceTest {
         // Assert
         assertNotNull(response);
         assertNull(response.getRole());
-        
-        verify(jwtService, times(1)).parseToken(validToken);
+
         verify(userService, times(1)).findById(userId);
         verify(userService, times(1)).save(any(User.class));
     }
