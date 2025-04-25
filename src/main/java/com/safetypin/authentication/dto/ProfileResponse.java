@@ -11,6 +11,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @Builder
+// used for get & edit profile
 public class ProfileResponse {
     private UUID id;
     private String role;

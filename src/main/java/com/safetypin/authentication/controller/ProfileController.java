@@ -1,10 +1,6 @@
 package com.safetypin.authentication.controller;
 
-import com.safetypin.authentication.dto.AuthResponse;
-import com.safetypin.authentication.dto.ProfileResponse;
-import com.safetypin.authentication.dto.UpdateProfileRequest;
-import com.safetypin.authentication.dto.UserPostResponse;
-import com.safetypin.authentication.dto.UserResponse;
+import com.safetypin.authentication.dto.*;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.ResourceNotFoundException;
 import com.safetypin.authentication.service.JwtService;
@@ -15,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -44,18 +41,18 @@ public class ProfileController {
                     .body(new AuthResponse(false, "Error retrieving profile: " + e.getMessage(), null));
         }
     }
-    
+
     @GetMapping("/me")
     public ResponseEntity<AuthResponse> getMyProfile(@RequestHeader("Authorization") String authHeader) {
         try {
             // Extract the token from the Authorization header
             String token = authHeader.replace("Bearer ", "");
-            
+
             // Extract user ID from JWT token
             UserResponse user = jwtService.getUserFromJwtToken(token);
 
             UUID id = user.getId();
-            
+
             ProfileResponse profile = profileService.getProfile(id);
             return ResponseEntity.ok(new AuthResponse(true, "Profile retrieved successfully", profile));
         } catch (ResourceNotFoundException e) {
@@ -66,15 +63,15 @@ public class ProfileController {
                     .body(new AuthResponse(false, "Error retrieving profile: " + e.getMessage(), null));
         }
     }
-    
+
     @PutMapping("/me")
     public ResponseEntity<AuthResponse> updateMyProfile(
             @RequestBody UpdateProfileRequest request,
             @RequestHeader("Authorization") String authHeader) {
 
-        try { 
+        try {
             String token = authHeader.replace("Bearer ", "");
-            
+
             UserResponse user = jwtService.getUserFromJwtToken(token);
 
             UUID id = user.getId();
@@ -93,14 +90,8 @@ public class ProfileController {
         }
     }
 
-    @GetMapping
-    public ResponseEntity<AuthResponse> getAllProfiles() {
-        try {
-            List<UserPostResponse> profiles = profileService.getAllProfiles();
-            return ResponseEntity.ok(new AuthResponse(true, "All profiles retrieved successfully", profiles));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new AuthResponse(false, "Error retrieving profiles: " + e.getMessage(), null));
-        }
+    @PostMapping("/batch")
+    public Map<UUID, PostedByData> getUsersBatch(@RequestBody List<UUID> userIds) {
+        return profileService.getUsersBatch(userIds);
     }
 }

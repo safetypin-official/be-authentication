@@ -2,7 +2,6 @@ package com.safetypin.authentication.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.safetypin.authentication.dto.*;
-import com.safetypin.authentication.dto.LoginRequest;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.UserAlreadyExistsException;
 import com.safetypin.authentication.model.Role;
