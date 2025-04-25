@@ -1,20 +1,26 @@
 package com.safetypin.authentication.service;
 
-import com.safetypin.authentication.model.User;
-import com.safetypin.authentication.repository.UserRepository;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Optional;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import com.safetypin.authentication.model.User;
+import com.safetypin.authentication.repository.UserRepository;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
@@ -108,6 +114,45 @@ class UserServiceTest {
         assertNotNull(savedUser);
         assertEquals(userToSave, savedUser);
         verify(userRepository).save(userToSave);
+    }
+
+    @Test
+    void testFindUsersByNameContaining_ShouldReturnMatchingUsers() {
+        // Arrange
+        String query = "test";
+        User user1 = new User();
+        user1.setName("Test User 1");
+        User user2 = new User();
+        user2.setName("Another Test User");
+        List<User> expectedUsers = Arrays.asList(user1, user2);
+
+        when(userRepository.findByNameContainingIgnoreCase(query)).thenReturn(expectedUsers);
+
+        // Act
+        List<User> result = userService.findUsersByNameContaining(query);
+
+        // Assert
+        assertEquals(expectedUsers, result);
+        verify(userRepository).findByNameContainingIgnoreCase(query);
+    }
+
+    @Test
+    void testFindAllUsers_ShouldReturnAllUsers() {
+        // Arrange
+        User user1 = new User();
+        user1.setName("User 1");
+        User user2 = new User();
+        user2.setName("User 2");
+        List<User> expectedUsers = Arrays.asList(user1, user2);
+
+        when(userRepository.findAll()).thenReturn(expectedUsers);
+
+        // Act
+        List<User> result = userService.findAllUsers();
+
+        // Assert
+        assertEquals(expectedUsers, result);
+        verify(userRepository).findAll();
     }
 
     @Test
