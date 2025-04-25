@@ -1,88 +1,103 @@
 package com.safetypin.authentication.service;
 
 import com.safetypin.authentication.dto.ProfileResponse;
+import com.safetypin.authentication.dto.ProfileViewDTO;
 import com.safetypin.authentication.dto.UpdateProfileRequest;
 import com.safetypin.authentication.dto.UserPostResponse;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.ResourceNotFoundException;
+import com.safetypin.authentication.model.ProfileView;
 import com.safetypin.authentication.model.User;
+import com.safetypin.authentication.repository.ProfileViewRepository;
+import com.safetypin.authentication.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 @Service
 public class ProfileService {
 
     private final UserService userService;
-    private final JwtService jwtService;
+
+    private final ProfileViewRepository profileViewRepository;
 
     @Autowired
-    public ProfileService(UserService userService, JwtService jwtService) {
+    public ProfileService(UserService userService, ProfileViewRepository profileViewRepository, UserRepository userRepository) {
         this.userService = userService;
-        this.jwtService = jwtService;
+        this.profileViewRepository = profileViewRepository;
     }
 
-    // anonymous get profile?
+    // TODO: Change all invocations to the other one (getProfile(UUID, String)) instead
+    // DEPRECATED
     public ProfileResponse getProfile(UUID userId) {
+        return null;
+    }
+
+    public ProfileResponse getProfile(UUID userId, UUID viewerId) {
+
+
         User user = userService.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + userId));
 
         return ProfileResponse.fromUser(user);
     }
 
-
-
+    // TODO: Change all invocations to the other one (updateProfile(UUID, UpdateProfileRequest) instead
     @Transactional
     public ProfileResponse updateProfile(UUID userId, UpdateProfileRequest request, String token) {
-        // Verify the JWT token and get the user
-        try {
-            UUID tokenUserId = UUID.fromString(jwtService.parseToken(token).getSubject());
+        return null;
+    }
 
-            // Check if token user ID matches the requested user ID
-            if (!tokenUserId.equals(userId)) {
-                throw new InvalidCredentialsException("You are not authorized to update this profile");
-            }
+    @Transactional
+    public ProfileResponse updateProfile(UUID userId, UpdateProfileRequest request) {
+        User user = userService.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + userId));
 
-            User user = userService.findById(userId)
-                    .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + userId));
+        // Extract usernames from social media URLs and update fields
+        user.setInstagram(extractInstagramUsername(request.getInstagram()));
+        user.setTwitter(extractTwitterUsername(request.getTwitter()));
+        user.setLine(extractLineUsername(request.getLine()));
+        user.setTiktok(extractTiktokUsername(request.getTiktok()));
+        user.setDiscord(extractDiscordId(request.getDiscord()));
+        user.setProfilePicture(request.getProfilePicture());
+        user.setProfileBanner(request.getProfileBanner());
 
-            // Extract usernames from social media URLs and update fields
-            user.setInstagram(extractInstagramUsername(request.getInstagram()));
-            user.setTwitter(extractTwitterUsername(request.getTwitter()));
-            user.setLine(extractLineUsername(request.getLine()));
-            user.setTiktok(extractTiktokUsername(request.getTiktok()));
-            user.setDiscord(extractDiscordId(request.getDiscord()));
-            user.setProfilePicture(request.getProfilePicture());
-            user.setProfileBanner(request.getProfileBanner());
+        User savedUser = userService.save(user);
 
-            User savedUser = userService.save(user);
+        return ProfileResponse.fromUser(savedUser);
+    }
 
-            return ProfileResponse.fromUser(savedUser);
-
-        } catch (Exception e) {
-            throw new InvalidCredentialsException("Invalid or expired token");
+    // If user is premium, return all profile views to that user
+    public List<ProfileViewDTO> getProfileViews(UUID userId) throws InvalidCredentialsException {
+        // Check if the user is premium
+        User user = userService.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + userId));
+        if (!user.getRole().toString().contains("PREMIUM")) {
+            throw new InvalidCredentialsException("You need to be a premium user to view profile views.");
         }
-    }
 
-    public List<UserPostResponse> getAllProfiles() {
-        List<User> users = userService.findAllUsers();
-        
-        return users.stream()
-            .map(user -> UserPostResponse.builder()
-                .id(user.getId())
-                .name(user.getName())
-                .profilePicture(user.getProfilePicture())
-                .profileBanner(user.getProfileBanner())
+        List<ProfileView> profileViews = profileViewRepository.findByUser_Id(userId);
+
+        return profileViews.stream()
+            .map(profileView -> ProfileViewDTO.builder()
+                .viewerUserId(profileView.getViewer().getId())
+                .name(profileView.getViewer().getName())
+                .profilePicture(profileView.getViewer().getProfilePicture())
+                .viewedAt(profileView.getViewedAt())
                 .build())
-            .collect(Collectors.toList());
+            .toList();
     }
 
+
+
+    // Helper methods to extract usernames from social media URLs
 
     private String extractInstagramUsername(String input) {
         if (input == null || input.trim().isEmpty()) {
