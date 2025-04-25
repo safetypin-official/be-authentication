@@ -1,14 +1,22 @@
 package com.safetypin.authentication.model;
 
+import java.time.LocalDate;
+import java.util.UUID;
+
 import com.safetypin.authentication.dto.UserResponse;
-import jakarta.persistence.*;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.time.LocalDate;
-import java.util.UUID;
 
 @Entity
 @Table(name = "users")
@@ -36,6 +44,7 @@ public class User {
     @Column(nullable = false)
     private String name;
 
+    @Getter // Explicitly add getter for boolean field for Jackson/Lombok interaction
     @Column(nullable = false)
     private boolean isVerified = false;
 
@@ -51,7 +60,7 @@ public class User {
 
     @Setter
     @Getter
-    private String provider;  // "EMAIL", "GOOGLE", "APPLE"
+    private String provider; // "EMAIL", "GOOGLE", "APPLE"
 
     @Setter
     @Getter
@@ -81,17 +90,6 @@ public class User {
     @Getter
     private String profileBanner;
 
-
-    // Getters and setters
-
-    public boolean isVerified() {
-        return isVerified;
-    }
-
-    public void setVerified(boolean verified) {
-        isVerified = verified;
-    }
-
     // used for jwt
     public UserResponse generateUserResponse() {
         return UserResponse.builder()
@@ -101,7 +99,7 @@ public class User {
                 .birthdate(birthdate)
                 .role(role != null ? role.name() : null)
                 .name(name)
-                .isVerified(isVerified)
+                .isVerified(this.isVerified()) // Explicitly call the getter
                 .profilePicture(profilePicture)
                 .profileBanner(profileBanner)
                 .build();

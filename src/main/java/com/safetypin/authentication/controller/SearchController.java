@@ -1,15 +1,17 @@
 package com.safetypin.authentication.controller;
 
-import com.safetypin.authentication.dto.UserResponse;
-import com.safetypin.authentication.model.User;
-import com.safetypin.authentication.service.UserService;
+import java.util.List;
+
 import org.springframework.http.ResponseEntity;
+// Import PostMapping
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
+import com.safetypin.authentication.dto.UserResponse; // Add missing import
+import com.safetypin.authentication.model.User;
+import com.safetypin.authentication.service.UserService;
 
 @RestController
 @RequestMapping("/api/users")
@@ -30,7 +32,7 @@ public class SearchController {
         }
         List<UserResponse> userResponses = users.stream()
                 .map(User::generateUserResponse)
-                .toList();
+                .toList(); // Use toList()
         return ResponseEntity.ok(userResponses);
     }
 }
