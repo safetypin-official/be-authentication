@@ -12,7 +12,6 @@ import com.safetypin.authentication.repository.ProfileViewRepository;
 import com.safetypin.authentication.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -34,22 +33,44 @@ public class ProfileService {
         this.profileViewRepository = profileViewRepository;
     }
 
-    // TODO: Change all invocations to the other one (getProfile(UUID, String)) instead
-    // DEPRECATED
+
+    // DEPRECATED, use getProfile(UUID, UUID) instead
     public ProfileResponse getProfile(UUID userId) {
         return getProfile(userId, null);
     }
 
     public ProfileResponse getProfile(UUID userId, UUID viewerId) {
-        
-
         User user = userService.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + userId));
+
+        // Profile view tracking
+        // Check if the viewer is the different as the user being viewed and not null
+        if (viewerId != null && !viewerId.equals(userId)) {
+            // Check if viewerId is a valid user
+            User viewer = userService.findById(viewerId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Viewer not found with id " + viewerId));
+
+            Optional<ProfileView> profileViewOpt = profileViewRepository.findByUser_IdAndViewer_Id(userId, viewerId);
+            ProfileView profileView;
+            // Check if the profile view record already exists
+            if (profileViewOpt.isPresent()) {
+                profileView = profileViewOpt.get();
+            } else {
+                // Create a new profile view record if it doesn't exist
+                profileView = new ProfileView();
+                profileView.setUser(user);
+                profileView.setViewer(viewer);
+            }
+            // Set viewedAt to the current date
+            profileView.setViewedAt(LocalDateTime.now());
+            profileViewRepository.save(profileView);
+        }
 
         return ProfileResponse.fromUser(user);
     }
 
-    // TODO: Change all invocations to the other one (updateProfile(UUID, UpdateProfileRequest)) instead
+
+    // DEPRECATED, use updateProfile(UUID, UpdateProfileRequest) instead
     public ProfileResponse updateProfile(UUID userId, UpdateProfileRequest request, String token) {
         return updateProfile(userId, request);
     }
@@ -82,6 +103,27 @@ public class ProfileService {
                 .name(user.getName())
                 .profilePicture(user.getProfilePicture())
                 .profileBanner(user.getProfileBanner())
+                .build())
+            .toList();
+    }
+
+    // If user is premium, return all profile views to that user
+    public List<ProfileViewDTO> getProfileViews(UUID userId) throws InvalidCredentialsException {
+        // Check if the user is premium
+        User user = userService.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + userId));
+        if (!user.getRole().toString().contains("PREMIUM")) {
+            throw new InvalidCredentialsException("You need to be a premium user to view profile views.");
+        }
+
+        List<ProfileView> profileViews = profileViewRepository.findByUser_Id(userId);
+
+        return profileViews.stream()
+            .map(profileView -> ProfileViewDTO.builder()
+                .viewerUserId(profileView.getViewer().getId())
+                .name(profileView.getViewer().getName())
+                .profilePicture(profileView.getViewer().getProfilePicture())
+                .viewedAt(profileView.getViewedAt())
                 .build())
             .toList();
     }

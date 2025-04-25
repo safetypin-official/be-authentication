@@ -1,6 +1,7 @@
 package com.safetypin.authentication.service;
 
 import com.safetypin.authentication.dto.ProfileResponse;
+import com.safetypin.authentication.dto.ProfileViewDTO;
 import com.safetypin.authentication.dto.UpdateProfileRequest;
 import com.safetypin.authentication.dto.UserPostResponse;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
@@ -9,15 +10,16 @@ import com.safetypin.authentication.model.Role;
 import com.safetypin.authentication.model.User;
 import com.safetypin.authentication.model.ProfileView;
 import com.safetypin.authentication.repository.ProfileViewRepository;
-import com.safetypin.authentication.repository.ProfileViewRepository;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.List;
@@ -39,8 +41,8 @@ class ProfileServiceTest {
     @InjectMocks
     private ProfileService profileService;
 
-    private UUID userId;
-    private User testUser;
+    private UUID userId, premiumUserId;
+    private User testUser, testPremiumUser;
     private String validToken;
 
     @BeforeEach
@@ -57,6 +59,18 @@ class ProfileServiceTest {
         testUser.setLine("testline");
         testUser.setTiktok("testtiktok");
         testUser.setDiscord("testdiscord");
+
+
+        premiumUserId = UUID.randomUUID();
+        testPremiumUser = new User();
+        testPremiumUser.setId(premiumUserId);
+        testPremiumUser.setRole(Role.PREMIUM_USER);
+        testPremiumUser.setVerified(true);
+        testPremiumUser.setInstagram("test_insta2");
+        testPremiumUser.setTwitter("test_twitter2");
+        testPremiumUser.setLine("test_line2");
+        testPremiumUser.setTiktok("test_tiktok2");
+        testPremiumUser.setDiscord("test_discord2");
     }
 
     @Test
@@ -347,5 +361,165 @@ class ProfileServiceTest {
         assertTrue(response.isVerified());
         
         verify(userService, times(1)).findById(userId);
+    }
+
+
+    @Test
+    void getProfile_ViewerDifferentFromUser_SavesProfileView() {
+        // Arrange
+        UUID viewerId = UUID.randomUUID();
+
+        User viewer = new User();
+        viewer.setId(viewerId);
+
+        when(userService.findById(userId)).thenReturn(Optional.of(testUser));
+        when(userService.findById(viewerId)).thenReturn(Optional.of(viewer));
+        when(profileViewRepository.findByUser_IdAndViewer_Id(userId, viewerId)).thenReturn(Optional.empty());
+
+        // Act
+        profileService.getProfile(userId, viewerId);
+
+        // Assert
+        verify(profileViewRepository, times(1)).save(any(ProfileView.class));
+    }
+
+    @Test
+    void getProfile_ViewerSameAsUser_DoesNotSaveProfileView() {
+        // Arrange
+        when(userService.findById(userId)).thenReturn(Optional.of(testUser));
+
+        // Act
+        profileService.getProfile(userId, userId);
+
+        // Assert
+        verify(profileViewRepository, never()).save(any(ProfileView.class));
+    }
+
+    @Test
+    void getProfile_ViewerDifferentFromUser_AlreadySaved_UpdatesProfileView() {
+        // Arrange
+        UUID viewerId = UUID.randomUUID();
+
+        User viewer = new User();
+        viewer.setId(viewerId);
+
+        LocalDateTime prev = LocalDateTime.of(2025, 2, 2, 2, 2);
+        ProfileView view1 = new ProfileView();
+        view1.setUser(testUser);
+        view1.setViewer(viewer);
+        view1.setViewedAt(prev);
+
+        when(userService.findById(userId)).thenReturn(Optional.of(testUser));
+        when(userService.findById(viewerId)).thenReturn(Optional.of(viewer));
+        when(profileViewRepository.findByUser_IdAndViewer_Id(userId, viewerId)).thenReturn(Optional.of(view1));
+
+        when(userService.findById(userId)).thenReturn(Optional.of(testUser));
+        when(userService.findById(viewerId)).thenReturn(Optional.of(viewer));
+        when(profileViewRepository.findByUser_IdAndViewer_Id(userId, viewerId)).thenReturn(Optional.of(view1));
+
+        // Act
+        profileService.getProfile(userId, viewerId);
+
+        // Assert
+        ArgumentCaptor<ProfileView> captor = ArgumentCaptor.forClass(ProfileView.class);
+        verify(profileViewRepository, times(1)).save(
+                captor.capture());
+        ProfileView updatedView = captor.getValue();
+        assertNotEquals(prev, updatedView.getViewedAt());
+        assertEquals(testUser, updatedView.getUser());
+        assertEquals(viewer, updatedView.getViewer());
+    }
+
+    @Test
+    void getProfile_ViewerNotFound_ThrowsResourceNotFoundException() {
+        // Arrange
+        UUID viewerId = UUID.randomUUID();
+        when(userService.findById(userId)).thenReturn(Optional.of(testUser));
+        when(userService.findById(viewerId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> profileService.getProfile(userId, viewerId)
+        );
+
+        assertTrue(exception.getMessage().contains("Viewer not found with id"));
+        assertTrue(exception.getMessage().contains(viewerId.toString()));
+        verify(profileViewRepository, never()).save(any(ProfileView.class));
+    }
+
+    @Test
+    void getProfileViews_PremiumUser_ReturnsProfileViewDTOList() {
+        // Arrange
+        User viewer1 = new User();
+        viewer1.setId(UUID.randomUUID());
+        viewer1.setName("Viewer 1");
+        viewer1.setProfilePicture("viewer1.jpg");
+
+        User viewer2 = new User();
+        viewer2.setId(UUID.randomUUID());
+        viewer2.setName("Viewer 2");
+        viewer2.setProfilePicture("viewer2.jpg");
+
+        ProfileView view1 = new ProfileView();
+        view1.setUser(testPremiumUser);
+        view1.setViewer(viewer1);
+        view1.setViewedAt(LocalDateTime.now());
+
+        ProfileView view2 = new ProfileView();
+        view2.setUser(testPremiumUser);
+        view2.setViewer(viewer2);
+        view2.setViewedAt(LocalDateTime.now());
+
+        when(userService.findById(premiumUserId)).thenReturn(Optional.of(testPremiumUser));
+        when(profileViewRepository.findByUser_Id(premiumUserId)).thenReturn(List.of(view1, view2));
+
+        // Act
+        List<ProfileViewDTO> result = profileService.getProfileViews(premiumUserId);
+
+        // Assert
+        assertEquals(2, result.size());
+        assertEquals(viewer1.getId(), result.get(0).getViewerUserId());
+        assertEquals(viewer1.getName(), result.get(0).getName());
+        assertEquals(viewer1.getProfilePicture(), result.get(0).getProfilePicture());
+        assertEquals(viewer2.getId(), result.get(1).getViewerUserId());
+        assertEquals(viewer2.getName(), result.get(1).getName());
+        assertEquals(viewer2.getProfilePicture(), result.get(1).getProfilePicture());
+
+        verify(userService, times(1)).findById(premiumUserId);
+        verify(profileViewRepository, times(1)).findByUser_Id(premiumUserId);
+    }
+
+    @Test
+    void getProfileViews_NonPremiumUser_ThrowsInvalidCredentialsException() {
+        // Arrange
+        when(userService.findById(userId)).thenReturn(Optional.of(testUser));
+
+        // Act & Assert
+        InvalidCredentialsException exception = assertThrows(
+                InvalidCredentialsException.class,
+                () -> profileService.getProfileViews(userId)
+        );
+
+        assertEquals("You need to be a premium user to view profile views.", exception.getMessage());
+        verify(userService, times(1)).findById(userId);
+        verify(profileViewRepository, never()).findByUser_Id(any());
+    }
+
+    @Test
+    void getProfileViews_UserNotFound_ThrowsResourceNotFoundException() {
+        // Arrange
+        UUID userId = UUID.randomUUID();
+        when(userService.findById(userId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> profileService.getProfileViews(userId)
+        );
+
+        assertEquals("User not found with id " + userId, exception.getMessage());
+        verify(userService, times(1)).findById(userId);
+        verify(profileViewRepository, never()).findByUser_Id(any());
     }
 }
