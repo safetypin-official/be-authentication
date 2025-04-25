@@ -43,13 +43,10 @@ class ProfileServiceTest {
 
     private UUID userId, premiumUserId;
     private User testUser, testPremiumUser;
-    private String validToken;
 
     @BeforeEach
     void setUp() {
         userId = UUID.randomUUID();
-        validToken = "valid.jwt.token";
-
         testUser = new User();
         testUser.setId(userId);
         testUser.setRole(Role.REGISTERED_USER);
@@ -59,7 +56,6 @@ class ProfileServiceTest {
         testUser.setLine("testline");
         testUser.setTiktok("testtiktok");
         testUser.setDiscord("testdiscord");
-
 
         premiumUserId = UUID.randomUUID();
         testPremiumUser = new User();
@@ -79,7 +75,7 @@ class ProfileServiceTest {
         when(userService.findById(userId)).thenReturn(Optional.of(testUser));
 
         // Act
-        ProfileResponse response = profileService.getProfile(userId);
+        ProfileResponse response = profileService.getProfile(userId, null);
 
         // Assert
         assertNotNull(response);
@@ -103,7 +99,7 @@ class ProfileServiceTest {
         // Act & Assert
         ResourceNotFoundException exception = assertThrows(
                 ResourceNotFoundException.class,
-                () -> profileService.getProfile(userId)
+                () -> profileService.getProfile(userId, null)
         );
 
         assertEquals("User not found with id " + userId, exception.getMessage());
@@ -124,7 +120,7 @@ class ProfileServiceTest {
         request.setDiscord("newdiscord#1234");
 
         // Act
-        ProfileResponse response = profileService.updateProfile(userId, request, validToken);
+        ProfileResponse response = profileService.updateProfile(userId, request);
 
         // Assert
         assertNotNull(response);
@@ -144,7 +140,7 @@ class ProfileServiceTest {
         // Act & Assert
         ResourceNotFoundException exception = assertThrows(
                 ResourceNotFoundException.class,
-                () -> profileService.updateProfile(userId, request, validToken)
+                () -> profileService.updateProfile(userId, request)
         );
 
         assertTrue(exception.getMessage().contains("User not found with id"));
@@ -332,7 +328,7 @@ class ProfileServiceTest {
         UpdateProfileRequest request = new UpdateProfileRequest();
         
         // Act
-        ProfileResponse response = profileService.updateProfile(userId, request, validToken);
+        ProfileResponse response = profileService.updateProfile(userId, request);
 
         // Assert
         assertNotNull(response);
@@ -353,7 +349,7 @@ class ProfileServiceTest {
         when(userService.findById(userId)).thenReturn(Optional.of(userWithNullRole));
 
         // Act
-        ProfileResponse response = profileService.getProfile(userId);
+        ProfileResponse response = profileService.getProfile(userId, null);
 
         // Assert
         assertNotNull(response);
