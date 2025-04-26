@@ -13,6 +13,7 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -37,19 +38,17 @@ class ProfileControllerTest {
     private ProfileResponse testProfileResponse;
     private UpdateProfileRequest testUpdateRequest;
     private String testAuthHeader;
-    private String testToken;
-    private UserResponse testUserResponse;
     private List<UserPostResponse> testAllProfiles;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
         testUserId = UUID.randomUUID();
-        testToken = "test-token";
+        String testToken = "test-token";
         testAuthHeader = "Bearer " + testToken;
 
         // Set up test user response from JWT
-        testUserResponse = UserResponse.builder()
+        UserResponse testUserResponse = UserResponse.builder()
                 .id(testUserId)
                 .name("testuser")
                 .email("test@example.com")
@@ -328,5 +327,118 @@ class ProfileControllerTest {
         assertEquals("Error retrieving profiles: " + errorMessage, body.getMessage());
         assertNull(body.getData());
     }
-}
 
+    // AUTHENTICATED PROFILE VIEW TESTS
+
+    @Test
+    void getProfile_AuthenticatedSuccess() {
+        // Arrange
+        UUID viewerId = testUserId;
+        UUID profileId = UUID.randomUUID();
+        when(profileService.getProfile(profileId, viewerId)).thenReturn(testProfileResponse);
+
+        // Act
+        ResponseEntity<AuthResponse> response = profileController.getProfile(profileId, testAuthHeader);
+
+        // Assert
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        AuthResponse body = response.getBody();
+        assertNotNull(body);
+        assertTrue(body.isSuccess());
+        assertEquals("Profile retrieved successfully", body.getMessage());
+        assertEquals(testProfileResponse, body.getData());
+    }
+
+    @Test
+    void getProfile_FailedAuthenticationDoesNotAffectOutput() {
+        // Arrange
+        String invalidAuthHeader = "Bearer invalid-token";
+        UUID profileId = UUID.randomUUID();
+        when(jwtService.getUserFromJwtToken("invalid-token"))
+                .thenThrow(new InvalidCredentialsException("Invalid token"));
+        when(profileService.getProfile(profileId, null)).thenReturn(testProfileResponse);
+
+        // Act
+        ResponseEntity<AuthResponse> response = profileController.getProfile(profileId, invalidAuthHeader);
+
+        // Assert
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        AuthResponse body = response.getBody();
+        assertNotNull(body);
+        assertTrue(body.isSuccess());
+        assertEquals("Profile retrieved successfully", body.getMessage());
+        assertEquals(testProfileResponse, body.getData());
+    }
+
+    // PROFILE VIEWS TESTS
+
+    @Test
+    void getProfileViews_Success() {
+        // Arrange
+        List<ProfileViewDTO> testViews = Arrays.asList(
+                ProfileViewDTO.builder()
+                        .viewerUserId(UUID.randomUUID())
+                        .name("Viewer 1")
+                        .profilePicture("pic1.jpg")
+                        .viewedAt(LocalDateTime.now())
+                        .build(),
+                ProfileViewDTO.builder()
+                        .viewerUserId(UUID.randomUUID())
+                        .name("Viewer 2")
+                        .profilePicture("pic2.jpg")
+                        .viewedAt(LocalDateTime.now())
+                        .build()
+        );
+
+        when(profileService.getProfileViews(testUserId)).thenReturn(testViews);
+
+        // Act
+        ResponseEntity<AuthResponse> response = profileController.getProfileViews(testAuthHeader);
+
+        // Assert
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        AuthResponse body = response.getBody();
+        assertNotNull(body);
+        assertTrue(body.isSuccess());
+        assertEquals("Profile views retrieved successfully", body.getMessage());
+        assertEquals(testViews, body.getData());
+    }
+
+    @Test
+    void getProfileViews_Unauthorized() {
+        // Arrange
+        String errorMessage = "You need to be a premium user to view profile views.";
+        when(profileService.getProfileViews(testUserId))
+                .thenThrow(new InvalidCredentialsException(errorMessage));
+
+        // Act
+        ResponseEntity<AuthResponse> response = profileController.getProfileViews(testAuthHeader);
+
+        // Assert
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        AuthResponse body = response.getBody();
+        assertNotNull(body);
+        assertFalse(body.isSuccess());
+        assertEquals(errorMessage, body.getMessage());
+        assertNull(body.getData());
+    }
+
+    @Test
+    void getProfileViews_NotFound() {
+        // Arrange
+        String errorMessage = "User not found";
+        when(profileService.getProfileViews(testUserId))
+                .thenThrow(new ResourceNotFoundException(errorMessage));
+
+        // Act
+        ResponseEntity<AuthResponse> response = profileController.getProfileViews(testAuthHeader);
+
+        // Assert
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        AuthResponse body = response.getBody();
+        assertNotNull(body);
+        assertFalse(body.isSuccess());
+        assertEquals(errorMessage, body.getMessage());
+        assertNull(body.getData());
+    }
+}

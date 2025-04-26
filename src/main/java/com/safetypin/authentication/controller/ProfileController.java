@@ -93,6 +93,26 @@ public class ProfileController {
         }
     }
 
+    @GetMapping("/me/views")
+    public ResponseEntity<AuthResponse> getProfileViews(@RequestHeader("Authorization") String authHeader) {
+        try {
+            UserResponse user = parseUserResponseFromAuthHeader(authHeader);
+            UUID userId = user.getId();
+
+            List<ProfileViewDTO> profileViews = profileService.getProfileViews(userId);
+            return ResponseEntity.ok(new AuthResponse(true, "Profile views retrieved successfully", profileViews));
+        } catch (InvalidCredentialsException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new AuthResponse(false, e.getMessage(), null));
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new AuthResponse(false, e.getMessage(), null));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new AuthResponse(false, "Error retrieving profile views: " + e.getMessage(), null));
+        }
+    }
+
     @GetMapping
     public ResponseEntity<AuthResponse> getAllProfiles() {
         try {
