@@ -14,6 +14,9 @@ import com.safetypin.authentication.repository.ProfileViewRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -24,6 +27,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.List;
 import java.util.Arrays;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -149,58 +153,53 @@ class ProfileServiceTest {
         verify(userService, never()).save(any());
     }
 
-    @Test
-    void extractInstagramUsername_FromUrl_ReturnsUsername() throws Exception {
+    @ParameterizedTest
+    @MethodSource("provideUsernameCases")
+    void extractUsername_FromUrl_ReturnsUsername(String methodName, String expected, String input) throws Exception {
         // Use reflection to access private method
-        java.lang.reflect.Method method = ProfileService.class.getDeclaredMethod("extractInstagramUsername", String.class);
+        java.lang.reflect.Method method = ProfileService.class.getDeclaredMethod(methodName, String.class);
         method.setAccessible(true);
 
-        // Test with URL format
-        String result1 = (String) method.invoke(profileService, "instagram.com/username");
-        assertEquals("username", result1);
-
-        // Test with @ in URL
-        String result2 = (String) method.invoke(profileService, "instagram.com/@username");
-        assertEquals("username", result2);
-
-        // Test with just username
-        String result3 = (String) method.invoke(profileService, "username");
-        assertEquals("username", result3);
-
-        // Test with null
-        String result4 = (String) method.invoke(profileService, (Object) null);
-        assertNull(result4);
-
-        // Test with empty string
-        String result5 = (String) method.invoke(profileService, "");
-        assertNull(result5);
+        // Test the extraction
+        String result = (String) method.invoke(profileService, input);
+        assertEquals(expected, result);
     }
 
-    @Test
-    void extractTwitterUsername_FromUrl_ReturnsUsername() throws Exception {
-        // Use reflection to access private method
-        java.lang.reflect.Method method = ProfileService.class.getDeclaredMethod("extractTwitterUsername", String.class);
-        method.setAccessible(true);
+    static Stream<Arguments> provideUsernameCases() {
+        return Stream.of(
+                // Instagram cases
+                // 1. Username extraction from URL
+                Arguments.of("extractInstagramUsername", "username", "instagram.com/username"),
+                Arguments.of("extractInstagramUsername", "username", "instagram.com/@username"),
+                // 2. Username extraction from plain username
+                Arguments.of("extractInstagramUsername", "username", "username"),
+                // 3. Null or empty cases
+                Arguments.of("extractInstagramUsername", null, null),
+                Arguments.of("extractInstagramUsername", null, ""),
+                Arguments.of("extractInstagramUsername", null, " "),
 
-        // Test with URL format
-        String result1 = (String) method.invoke(profileService, "twitter.com/username");
-        assertEquals("username", result1);
+                // Twitter cases
+                // 1. Username extraction from URL
+                Arguments.of("extractTwitterUsername", "username", "twitter.com/username"),
+                Arguments.of("extractTwitterUsername", "username", "twitter.com/@username"),
+                // 2. Username extraction from plain username
+                Arguments.of("extractTwitterUsername", "username", "username"),
+                // 3. Null or empty cases
+                Arguments.of("extractTwitterUsername", null, null),
+                Arguments.of("extractTwitterUsername", null, ""),
+                Arguments.of("extractTwitterUsername", null, " "),
 
-        // Test with @ in URL
-        String result2 = (String) method.invoke(profileService, "twitter.com/@username");
-        assertEquals("username", result2);
-
-        // Test with just username
-        String result3 = (String) method.invoke(profileService, "username");
-        assertEquals("username", result3);
-
-        // Test with null
-        String result4 = (String) method.invoke(profileService, (Object) null);
-        assertNull(result4);
-
-        // Test with empty string
-        String result5 = (String) method.invoke(profileService, "");
-        assertNull(result5);
+                // TikTok cases
+                // 1. Username extraction from URL
+                Arguments.of("extractTiktokUsername", "username", "tiktok.com/username"),
+                Arguments.of("extractTiktokUsername", "username", "tiktok.com/@username"),
+                // 2. Username extraction from plain username
+                Arguments.of("extractTiktokUsername", "username", "username"),
+                // 3. Null or empty cases
+                Arguments.of("extractTiktokUsername", null, null),
+                Arguments.of("extractTiktokUsername", null, ""),
+                Arguments.of("extractTiktokUsername", null, " ")
+        );
     }
 
     @Test
@@ -224,33 +223,6 @@ class ProfileServiceTest {
         // Test with empty string
         String result4 = (String) method.invoke(profileService, "");
         assertNull(result4);
-    }
-
-    @Test
-    void extractTiktokUsername_FromUrl_ReturnsUsername() throws Exception {
-        // Use reflection to access private method
-        java.lang.reflect.Method method = ProfileService.class.getDeclaredMethod("extractTiktokUsername", String.class);
-        method.setAccessible(true);
-
-        // Test with URL format
-        String result1 = (String) method.invoke(profileService, "tiktok.com/username");
-        assertEquals("username", result1);
-
-        // Test with @ in URL
-        String result2 = (String) method.invoke(profileService, "tiktok.com/@username");
-        assertEquals("username", result2);
-
-        // Test with just username
-        String result3 = (String) method.invoke(profileService, "username");
-        assertEquals("username", result3);
-
-        // Test with null
-        String result4 = (String) method.invoke(profileService, (Object) null);
-        assertNull(result4);
-
-        // Test with empty string
-        String result5 = (String) method.invoke(profileService, "");
-        assertNull(result5);
     }
 
     @Test
@@ -505,7 +477,6 @@ class ProfileServiceTest {
     @Test
     void getProfileViews_UserNotFound_ThrowsResourceNotFoundException() {
         // Arrange
-        UUID userId = UUID.randomUUID();
         when(userService.findById(userId)).thenReturn(Optional.empty());
 
         // Act & Assert
