@@ -94,6 +94,10 @@ public class GoogleAuthService {
             String accessToken = getAccessToken(googleAuthDTO.getServerAuthCode());
             LocalDate userBirthdate = getUserBirthdate(accessToken);
 
+            if (userBirthdate == null) {
+                throw new IllegalArgumentException("Permission denied: Birthdate not provided");
+            }
+
             if (Period.between(userBirthdate, LocalDate.now()).getYears() < 16)
                 throw new IllegalArgumentException("User must be at least 16 years old");
 
@@ -213,25 +217,25 @@ public class GoogleAuthService {
             return null;
         }
     }
-    
+
     private HttpURLConnection createConnectionWithProxy(URL url) throws IOException {
         // Try HTTPS proxy
         if (httpsProxy != null && !httpsProxy.isEmpty()) {
             HttpURLConnection conn = tryProxyConnection(url, httpsProxy, "HTTPS");
             if (conn != null) return conn;
         }
-        
+
         // Try HTTP proxy
         if (httpProxy != null && !httpProxy.isEmpty()) {
             HttpURLConnection conn = tryProxyConnection(url, httpProxy, "HTTP");
             if (conn != null) return conn;
         }
-        
+
         // Use direct connection
         logger.info("No proxy configured, using direct connection");
         return openDirectConnection(url);
     }
-    
+
     private HttpURLConnection tryProxyConnection(URL url, String proxyUrl, String proxyType) throws IOException {
         try {
             URL parsedProxyUrl = createURL(proxyUrl);
@@ -246,7 +250,7 @@ public class GoogleAuthService {
             return null;
         }
     }
-    
+
     private String executeRequest(HttpURLConnection conn, String accessToken) throws IOException {
         try {
             // Set connection properties
@@ -255,18 +259,18 @@ public class GoogleAuthService {
             conn.setRequestMethod("GET");
             conn.setRequestProperty("Authorization", "Bearer " + accessToken);
             conn.setRequestProperty("Accept", "application/json");
-            
+
             logger.info("Opening connection to Google API...");
-            
+
             int responseCode = conn.getResponseCode();
             logger.info("Google API response code: {}", responseCode);
-            
+
             return handleResponse(conn, responseCode);
         } finally {
             conn.disconnect();
         }
     }
-    
+
     private String handleResponse(HttpURLConnection conn, int responseCode) throws IOException {
         if (responseCode == HttpURLConnection.HTTP_OK) {
             String response = readResponse(conn.getInputStream());
@@ -276,7 +280,7 @@ public class GoogleAuthService {
             return handleErrorResponse(conn, responseCode);
         }
     }
-    
+
     private String handleErrorResponse(HttpURLConnection conn, int responseCode) {
         String errorResponse = null;
         try {
@@ -284,7 +288,7 @@ public class GoogleAuthService {
         } catch (Exception e) {
             logger.error("Could not read error response", e);
         }
-        logger.error("Error fetching data from Google API: HTTP {}, Error: {}", 
+        logger.error("Error fetching data from Google API: HTTP {}, Error: {}",
                 responseCode, errorResponse);
         return null;
     }

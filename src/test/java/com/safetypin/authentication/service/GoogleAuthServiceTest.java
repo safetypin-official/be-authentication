@@ -16,7 +16,6 @@ import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.UserAlreadyExistsException;
 import com.safetypin.authentication.model.RefreshToken;
 import com.safetypin.authentication.model.User;
-
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -54,41 +53,41 @@ class GoogleAuthServiceTest {
     private final String testGoogleClientId = "test-client-id";
     private final String testIdToken = "test-id-token";
     private final String testRefreshToken = "test-refresh-token";
-    
+
     @Mock
     private UserService userService;
-    
+
     @Mock
     private JwtService jwtService;
-    
+
     @Mock
     private RefreshTokenService refreshTokenService;
-    
+
     @Mock
     private GoogleIdToken idToken;
-    
+
     @Mock
     private GoogleIdToken.Payload payload;
-    
+
     @Mock
     private GoogleIdTokenVerifier verifier;
-    
+
     @Mock
     private GoogleAuthorizationCodeTokenRequest tokenRequest;
-    
+
     @Mock
     private GoogleTokenResponse tokenResponse;
-    
+
     @Spy
     @InjectMocks
     private GoogleAuthService googleAuthService;
-    
+
     @Mock
     private Appender<ILoggingEvent> mockAppender;
-    
+
     @Captor
     private ArgumentCaptor<ILoggingEvent> loggingEventCaptor;
-    
+
     private GoogleAuthDTO googleAuthDTO;
     private UUID testUserId;
 
@@ -161,7 +160,7 @@ class GoogleAuthServiceTest {
 
         // Mock JWT generation
         when(jwtService.generateToken(any(UUID.class))).thenReturn("test-jwt-token");
-        
+
         // Mock refresh token creation
         RefreshToken mockRefreshToken = new RefreshToken();
         mockRefreshToken.setToken(testRefreshToken);
@@ -193,7 +192,7 @@ class GoogleAuthServiceTest {
 
         // Mock JWT generation
         when(jwtService.generateToken(any(UUID.class))).thenReturn("test-jwt-token");
-        
+
         // Mock refresh token creation
         RefreshToken mockRefreshToken = new RefreshToken();
         mockRefreshToken.setToken(testRefreshToken);
@@ -752,7 +751,7 @@ class GoogleAuthServiceTest {
 
         // Mock JWT generation
         when(jwtService.generateToken(any(UUID.class))).thenReturn("test-jwt-token");
-        
+
         // Mock refresh token creation
         RefreshToken mockRefreshToken = new RefreshToken();
         mockRefreshToken.setToken(testRefreshToken);
@@ -796,7 +795,7 @@ class GoogleAuthServiceTest {
     }
 
     @Test
-    void authenticate_UserWithNullBirthdate_ThrowsApiException() throws Exception {
+    void authenticate_UserWithNullBirthdate_ThrowsIllegalArgumentException() throws Exception {
         // Mock verify ID token
         doReturn(payload).when(googleAuthService).verifyIdToken(anyString());
         when(payload.getEmail()).thenReturn("nobirth@example.com");
@@ -812,12 +811,12 @@ class GoogleAuthServiceTest {
         doReturn(null).when(googleAuthService).getUserBirthdate(anyString());
 
         // Execute and verify
-        ApiException exception = assertThrows(
-                ApiException.class,
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
                 () -> googleAuthService.authenticate(googleAuthDTO)
         );
 
-        assertEquals("Authentication failed", exception.getMessage());
+        assertEquals("Permission denied: Birthdate not provided", exception.getMessage());
         verify(userService, never()).save(any(User.class));
     }
 
@@ -957,31 +956,31 @@ class GoogleAuthServiceTest {
     void testOpenDirectConnection_Success() throws IOException {
         // Create a test URL
         URL testUrl = URI.create("https://example.com").toURL();
-        
+
         // Create a subclass that overrides the method to test
         class TestService extends GoogleAuthService {
             public TestService() {
                 super(userService, jwtService, refreshTokenService);
             }
-            
+
             @Override
             protected HttpURLConnection openDirectConnection(URL url) throws IOException {
                 // Verify the URL is what we expect
                 assertEquals(testUrl, url);
-                
+
                 // Return a mock connection
                 return mock(HttpURLConnection.class);
             }
         }
-        
+
         // Create the test service
         TestService service = new TestService();
-        
+
         // Call the method
         HttpURLConnection result = service.openDirectConnection(testUrl);
-        
+
         // Verify the result is a mock
-        assertTrue(result instanceof HttpURLConnection);
+        assertInstanceOf(HttpURLConnection.class, result);
         verify(result, never()).connect(); // Never actually connects
     }
 
@@ -989,24 +988,24 @@ class GoogleAuthServiceTest {
     void testOpenDirectConnection_ThrowsIOException() throws IOException {
         // Create a test URL
         URL testUrl = URI.create("https://example.com").toURL();
-        
+
         // Create a subclass that overrides the method to throw an exception
         class TestService extends GoogleAuthService {
             public TestService() {
                 super(userService, jwtService, refreshTokenService);
             }
-            
+
             @Override
             protected HttpURLConnection openDirectConnection(URL url) throws IOException {
                 throw new IOException("Test connection error");
             }
         }
-        
+
         // Create the test service
         TestService service = new TestService();
-        
+
         // Verify the exception is propagated
-        IOException exception = assertThrows(IOException.class, 
+        IOException exception = assertThrows(IOException.class,
                 () -> service.openDirectConnection(testUrl));
         assertEquals("Test connection error", exception.getMessage());
     }
@@ -1016,35 +1015,35 @@ class GoogleAuthServiceTest {
         // Create test URL and proxy
         URL testUrl = URI.create("https://example.com").toURL();
         java.net.Proxy testProxy = new java.net.Proxy(
-                java.net.Proxy.Type.HTTP, 
+                java.net.Proxy.Type.HTTP,
                 new java.net.InetSocketAddress("proxy.example.com", 8080)
         );
-        
+
         // Create a subclass that overrides the method to test
         class TestService extends GoogleAuthService {
             public TestService() {
                 super(userService, jwtService, refreshTokenService);
             }
-            
+
             @Override
             protected HttpURLConnection openProxyConnection(URL url, java.net.Proxy proxy) throws IOException {
                 // Verify the arguments are what we expect
                 assertEquals(testUrl, url);
                 assertEquals(testProxy, proxy);
-                
+
                 // Return a mock connection
                 return mock(HttpURLConnection.class);
             }
         }
-        
+
         // Create the test service
         TestService service = new TestService();
-        
+
         // Call the method
         HttpURLConnection result = service.openProxyConnection(testUrl, testProxy);
-        
+
         // Verify the result is a mock
-        assertTrue(result instanceof HttpURLConnection);
+        assertInstanceOf(HttpURLConnection.class, result);
         verify(result, never()).connect(); // Never actually connects
     }
 
@@ -1053,27 +1052,27 @@ class GoogleAuthServiceTest {
         // Create test URL and proxy
         URL testUrl = URI.create("https://example.com").toURL();
         java.net.Proxy testProxy = new java.net.Proxy(
-                java.net.Proxy.Type.HTTP, 
+                java.net.Proxy.Type.HTTP,
                 new java.net.InetSocketAddress("proxy.example.com", 8080)
         );
-        
+
         // Create a subclass that overrides the method to throw an exception
         class TestService extends GoogleAuthService {
             public TestService() {
                 super(userService, jwtService, refreshTokenService);
             }
-            
+
             @Override
             protected HttpURLConnection openProxyConnection(URL url, java.net.Proxy proxy) throws IOException {
                 throw new IOException("Test proxy connection error");
             }
         }
-        
+
         // Create the test service
         TestService service = new TestService();
-        
+
         // Verify the exception is propagated
-        IOException exception = assertThrows(IOException.class, 
+        IOException exception = assertThrows(IOException.class,
                 () -> service.openProxyConnection(testUrl, testProxy));
         assertEquals("Test proxy connection error", exception.getMessage());
     }
@@ -1083,20 +1082,20 @@ class GoogleAuthServiceTest {
         // Setup test data
         String testProxyUrl = "http://proxy.example.com:8443";
         String testResponse = "{\"birthdays\":[{\"date\":{\"year\":1990,\"month\":1,\"day\":1}}]}";
-        
+
         // Create a subclass that simulates HTTPS proxy configuration
         class TestService extends GoogleAuthService {
             public TestService() {
                 super(userService, jwtService, refreshTokenService);
             }
-            
+
             @Override
             protected String getEnv(String name) {
                 if ("HTTPS_PROXY".equals(name)) return testProxyUrl;
                 if ("HTTP_PROXY".equals(name)) return null;
                 return null;
             }
-            
+
             @Override
             protected URL createURL(String urlString) throws MalformedURLException {
                 if (urlString.equals(testProxyUrl)) {
@@ -1104,33 +1103,33 @@ class GoogleAuthServiceTest {
                 }
                 return URI.create("https://example.com").toURL();
             }
-            
+
             @Override
             protected HttpURLConnection openProxyConnection(URL url, java.net.Proxy proxy) throws IOException {
                 // Return a mock connection that will succeed
                 HttpURLConnection mockConnection = mock(HttpURLConnection.class);
                 when(mockConnection.getResponseCode()).thenReturn(HttpURLConnection.HTTP_OK);
-                
+
                 // Set up the mock input stream with our test response
                 InputStream mockStream = new ByteArrayInputStream(testResponse.getBytes());
                 when(mockConnection.getInputStream()).thenReturn(mockStream);
-                
+
                 return mockConnection;
             }
-            
+
             @Override
             protected HttpURLConnection openDirectConnection(URL url) {
                 fail("Should not use direct connection when proxy is configured");
                 return null;
             }
         }
-        
+
         // Create the test service
         TestService service = new TestService();
-        
+
         // Execute
         String result = service.fetchUserData("test-token");
-        
+
         // Verify
         assertEquals(testResponse, result);
     }
@@ -1140,20 +1139,20 @@ class GoogleAuthServiceTest {
         // Setup test data
         String testHttpProxyUrl = "http://http-proxy.example.com:8080";
         String testResponse = "{\"birthdays\":[{\"date\":{\"year\":1990,\"month\":1,\"day\":1}}]}";
-        
+
         // Create a subclass that simulates HTTP proxy configuration
         class TestService extends GoogleAuthService {
             public TestService() {
                 super(userService, jwtService, refreshTokenService);
             }
-            
+
             @Override
             protected String getEnv(String name) {
                 if ("HTTPS_PROXY".equals(name)) return null;
                 if ("HTTP_PROXY".equals(name)) return testHttpProxyUrl;
                 return null;
             }
-            
+
             @Override
             protected URL createURL(String urlString) throws MalformedURLException {
                 if (urlString.equals(testHttpProxyUrl)) {
@@ -1161,33 +1160,33 @@ class GoogleAuthServiceTest {
                 }
                 return URI.create("https://example.com").toURL();
             }
-            
+
             @Override
             protected HttpURLConnection openProxyConnection(URL url, java.net.Proxy proxy) throws IOException {
                 // Return a mock connection that will succeed
                 HttpURLConnection mockConnection = mock(HttpURLConnection.class);
                 when(mockConnection.getResponseCode()).thenReturn(HttpURLConnection.HTTP_OK);
-                
+
                 // Set up the mock input stream with our test response
                 InputStream mockStream = new ByteArrayInputStream(testResponse.getBytes());
                 when(mockConnection.getInputStream()).thenReturn(mockStream);
-                
+
                 return mockConnection;
             }
-            
+
             @Override
             protected HttpURLConnection openDirectConnection(URL url) {
                 fail("Should not use direct connection when no proxy is configured");
                 return null;
             }
         }
-        
+
         // Create the test service
         TestService service = new TestService();
-        
+
         // Execute
         String result = service.fetchUserData("test-token");
-        
+
         // Verify
         assertEquals(testResponse, result);
     }
@@ -1196,49 +1195,49 @@ class GoogleAuthServiceTest {
     void testFetchUserData_NoProxy() {
         // Setup test data
         String testResponse = "{\"birthdays\":[{\"date\":{\"year\":1990,\"month\":1,\"day\":1}}]}";
-        
+
         // Create a subclass that simulates no proxy configuration
         class TestService extends GoogleAuthService {
             public TestService() {
                 super(userService, jwtService, refreshTokenService);
             }
-            
+
             @Override
             protected String getEnv(String name) {
                 return null; // No proxies configured
             }
-            
+
             @Override
             protected URL createURL(String urlString) throws MalformedURLException {
                 return URI.create("https://example.com/api").toURL();
             }
-            
+
             @Override
             protected HttpURLConnection openDirectConnection(URL url) throws IOException {
                 // Return a mock connection that will succeed
                 HttpURLConnection mockConnection = mock(HttpURLConnection.class);
                 when(mockConnection.getResponseCode()).thenReturn(HttpURLConnection.HTTP_OK);
-                
+
                 // Set up the mock input stream with our test response
                 InputStream mockStream = new ByteArrayInputStream(testResponse.getBytes());
                 when(mockConnection.getInputStream()).thenReturn(mockStream);
-                
+
                 return mockConnection;
             }
-            
+
             @Override
             protected HttpURLConnection openProxyConnection(URL url, java.net.Proxy proxy) {
                 fail("Should not use proxy connection when no proxy is configured");
                 return null;
             }
         }
-        
+
         // Create the test service 
         TestService service = new TestService();
-        
+
         // Execute
         String result = service.fetchUserData("test-token");
-        
+
         // Verify
         assertEquals(testResponse, result);
     }
@@ -1248,31 +1247,31 @@ class GoogleAuthServiceTest {
         // Setup mock environment with invalid HTTPS proxy
         String invalidProxyUrl = "invalid:proxy:url";
         String testResponse = "{\"birthdays\":[{\"date\":{\"year\":1990,\"month\":1,\"day\":1}}]}";
-        
+
         // Set private fields using reflection
         setPrivateField(googleAuthService, "httpsProxy", invalidProxyUrl);
         setPrivateField(googleAuthService, "httpProxy", null);
-        
+
         // Mock URL and connections
         URL mockUrl = mock(URL.class);
         doReturn(mockUrl).when(googleAuthService).createURL(PEOPLE_API_BASE_URL + "?personFields=" + "birthdays");
-        
+
         // Mock createURL to throw exception when used with the proxy URL
         doThrow(new MalformedURLException("Invalid proxy URL")).when(googleAuthService).createURL(invalidProxyUrl);
-        
+
         HttpURLConnection mockConnection = mock(HttpURLConnection.class);
         when(mockConnection.getResponseCode()).thenReturn(HttpURLConnection.HTTP_OK);
-        
+
         // Create a mock InputStream with test response
         InputStream mockInputStream = new ByteArrayInputStream(testResponse.getBytes());
         when(mockConnection.getInputStream()).thenReturn(mockInputStream);
-        
+
         // Use a spy to intercept the connection methods
         doReturn(mockConnection).when(googleAuthService).openDirectConnection(any(URL.class));
-        
+
         // Execute
         String result = googleAuthService.fetchUserData("test-token");
-        
+
         // Verify
         assertEquals(testResponse, result);
         // Verify direct connection was used as fallback
@@ -1283,17 +1282,17 @@ class GoogleAuthServiceTest {
     @Test
     void testFetchUserData_ConnectionError() throws Exception {
         // Setup mock environment
-        
+
         // Mock URL
         URL mockUrl = mock(URL.class);
         doReturn(mockUrl).when(googleAuthService).createURL(anyString());
-        
+
         // Mock connection to throw IOException
         doThrow(new IOException("Connection error")).when(googleAuthService).openDirectConnection(any(URL.class));
-        
+
         // Execute
         String result = googleAuthService.fetchUserData("test-token");
-        
+
         // Verify
         assertNull(result);
         verify(googleAuthService).openDirectConnection(any(URL.class));
@@ -1302,24 +1301,24 @@ class GoogleAuthServiceTest {
     @Test
     void testFetchUserData_NonOkResponse() throws Exception {
         // Setup mock environment
-        
+
         // Mock URL and connections
         URL mockUrl = mock(URL.class);
         doReturn(mockUrl).when(googleAuthService).createURL(anyString());
-        
+
         HttpURLConnection mockConnection = mock(HttpURLConnection.class);
         when(mockConnection.getResponseCode()).thenReturn(HttpURLConnection.HTTP_UNAUTHORIZED);
-        
+
         // Mock error stream
         InputStream mockErrorStream = new ByteArrayInputStream("{\"error\":\"Unauthorized\"}".getBytes());
         when(mockConnection.getErrorStream()).thenReturn(mockErrorStream);
-        
+
         // Use a spy to intercept the openDirectConnection method
         doReturn(mockConnection).when(googleAuthService).openDirectConnection(any(URL.class));
-        
+
         // Execute
         String result = googleAuthService.fetchUserData("test-token");
-        
+
         // Verify
         assertNull(result);
         verify(mockConnection).getErrorStream();
@@ -1330,22 +1329,22 @@ class GoogleAuthServiceTest {
         // Setup test data
         String emptyProxyUrl = "";  // Empty but not null
         String testResponse = "{\"birthdays\":[{\"date\":{\"year\":1990,\"month\":1,\"day\":1}}]}";
-        
+
         // Create a subclass that simulates empty HTTPS proxy configuration
         class TestService extends GoogleAuthService {
             private final Logger logger = (Logger) LoggerFactory.getLogger(GoogleAuthService.class);
-            
+
             public TestService() {
                 super(userService, jwtService, refreshTokenService);
             }
-            
+
             @Override
             protected String getEnv(String name) {
                 if ("HTTPS_PROXY".equals(name)) return emptyProxyUrl;
                 if ("HTTP_PROXY".equals(name)) return null;
                 return null;
             }
-            
+
             @Override
             protected URL createURL(String urlString) throws MalformedURLException {
                 // Explicitly log that no HTTPS proxy is being used
@@ -1354,47 +1353,47 @@ class GoogleAuthServiceTest {
                 }
                 return URI.create("https://example.com/api").toURL();
             }
-            
+
             @Override
             protected HttpURLConnection openDirectConnection(URL url) throws IOException {
                 // Return a mock connection that will succeed
                 HttpURLConnection mockConnection = mock(HttpURLConnection.class);
                 when(mockConnection.getResponseCode()).thenReturn(HttpURLConnection.HTTP_OK);
-                
+
                 // Set up the mock input stream with our test response
                 InputStream mockStream = new ByteArrayInputStream(testResponse.getBytes());
                 when(mockConnection.getInputStream()).thenReturn(mockStream);
-                
+
                 return mockConnection;
             }
-            
+
             @Override
             protected HttpURLConnection openProxyConnection(URL url, java.net.Proxy proxy) {
                 fail("Should not use proxy connection when HTTPS proxy is empty");
                 return null;
             }
         }
-        
+
         // Create the test service
         TestService service = new TestService();
-        
+
         // Capture logs to verify the correct path was taken
         ch.qos.logback.core.read.ListAppender<ILoggingEvent> listAppender = new ch.qos.logback.core.read.ListAppender<>();
         listAppender.start();
         Logger logger = (Logger) LoggerFactory.getLogger(GoogleAuthService.class);
         logger.addAppender(listAppender);
-        
+
         try {
             // Execute
             String result = service.fetchUserData("test-token");
-            
+
             // Verify
             assertEquals(testResponse, result);
-            
+
             // Verify log indicating direct connection was used
             boolean foundDirectConnectionLog = listAppender.list.stream()
                     .anyMatch(event -> event.getMessage().contains("No HTTPS proxy configured, using direct connection"));
-            
+
             assertTrue(foundDirectConnectionLog, "Expected log about using direct connection was not found");
         } finally {
             logger.detachAppender(listAppender);
@@ -1406,22 +1405,22 @@ class GoogleAuthServiceTest {
         // Setup test data
         String invalidHttpProxyUrl = "invalid:url:format";
         String testResponse = "{\"birthdays\":[{\"date\":{\"year\":1990,\"month\":1,\"day\":1}}]}";
-        
+
         // Create a subclass that simulates HTTP proxy with malformed URL
         class TestService extends GoogleAuthService {
             private final Logger logger = (Logger) LoggerFactory.getLogger(GoogleAuthService.class);
-            
+
             public TestService() {
                 super(userService, jwtService, refreshTokenService);
             }
-            
+
             @Override
             protected String getEnv(String name) {
                 if ("HTTPS_PROXY".equals(name)) return null;
                 if ("HTTP_PROXY".equals(name)) return invalidHttpProxyUrl;
                 return null;
             }
-            
+
             @Override
             protected URL createURL(String urlString) throws MalformedURLException {
                 if (urlString.equals(invalidHttpProxyUrl)) {
@@ -1431,47 +1430,47 @@ class GoogleAuthServiceTest {
                 }
                 return URI.create("https://example.com/api").toURL();
             }
-            
+
             @Override
             protected HttpURLConnection openDirectConnection(URL url) throws IOException {
                 // Return a mock connection that will succeed
                 HttpURLConnection mockConnection = mock(HttpURLConnection.class);
                 when(mockConnection.getResponseCode()).thenReturn(HttpURLConnection.HTTP_OK);
-                
+
                 // Set up the mock input stream with our test response
                 InputStream mockStream = new ByteArrayInputStream(testResponse.getBytes());
                 when(mockConnection.getInputStream()).thenReturn(mockStream);
-                
+
                 return mockConnection;
             }
-            
+
             @Override
             protected HttpURLConnection openProxyConnection(URL url, java.net.Proxy proxy) {
                 fail("Should not use proxy connection when HTTP proxy URL is malformed");
                 return null;
             }
         }
-        
+
         // Create the test service
         TestService service = new TestService();
-        
+
         // Capture logs to verify the correct path was taken
         ch.qos.logback.core.read.ListAppender<ILoggingEvent> listAppender = new ch.qos.logback.core.read.ListAppender<>();
         listAppender.start();
         Logger logger = (Logger) LoggerFactory.getLogger(GoogleAuthService.class);
         logger.addAppender(listAppender);
-        
+
         try {
             // Execute
             String result = service.fetchUserData("test-token");
-            
+
             // Verify
             assertEquals(testResponse, result);
-            
+
             // Verify log indicating direct connection was used as fallback
             boolean foundFallbackLog = listAppender.list.stream()
                     .anyMatch(event -> event.getMessage().contains("Invalid HTTP proxy URL, falling back to direct connection"));
-            
+
             assertTrue(foundFallbackLog, "Expected log about falling back to direct connection was not found");
         } finally {
             logger.detachAppender(listAppender);
@@ -1483,22 +1482,22 @@ class GoogleAuthServiceTest {
         // Setup test data
         String emptyProxyUrl = "";  // Empty but not null
         String testResponse = "{\"birthdays\":[{\"date\":{\"year\":1990,\"month\":1,\"day\":1}}]}";
-        
+
         // Create a subclass that simulates empty HTTP proxy configuration
         class TestService extends GoogleAuthService {
             private final Logger logger = (Logger) LoggerFactory.getLogger(GoogleAuthService.class);
-            
+
             public TestService() {
                 super(userService, jwtService, refreshTokenService);
             }
-            
+
             @Override
             protected String getEnv(String name) {
                 if ("HTTPS_PROXY".equals(name)) return null;
                 if ("HTTP_PROXY".equals(name)) return emptyProxyUrl;
                 return null;
             }
-            
+
             @Override
             protected URL createURL(String urlString) throws MalformedURLException {
                 // Explicitly log the expected message for empty HTTP proxy
@@ -1507,47 +1506,47 @@ class GoogleAuthServiceTest {
                 }
                 return URI.create("https://example.com/api").toURL();
             }
-            
+
             @Override
             protected HttpURLConnection openDirectConnection(URL url) throws IOException {
                 // Return a mock connection that will succeed
                 HttpURLConnection mockConnection = mock(HttpURLConnection.class);
                 when(mockConnection.getResponseCode()).thenReturn(HttpURLConnection.HTTP_OK);
-                
+
                 // Set up the mock input stream with our test response
                 InputStream mockStream = new ByteArrayInputStream(testResponse.getBytes());
                 when(mockConnection.getInputStream()).thenReturn(mockStream);
-                
+
                 return mockConnection;
             }
-            
+
             @Override
             protected HttpURLConnection openProxyConnection(URL url, java.net.Proxy proxy) {
                 fail("Should not use proxy connection when HTTP proxy is empty");
                 return null;
             }
         }
-        
+
         // Create the test service
         TestService service = new TestService();
-        
+
         // Capture logs to verify the correct path was taken
         ch.qos.logback.core.read.ListAppender<ILoggingEvent> listAppender = new ch.qos.logback.core.read.ListAppender<>();
         listAppender.start();
         Logger logger = (Logger) LoggerFactory.getLogger(GoogleAuthService.class);
         logger.addAppender(listAppender);
-        
+
         try {
             // Execute
             String result = service.fetchUserData("test-token");
-            
+
             // Verify
             assertEquals(testResponse, result);
-            
+
             // Verify log indicating direct connection was used
             boolean foundDirectConnectionLog = listAppender.list.stream()
                     .anyMatch(event -> event.getMessage().contains("No HTTP proxy configured, using direct connection"));
-            
+
             assertTrue(foundDirectConnectionLog, "Expected log about using direct connection with empty HTTP proxy was not found");
         } finally {
             logger.detachAppender(listAppender);
@@ -1559,44 +1558,44 @@ class GoogleAuthServiceTest {
         // Setup mock environment
         URL mockUrl = mock(URL.class);
         doReturn(mockUrl).when(googleAuthService).createURL(anyString());
-        
+
         // Setup a mock connection that returns an error status
         HttpURLConnection mockConnection = mock(HttpURLConnection.class);
         when(mockConnection.getResponseCode()).thenReturn(HttpURLConnection.HTTP_BAD_REQUEST);
-        
+
         // Setup the error stream to throw an exception when read
         InputStream mockErrorStream = mock(InputStream.class);
         when(mockErrorStream.read(any(byte[].class))).thenThrow(new IOException("Error reading error stream"));
         when(mockConnection.getErrorStream()).thenReturn(mockErrorStream);
-        
+
         // Use a spy to intercept the connection methods
         doReturn(mockConnection).when(googleAuthService).openDirectConnection(any(URL.class));
-        
+
         // Capture logs to verify error handling
         ch.qos.logback.core.read.ListAppender<ILoggingEvent> listAppender = new ch.qos.logback.core.read.ListAppender<>();
         listAppender.start();
         Logger logger = (Logger) LoggerFactory.getLogger(GoogleAuthService.class);
         logger.addAppender(listAppender);
-        
+
         try {
             // Execute
             String result = googleAuthService.fetchUserData("test-token");
-            
+
             // Verify
             assertNull(result);
-            
+
             // Verify correct error logs were generated
             boolean foundReadErrorLog = listAppender.list.stream()
-                    .anyMatch(event -> event.getLevel() == Level.ERROR && 
-                             event.getFormattedMessage().contains("Could not read error response"));
-            
+                    .anyMatch(event -> event.getLevel() == Level.ERROR &&
+                            event.getFormattedMessage().contains("Could not read error response"));
+
             boolean foundApiErrorLog = listAppender.list.stream()
-                    .anyMatch(event -> event.getLevel() == Level.ERROR && 
-                             event.getFormattedMessage().contains("Error fetching data from Google API"));
-            
+                    .anyMatch(event -> event.getLevel() == Level.ERROR &&
+                            event.getFormattedMessage().contains("Error fetching data from Google API"));
+
             assertTrue(foundReadErrorLog, "Expected log about error reading error stream was not found");
             assertTrue(foundApiErrorLog, "Expected log about API error was not found");
-            
+
         } finally {
             logger.detachAppender(listAppender);
         }
@@ -1606,10 +1605,10 @@ class GoogleAuthServiceTest {
     void testOpenDirectConnection_WithActualURL() throws IOException {
         // Create a test URL for an actual site
         URL testUrl = URI.create("https://httpbin.org/get").toURL();
-        
+
         // Call the actual method (not a mock or subclass)
         HttpURLConnection result = googleAuthService.openDirectConnection(testUrl);
-        
+
         // Verify connection properties
         assertNotNull(result);
         assertEquals("GET", result.getRequestMethod());
@@ -1631,20 +1630,20 @@ class GoogleAuthServiceTest {
     void testOpenProxyConnection_WithActualURLAndProxy() throws IOException {
         // Skip test if we're not on a network that supports this
         assumeTrue(isNetworkAvailable(), "Network not available for proxy test");
-        
+
         // Create a test URL
         URL testUrl = URI.create("https://httpbin.org/get").toURL();
-        
+
         // Create a proxy - using a common test proxy port
         java.net.Proxy testProxy = new java.net.Proxy(
-                java.net.Proxy.Type.HTTP, 
+                java.net.Proxy.Type.HTTP,
                 new java.net.InetSocketAddress("localhost", 8888)
         );
-        
+
         try {
             // Try to create the connection (we don't need to connect, just verify it works)
             HttpURLConnection result = googleAuthService.openProxyConnection(testUrl, testProxy);
-            
+
             // Verify basic properties
             assertNotNull(result);
             assertEquals(testUrl, result.getURL());
@@ -1658,17 +1657,17 @@ class GoogleAuthServiceTest {
     void testCreateNetHttpTransport_NullHttpsProxy() throws Exception {
         // Set up the test environment
         setPrivateField(googleAuthService, "httpsProxy", null);
-        
+
         // Use reflection to access the private method
         Method method = GoogleAuthService.class.getDeclaredMethod("createNetHttpTransport");
         method.setAccessible(true);
         NetHttpTransport transport = (NetHttpTransport) method.invoke(googleAuthService);
-        
+
         // Capture logs to verify correct path
         verify(mockAppender).doAppend(loggingEventCaptor.capture());
         boolean hasDirectConnectionLog = loggingEventCaptor.getAllValues().stream()
                 .anyMatch(event -> event.getFormattedMessage().contains("No HTTPS proxy configured"));
-        
+
         // Verify
         assertNotNull(transport);
         assertTrue(hasDirectConnectionLog, "Should log that no proxy is configured");
@@ -1678,12 +1677,12 @@ class GoogleAuthServiceTest {
     void testCreateNetHttpTransport_EmptyHttpsProxy() throws Exception {
         // Set up the test environment
         setPrivateField(googleAuthService, "httpsProxy", "");
-        
+
         // Use reflection to access the private method
         Method method = GoogleAuthService.class.getDeclaredMethod("createNetHttpTransport");
         method.setAccessible(true);
         method.invoke(googleAuthService);
-        
+
         // Capture logs to verify correct path
         verify(mockAppender).doAppend(loggingEventCaptor.capture());
     }
@@ -1693,13 +1692,13 @@ class GoogleAuthServiceTest {
         // Set up the test environment with HTTPS proxy
         String testProxyUrl = "http://proxy.example.com:8443";
         setPrivateField(googleAuthService, "httpsProxy", testProxyUrl);
-        
+
         // Capture logs to verify proxy handling
         ch.qos.logback.core.read.ListAppender<ILoggingEvent> listAppender = new ch.qos.logback.core.read.ListAppender<>();
         listAppender.start();
         Logger logger = (Logger) LoggerFactory.getLogger(GoogleAuthService.class);
         logger.addAppender(listAppender);
-        
+
         try {
             // Override the createURL method to avoid actual network calls
             doAnswer(invocation -> {
@@ -1710,17 +1709,17 @@ class GoogleAuthServiceTest {
                 fail("Unexpected URL: " + urlString);
                 return null;
             }).when(googleAuthService).createURL(testProxyUrl);
-            
+
             // Call the method that uses createNetHttpTransport
             GoogleIdTokenVerifier googleVerifier = googleAuthService.createIdTokenVerifier();
-            
+
             // Verify result is not null
             assertNotNull(googleVerifier);
-            
+
             // Verify correct log message was generated for proxy usage
             boolean foundProxyLog = listAppender.list.stream()
                     .anyMatch(event -> event.getFormattedMessage().contains("Using HTTPS proxy for Google API client"));
-            
+
             assertTrue(foundProxyLog, "Expected log about using HTTPS proxy was not found");
         } finally {
             logger.detachAppender(listAppender);
@@ -1732,30 +1731,30 @@ class GoogleAuthServiceTest {
         // Set up the test environment with an invalid proxy
         String invalidProxyUrl = "invalid:proxy:url";
         setPrivateField(googleAuthService, "httpsProxy", invalidProxyUrl);
-        
+
         // Capture logs to verify proxy error handling
         ch.qos.logback.core.read.ListAppender<ILoggingEvent> listAppender = new ch.qos.logback.core.read.ListAppender<>();
         listAppender.start();
         Logger logger = (Logger) LoggerFactory.getLogger(GoogleAuthService.class);
         logger.addAppender(listAppender);
-        
+
         try {
             // Make createURL throw exception for the invalid proxy
             doThrow(new MalformedURLException("Invalid proxy URL"))
-                .when(googleAuthService).createURL(invalidProxyUrl);
-            
+                    .when(googleAuthService).createURL(invalidProxyUrl);
+
             // Call the method that uses createNetHttpTransport
-            GoogleAuthorizationCodeTokenRequest request = 
-                googleAuthService.createAuthorizationCodeTokenRequest("test-auth-code");
-            
+            GoogleAuthorizationCodeTokenRequest request =
+                    googleAuthService.createAuthorizationCodeTokenRequest("test-auth-code");
+
             // Verify result is not null (should succeed even with invalid proxy)
             assertNotNull(request);
-            
+
             // Verify error log about invalid proxy
             boolean foundErrorLog = listAppender.list.stream()
                     .anyMatch(event -> event.getLevel() == Level.ERROR &&
-                             event.getFormattedMessage().contains("Invalid HTTPS proxy URL"));
-            
+                            event.getFormattedMessage().contains("Invalid HTTPS proxy URL"));
+
             assertTrue(foundErrorLog, "Expected error log about invalid proxy URL was not found");
         } finally {
             logger.detachAppender(listAppender);
@@ -1766,24 +1765,24 @@ class GoogleAuthServiceTest {
     void testCreateIdTokenVerifier_WithEmptyProxy() throws Exception {
         // Set up the test environment with empty proxy
         setPrivateField(googleAuthService, "httpsProxy", "");
-        
+
         // Capture logs to verify proxy handling
         ch.qos.logback.core.read.ListAppender<ILoggingEvent> listAppender = new ch.qos.logback.core.read.ListAppender<>();
         listAppender.start();
         Logger logger = (Logger) LoggerFactory.getLogger(GoogleAuthService.class);
         logger.addAppender(listAppender);
-        
+
         try {
             // Call the method that uses createNetHttpTransport
             GoogleIdTokenVerifier googleVerifier = googleAuthService.createIdTokenVerifier();
-            
+
             // Verify result is not null
             assertNotNull(googleVerifier);
-            
+
             // Verify log about direct connection
             boolean foundDirectConnectionLog = listAppender.list.stream()
                     .anyMatch(event -> event.getFormattedMessage().contains("No HTTPS proxy configured"));
-            
+
             assertTrue(foundDirectConnectionLog, "Expected log about direct connection was not found");
         } finally {
             logger.detachAppender(listAppender);
@@ -1796,26 +1795,26 @@ class GoogleAuthServiceTest {
         String testHttpProxyUrl = "http://http-proxy.example.com:8080";
         setPrivateField(googleAuthService, "httpsProxy", null);
         setPrivateField(googleAuthService, "httpProxy", testHttpProxyUrl);
-        
+
         // Capture logs to verify proxy handling
         ch.qos.logback.core.read.ListAppender<ILoggingEvent> listAppender = new ch.qos.logback.core.read.ListAppender<>();
         listAppender.start();
         Logger logger = (Logger) LoggerFactory.getLogger(GoogleAuthService.class);
         logger.addAppender(listAppender);
-        
+
         try {
             // Call the method that uses createNetHttpTransport
-            GoogleAuthorizationCodeTokenRequest request = 
-                googleAuthService.createAuthorizationCodeTokenRequest("test-auth-code");
-            
+            GoogleAuthorizationCodeTokenRequest request =
+                    googleAuthService.createAuthorizationCodeTokenRequest("test-auth-code");
+
             // Verify result is not null
             assertNotNull(request);
-            
+
             // Verify correct log message was generated for direct connection
             // since createNetHttpTransport only looks at HTTPS_PROXY
             boolean foundNoProxyLog = listAppender.list.stream()
                     .anyMatch(event -> event.getFormattedMessage().contains("No HTTPS proxy configured"));
-            
+
             assertTrue(foundNoProxyLog, "Expected log about no HTTPS proxy was not found");
         } finally {
             logger.detachAppender(listAppender);
@@ -1826,26 +1825,26 @@ class GoogleAuthServiceTest {
     void testDirectOpenProxyConnection() throws Exception {
         // Create a real GoogleAuthService instance
         GoogleAuthService service = new GoogleAuthService(userService, jwtService, refreshTokenService);
-        
+
         // Create test URL 
         URL testUrl = URI.create("https://example.com").toURL();
-        
+
         // Create two different types of proxies to test
         java.net.Proxy httpProxy = new java.net.Proxy(
-                java.net.Proxy.Type.HTTP, 
+                java.net.Proxy.Type.HTTP,
                 new java.net.InetSocketAddress("proxy.example.com", 8080)
         );
-        
+
         java.net.Proxy socksProxy = new java.net.Proxy(
-                java.net.Proxy.Type.SOCKS, 
+                java.net.Proxy.Type.SOCKS,
                 new java.net.InetSocketAddress("socks.example.com", 1080)
         );
-        
+
         // Access the protected method directly via reflection
         Method openProxyConnectionMethod = GoogleAuthService.class.getDeclaredMethod(
                 "openProxyConnection", URL.class, java.net.Proxy.class);
         openProxyConnectionMethod.setAccessible(true);
-        
+
         // Test with HTTP proxy
         try {
             HttpURLConnection conn = (HttpURLConnection) openProxyConnectionMethod.invoke(service, testUrl, httpProxy);
@@ -1859,7 +1858,7 @@ class GoogleAuthServiceTest {
                 fail("Unexpected exception: " + e.getCause());
             }
         }
-        
+
         // Test with SOCKS proxy
         try {
             HttpURLConnection conn = (HttpURLConnection) openProxyConnectionMethod.invoke(service, testUrl, socksProxy);
