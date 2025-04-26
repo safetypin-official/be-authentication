@@ -53,7 +53,6 @@ class FollowServiceTest {
         following.setName("Following User");
 
         follow = new Follow();
-        follow.setId(UUID.randomUUID());
         follow.setFollowerId(followerId);
         follow.setFollowingId(followingId);
         follow.setCreatedAt(LocalDateTime.now());
@@ -214,55 +213,38 @@ class FollowServiceTest {
         follow2.setFollowingId(followingId2);
 
         List<Follow> follows = Arrays.asList(follow1, follow2);
+        List<UUID> followingIds = Arrays.asList(followingId, followingId2);
 
         User following2 = new User();
         following2.setId(followingId2);
         following2.setName("Another Following User");
 
         when(followRepository.findByFollowerId(followerId)).thenReturn(follows);
-        when(userService.findById(followingId)).thenReturn(Optional.of(following));
-        when(userService.findById(followingId2)).thenReturn(Optional.of(following2));
+        when(userService.findAllById(followingIds)).thenReturn(Arrays.asList(following, following2));
 
         // Act
         List<User> result = followService.getFollowing(followerId);
 
         // Assert
         assertEquals(2, result.size());
-        assertEquals(following.getId(), result.get(0).getId());
-        assertEquals(following2.getId(), result.get(1).getId());
+        assertTrue(result.stream().anyMatch(u -> u.getId().equals(following.getId())));
+        assertTrue(result.stream().anyMatch(u -> u.getId().equals(following2.getId())));
         verify(followRepository, times(1)).findByFollowerId(followerId);
-        verify(userService, times(1)).findById(followingId);
-        verify(userService, times(1)).findById(followingId2);
+        verify(userService, times(1)).findAllById(anyList());
     }
 
     @Test
-    void getFollowing_UserNotFound() {
+    void getFollowing_EmptyList() {
         // Arrange
-        Follow follow1 = new Follow();
-        follow1.setFollowerId(followerId);
-        follow1.setFollowingId(followingId);
-        
-        Follow follow2 = new Follow();
-        UUID followingId2 = UUID.randomUUID();
-        follow2.setFollowerId(followerId);
-        follow2.setFollowingId(followingId2);
-        
-        List<Follow> follows = Arrays.asList(follow1, follow2);
-        
-        when(followRepository.findByFollowerId(followerId)).thenReturn(follows);
-        when(userService.findById(followingId)).thenReturn(Optional.of(following));
-        when(userService.findById(followingId2)).thenReturn(Optional.empty()); // User not found
-        
-        // Act & Assert
-        ResourceNotFoundException exception = assertThrows(
-            ResourceNotFoundException.class,
-            () -> followService.getFollowing(followerId)
-        );
-        
-        assertTrue(exception.getMessage().contains("User not found: " + followingId2));
+        when(followRepository.findByFollowerId(followerId)).thenReturn(List.of());
+
+        // Act
+        List<User> result = followService.getFollowing(followerId);
+
+        // Assert
+        assertTrue(result.isEmpty());
         verify(followRepository, times(1)).findByFollowerId(followerId);
-        verify(userService, times(1)).findById(followingId);
-        verify(userService, times(1)).findById(followingId2);
+        verify(userService, never()).findAllById(anyList());
     }
 
     @Test
@@ -279,56 +261,38 @@ class FollowServiceTest {
         follow2.setFollowingId(followingId);
 
         List<Follow> follows = Arrays.asList(follow1, follow2);
+        List<UUID> followerIds = Arrays.asList(followerId, follower2Id);
 
         User follower2 = new User();
         follower2.setId(follower2Id);
         follower2.setName("Another Follower User");
 
         when(followRepository.findByFollowingId(followingId)).thenReturn(follows);
-        when(userService.findById(followerId)).thenReturn(Optional.of(follower));
-        when(userService.findById(follower2Id)).thenReturn(Optional.of(follower2));
+        when(userService.findAllById(followerIds)).thenReturn(Arrays.asList(follower, follower2));
 
         // Act
         List<User> result = followService.getFollowers(followingId);
 
         // Assert
         assertEquals(2, result.size());
-        assertEquals(follower.getId(), result.get(0).getId());
-        assertEquals(follower2.getId(), result.get(1).getId());
+        assertTrue(result.stream().anyMatch(u -> u.getId().equals(follower.getId())));
+        assertTrue(result.stream().anyMatch(u -> u.getId().equals(follower2.getId())));
         verify(followRepository, times(1)).findByFollowingId(followingId);
-        verify(userService, times(1)).findById(followerId);
-        verify(userService, times(1)).findById(follower2Id);
+        verify(userService, times(1)).findAllById(anyList());
     }
 
     @Test
-    void getFollowers_UserNotFound() {
+    void getFollowers_EmptyList() {
         // Arrange
-        UUID follower2Id = UUID.randomUUID();
-        
-        Follow follow1 = new Follow();
-        follow1.setFollowerId(followerId);
-        follow1.setFollowingId(followingId);
-        
-        Follow follow2 = new Follow();
-        follow2.setFollowerId(follower2Id);
-        follow2.setFollowingId(followingId);
-        
-        List<Follow> follows = Arrays.asList(follow1, follow2);
-        
-        when(followRepository.findByFollowingId(followingId)).thenReturn(follows);
-        when(userService.findById(followerId)).thenReturn(Optional.of(follower));
-        when(userService.findById(follower2Id)).thenReturn(Optional.empty()); // User not found
-        
-        // Act & Assert
-        ResourceNotFoundException exception = assertThrows(
-            ResourceNotFoundException.class,
-            () -> followService.getFollowers(followingId)
-        );
-        
-        assertTrue(exception.getMessage().contains("User not found: " + follower2Id));
+        when(followRepository.findByFollowingId(followingId)).thenReturn(List.of());
+
+        // Act
+        List<User> result = followService.getFollowers(followingId);
+
+        // Assert
+        assertTrue(result.isEmpty());
         verify(followRepository, times(1)).findByFollowingId(followingId);
-        verify(userService, times(1)).findById(followerId);
-        verify(userService, times(1)).findById(follower2Id);
+        verify(userService, never()).findAllById(anyList());
     }
 
     @Test

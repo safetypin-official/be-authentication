@@ -6,7 +6,7 @@ import com.safetypin.authentication.dto.UserResponse;
 import com.safetypin.authentication.model.Follow;
 import com.safetypin.authentication.model.User;
 import com.safetypin.authentication.service.FollowService;
-import com.safetypin.authentication.service.JwtService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,6 +15,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.Arrays;
 import java.util.List;
@@ -29,16 +32,18 @@ class FollowControllerTest {
 
     @Mock
     private FollowService followService;
-
+    
     @Mock
-    private JwtService jwtService;
+    private Authentication authentication;
+    
+    @Mock
+    private SecurityContext securityContext;
 
     @InjectMocks
     private FollowController followController;
 
     private UUID userId;
     private UUID targetUserId;
-    private String authHeader;
     private UserResponse userResponse;
     private User user1;
     private User user2;
@@ -47,7 +52,6 @@ class FollowControllerTest {
     void setUp() {
         userId = UUID.randomUUID();
         targetUserId = UUID.randomUUID();
-        authHeader = "Bearer mock-token";
         
         userResponse = UserResponse.builder()
             .id(userId)
@@ -66,39 +70,48 @@ class FollowControllerTest {
         user2.setProfilePicture("pic2.jpg");
         user2.setProfileBanner("banner2.jpg");
     }
+    
+    @AfterEach
+    void tearDown() {
+        // Clear security context after each test
+        SecurityContextHolder.clearContext();
+    }
+    
+    private void setAuthenticatedUser() {
+        when(authentication.getPrincipal()).thenReturn(userResponse);
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        SecurityContextHolder.setContext(securityContext);
+    }
 
     @Test
     void followUser_ReturnsCreated() {
         // Arrange
-        when(jwtService.getUserFromJwtToken("mock-token")).thenReturn(userResponse);
+        setAuthenticatedUser();
         
-        // If followUser returns a Follow object, don't use doNothing
         Follow follow = new Follow();
         follow.setFollowerId(userId);
         follow.setFollowingId(targetUserId);
         when(followService.followUser(userId, targetUserId)).thenReturn(follow);
 
         // Act
-        ResponseEntity<Void> response = followController.followUser(targetUserId, authHeader);
+        ResponseEntity<Void> response = followController.followUser(targetUserId);
 
         // Assert
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
-        verify(jwtService, times(1)).getUserFromJwtToken("mock-token");
         verify(followService, times(1)).followUser(userId, targetUserId);
     }
 
     @Test
     void unfollowUser_ReturnsNoContent() {
         // Arrange
-        when(jwtService.getUserFromJwtToken("mock-token")).thenReturn(userResponse);
+        setAuthenticatedUser();
         doNothing().when(followService).unfollowUser(userId, targetUserId);
 
         // Act
-        ResponseEntity<Void> response = followController.unfollowUser(targetUserId, authHeader);
+        ResponseEntity<Void> response = followController.unfollowUser(targetUserId);
 
         // Assert
         assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
-        verify(jwtService, times(1)).getUserFromJwtToken("mock-token");
         verify(followService, times(1)).unfollowUser(userId, targetUserId);
     }
 
@@ -157,15 +170,15 @@ class FollowControllerTest {
     }
 
     @Test
-    void getFollowStats_WithAuthHeader_ReturnsStatsWithIsFollowing() {
+    void getFollowStats_WithAuthentication_ReturnsStatsWithIsFollowing() {
         // Arrange
-        when(jwtService.getUserFromJwtToken("mock-token")).thenReturn(userResponse);
+        setAuthenticatedUser();
         when(followService.isFollowing(userId, targetUserId)).thenReturn(true);
         when(followService.getFollowersCount(targetUserId)).thenReturn(5L);
         when(followService.getFollowingCount(targetUserId)).thenReturn(10L);
 
         // Act
-        ResponseEntity<FollowStats> response = followController.getFollowStats(targetUserId, authHeader);
+        ResponseEntity<FollowStats> response = followController.getFollowStats(targetUserId);
 
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -174,20 +187,23 @@ class FollowControllerTest {
         assertEquals(10L, response.getBody().getFollowingCount());
         assertTrue(response.getBody().isFollowing());
         
-        verify(jwtService, times(1)).getUserFromJwtToken("mock-token");
+        verify(authentication, times(1)).getPrincipal();
         verify(followService, times(1)).isFollowing(userId, targetUserId);
         verify(followService, times(1)).getFollowersCount(targetUserId);
         verify(followService, times(1)).getFollowingCount(targetUserId);
     }
 
     @Test
-    void getFollowStats_WithoutAuthHeader_ReturnsStatsWithoutIsFollowing() {
-        // Arrange
+    void getFollowStats_WithoutAuthentication_ReturnsStatsWithoutIsFollowing() {
+        // Arrange - no authentication in context
+        when(securityContext.getAuthentication()).thenReturn(null);
+        SecurityContextHolder.setContext(securityContext);
+        
         when(followService.getFollowersCount(targetUserId)).thenReturn(5L);
         when(followService.getFollowingCount(targetUserId)).thenReturn(10L);
 
         // Act
-        ResponseEntity<FollowStats> response = followController.getFollowStats(targetUserId, null);
+        ResponseEntity<FollowStats> response = followController.getFollowStats(targetUserId);
 
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -196,21 +212,23 @@ class FollowControllerTest {
         assertEquals(10L, response.getBody().getFollowingCount());
         assertFalse(response.getBody().isFollowing());
         
-        verify(jwtService, never()).getUserFromJwtToken(any());
         verify(followService, never()).isFollowing(any(), any());
         verify(followService, times(1)).getFollowersCount(targetUserId);
         verify(followService, times(1)).getFollowingCount(targetUserId);
     }
 
     @Test
-    void getFollowStats_WithInvalidAuthHeader_HandlesException() {
+    void getFollowStats_WithAuthenticationException_HandlesException() {
         // Arrange
-        when(jwtService.getUserFromJwtToken("mock-token")).thenThrow(new RuntimeException("Invalid token"));
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        SecurityContextHolder.setContext(securityContext);
+        when(authentication.getPrincipal()).thenThrow(new RuntimeException("Authentication error"));
+        
         when(followService.getFollowersCount(targetUserId)).thenReturn(5L);
         when(followService.getFollowingCount(targetUserId)).thenReturn(10L);
 
         // Act
-        ResponseEntity<FollowStats> response = followController.getFollowStats(targetUserId, authHeader);
+        ResponseEntity<FollowStats> response = followController.getFollowStats(targetUserId);
 
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -219,7 +237,7 @@ class FollowControllerTest {
         assertEquals(10L, response.getBody().getFollowingCount());
         assertFalse(response.getBody().isFollowing());
         
-        verify(jwtService, times(1)).getUserFromJwtToken("mock-token");
+        verify(authentication, times(1)).getPrincipal();
         verify(followService, never()).isFollowing(any(), any());
         verify(followService, times(1)).getFollowersCount(targetUserId);
         verify(followService, times(1)).getFollowingCount(targetUserId);
