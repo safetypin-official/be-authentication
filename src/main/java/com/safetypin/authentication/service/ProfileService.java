@@ -22,6 +22,8 @@ import java.util.regex.Pattern;
 
 @Service
 public class ProfileService {
+    private static final String USER_NOT_FOUND = "User not found with id ";
+    private static final String VIEWER_NOT_FOUND = "Viewer not found with id ";
 
     private final UserService userService;
 
@@ -35,14 +37,14 @@ public class ProfileService {
 
     public ProfileResponse getProfile(UUID userId, UUID viewerId) {
         User user = userService.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND + userId));
 
         // Profile view tracking
         // Check if the viewer is the different as the user being viewed and not null
         if (viewerId != null && !viewerId.equals(userId)) {
             // Check if viewerId is a valid user
             User viewer = userService.findById(viewerId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Viewer not found with id " + viewerId));
+                    .orElseThrow(() -> new ResourceNotFoundException(VIEWER_NOT_FOUND + viewerId));
 
             Optional<ProfileView> profileViewOpt = profileViewRepository.findByUser_IdAndViewer_Id(userId, viewerId);
             ProfileView profileView;
@@ -65,7 +67,7 @@ public class ProfileService {
 
     public ProfileResponse updateProfile(UUID userId, UpdateProfileRequest request) {
         User user = userService.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND + userId));
 
         // Extract usernames from social media URLs and update fields
         user.setInstagram(extractInstagramUsername(request.getInstagram()));
@@ -99,7 +101,7 @@ public class ProfileService {
     public List<ProfileViewDTO> getProfileViews(UUID userId) throws InvalidCredentialsException {
         // Check if the user is premium
         User user = userService.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND + userId));
         if (!user.getRole().toString().contains("PREMIUM")) {
             throw new InvalidCredentialsException("You need to be a premium user to view profile views.");
         }
