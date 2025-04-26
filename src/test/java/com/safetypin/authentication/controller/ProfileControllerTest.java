@@ -39,6 +39,7 @@ class ProfileControllerTest {
     private UpdateProfileRequest testUpdateRequest;
     private String testAuthHeader;
     private String testToken;
+    @SuppressWarnings("unused")
     private List<UserPostResponse> testAllProfiles;
 
     @BeforeEach
