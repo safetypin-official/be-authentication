@@ -32,10 +32,10 @@ class FollowControllerTest {
 
     @Mock
     private FollowService followService;
-    
+
     @Mock
     private Authentication authentication;
-    
+
     @Mock
     private SecurityContext securityContext;
 
@@ -52,11 +52,11 @@ class FollowControllerTest {
     void setUp() {
         userId = UUID.randomUUID();
         targetUserId = UUID.randomUUID();
-        
+
         userResponse = UserResponse.builder()
-            .id(userId)
-            .name("Test User")
-            .build();
+                .id(userId)
+                .name("Test User")
+                .build();
 
         user1 = new User();
         user1.setId(UUID.randomUUID());
@@ -70,13 +70,13 @@ class FollowControllerTest {
         user2.setProfilePicture("pic2.jpg");
         user2.setProfileBanner("banner2.jpg");
     }
-    
+
     @AfterEach
     void tearDown() {
         // Clear security context after each test
         SecurityContextHolder.clearContext();
     }
-    
+
     private void setAuthenticatedUser() {
         when(authentication.getPrincipal()).thenReturn(userResponse);
         when(securityContext.getAuthentication()).thenReturn(authentication);
@@ -87,7 +87,7 @@ class FollowControllerTest {
     void followUser_ReturnsCreated() {
         // Arrange
         setAuthenticatedUser();
-        
+
         Follow follow = new Follow();
         follow.setFollowerId(userId);
         follow.setFollowingId(targetUserId);
@@ -128,17 +128,17 @@ class FollowControllerTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals(2, response.getBody().size());
-        
-        assertEquals(user1.getId(), response.getBody().get(0).getId());
+
+        assertEquals(user1.getId(), response.getBody().get(0).getUserId());
         assertEquals(user1.getName(), response.getBody().get(0).getName());
         assertEquals(user1.getProfilePicture(), response.getBody().get(0).getProfilePicture());
         assertEquals(user1.getProfileBanner(), response.getBody().get(0).getProfileBanner());
-        
-        assertEquals(user2.getId(), response.getBody().get(1).getId());
+
+        assertEquals(user2.getId(), response.getBody().get(1).getUserId());
         assertEquals(user2.getName(), response.getBody().get(1).getName());
         assertEquals(user2.getProfilePicture(), response.getBody().get(1).getProfilePicture());
         assertEquals(user2.getProfileBanner(), response.getBody().get(1).getProfileBanner());
-        
+
         verify(followService, times(1)).getFollowers(targetUserId);
     }
 
@@ -155,17 +155,17 @@ class FollowControllerTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals(2, response.getBody().size());
-        
-        assertEquals(user1.getId(), response.getBody().get(0).getId());
+
+        assertEquals(user1.getId(), response.getBody().get(0).getUserId());
         assertEquals(user1.getName(), response.getBody().get(0).getName());
         assertEquals(user1.getProfilePicture(), response.getBody().get(0).getProfilePicture());
         assertEquals(user1.getProfileBanner(), response.getBody().get(0).getProfileBanner());
-        
-        assertEquals(user2.getId(), response.getBody().get(1).getId());
+
+        assertEquals(user2.getId(), response.getBody().get(1).getUserId());
         assertEquals(user2.getName(), response.getBody().get(1).getName());
         assertEquals(user2.getProfilePicture(), response.getBody().get(1).getProfilePicture());
         assertEquals(user2.getProfileBanner(), response.getBody().get(1).getProfileBanner());
-        
+
         verify(followService, times(1)).getFollowing(targetUserId);
     }
 
@@ -186,7 +186,7 @@ class FollowControllerTest {
         assertEquals(5L, response.getBody().getFollowersCount());
         assertEquals(10L, response.getBody().getFollowingCount());
         assertTrue(response.getBody().isFollowing());
-        
+
         verify(authentication, times(1)).getPrincipal();
         verify(followService, times(1)).isFollowing(userId, targetUserId);
         verify(followService, times(1)).getFollowersCount(targetUserId);
@@ -198,7 +198,7 @@ class FollowControllerTest {
         // Arrange - no authentication in context
         when(securityContext.getAuthentication()).thenReturn(null);
         SecurityContextHolder.setContext(securityContext);
-        
+
         when(followService.getFollowersCount(targetUserId)).thenReturn(5L);
         when(followService.getFollowingCount(targetUserId)).thenReturn(10L);
 
@@ -211,7 +211,7 @@ class FollowControllerTest {
         assertEquals(5L, response.getBody().getFollowersCount());
         assertEquals(10L, response.getBody().getFollowingCount());
         assertFalse(response.getBody().isFollowing());
-        
+
         verify(followService, never()).isFollowing(any(), any());
         verify(followService, times(1)).getFollowersCount(targetUserId);
         verify(followService, times(1)).getFollowingCount(targetUserId);
@@ -223,7 +223,7 @@ class FollowControllerTest {
         when(securityContext.getAuthentication()).thenReturn(authentication);
         SecurityContextHolder.setContext(securityContext);
         when(authentication.getPrincipal()).thenThrow(new RuntimeException("Authentication error"));
-        
+
         when(followService.getFollowersCount(targetUserId)).thenReturn(5L);
         when(followService.getFollowingCount(targetUserId)).thenReturn(10L);
 
@@ -236,7 +236,7 @@ class FollowControllerTest {
         assertEquals(5L, response.getBody().getFollowersCount());
         assertEquals(10L, response.getBody().getFollowingCount());
         assertFalse(response.getBody().isFollowing());
-        
+
         verify(authentication, times(1)).getPrincipal();
         verify(followService, never()).isFollowing(any(), any());
         verify(followService, times(1)).getFollowersCount(targetUserId);

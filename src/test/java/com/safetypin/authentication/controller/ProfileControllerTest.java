@@ -80,14 +80,14 @@ class ProfileControllerTest {
 
         // Set up test profiles list
         UserPostResponse profile1 = UserPostResponse.builder()
-                .id(testUserId)
+                .userId(testUserId)
                 .name("testuser")
                 .profilePicture("https://example.com/profile1.jpg")
                 .profileBanner("https://example.com/banner1.jpg")
                 .build();
 
         UserPostResponse profile2 = UserPostResponse.builder()
-                .id(UUID.randomUUID())
+                .userId(UUID.randomUUID())
                 .name("otheruser")
                 .profilePicture("https://example.com/profile2.jpg")
                 .profileBanner("https://example.com/banner2.jpg")

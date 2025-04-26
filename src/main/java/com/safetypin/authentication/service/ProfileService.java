@@ -140,13 +140,13 @@ public class ProfileService {
         List<User> users = userService.findAllUsers();
 
         return users.stream()
-            .map(user -> UserPostResponse.builder()
-                .id(user.getId())
-                .name(user.getName())
-                .profilePicture(user.getProfilePicture())
-                .profileBanner(user.getProfileBanner())
-                .build())
-            .toList();
+                .map(user -> UserPostResponse.builder()
+                        .userId(user.getId())
+                        .name(user.getName())
+                        .profilePicture(user.getProfilePicture())
+                        .profileBanner(user.getProfileBanner())
+                        .build())
+                .toList();
     }
 
     private String extractInstagramUsername(String input) {
