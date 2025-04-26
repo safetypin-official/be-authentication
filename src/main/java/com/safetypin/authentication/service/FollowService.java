@@ -92,10 +92,11 @@ public class FollowService {
             .map(Follow::getFollowingId)
             .toList();
             
-        return followingIds.stream()
-            .map(id -> userService.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + id)))
-            .toList();
+        if (followingIds.isEmpty()) {
+            return List.of();
+        }
+        
+        return userService.findAllById(followingIds);
     }
     
     /**
@@ -109,10 +110,11 @@ public class FollowService {
             .map(Follow::getFollowerId)
             .toList();
             
-        return followerIds.stream()
-            .map(id -> userService.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + id)))
-            .toList();
+        if (followerIds.isEmpty()) {
+            return List.of();
+        }
+        
+        return userService.findAllById(followerIds);
     }
     
     /**
