@@ -33,12 +33,6 @@ public class ProfileService {
         this.profileViewRepository = profileViewRepository;
     }
 
-
-    // DEPRECATED, use getProfile(UUID, UUID) instead
-    public ProfileResponse getProfile(UUID userId) {
-        return getProfile(userId, null);
-    }
-
     public ProfileResponse getProfile(UUID userId, UUID viewerId) {
         User user = userService.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + userId));
@@ -67,12 +61,6 @@ public class ProfileService {
         }
 
         return ProfileResponse.fromUser(user);
-    }
-
-
-    // DEPRECATED, use updateProfile(UUID, UpdateProfileRequest) instead
-    public ProfileResponse updateProfile(UUID userId, UpdateProfileRequest request, String token) {
-        return updateProfile(userId, request);
     }
 
     public ProfileResponse updateProfile(UUID userId, UpdateProfileRequest request) {
