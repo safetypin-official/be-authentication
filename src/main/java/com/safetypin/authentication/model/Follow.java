@@ -5,24 +5,23 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "follows", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"follower_id", "following_id"})
-})
+@Table(name = "follows")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Follow {
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    private UUID id;
+@IdClass(FollowId.class)
+public class Follow implements Serializable {
     
+    @Id
     @Column(name = "follower_id", nullable = false)
     private UUID followerId;
     
+    @Id
     @Column(name = "following_id", nullable = false)
     private UUID followingId;
     
