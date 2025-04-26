@@ -13,6 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -87,7 +88,14 @@ class SearchControllerTest {
             when(userService.findUsersByNameContaining(query)).thenReturn(johnUsers);
 
             // Act
-            ResponseEntity<List<UserResponse>> response = searchController.searchUsersByName(query);
+            ResponseEntity<Page<UserResponse>> paginatedResponse = searchController.searchUsersByName(query, 0, 10);
+            Page<UserResponse> page = paginatedResponse.getBody();
+            List<UserResponse> users = page != null ? page.getContent() : Collections.emptyList();
+
+            ResponseEntity<List<UserResponse>> response = ResponseEntity
+                    .status(paginatedResponse.getStatusCode())
+                    .headers(paginatedResponse.getHeaders())
+                    .body(users);
 
             // Assert
             assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -117,7 +125,14 @@ class SearchControllerTest {
             when(userService.findAllUsers()).thenReturn(allUsers);
 
             // Act
-            ResponseEntity<List<UserResponse>> response = searchController.searchUsersByName(null);
+            ResponseEntity<Page<UserResponse>> paginatedResponse = searchController.searchUsersByName(null, 0, 10);
+            Page<UserResponse> page = paginatedResponse.getBody();
+            List<UserResponse> users = page != null ? page.getContent() : Collections.emptyList();
+
+            ResponseEntity<List<UserResponse>> response = ResponseEntity
+                    .status(paginatedResponse.getStatusCode())
+                    .headers(paginatedResponse.getHeaders())
+                    .body(users);
 
             // Assert
             assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -144,7 +159,14 @@ class SearchControllerTest {
             when(userService.findAllUsers()).thenReturn(allUsers);
 
             // Act
-            ResponseEntity<List<UserResponse>> response = searchController.searchUsersByName(query);
+            ResponseEntity<Page<UserResponse>> paginatedResponse = searchController.searchUsersByName(query, 0, 10);
+            Page<UserResponse> page = paginatedResponse.getBody();
+            List<UserResponse> users = page != null ? page.getContent() : Collections.emptyList();
+
+            ResponseEntity<List<UserResponse>> response = ResponseEntity
+                    .status(paginatedResponse.getStatusCode())
+                    .headers(paginatedResponse.getHeaders())
+                    .body(users);
 
             // Assert
             assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -170,7 +192,14 @@ class SearchControllerTest {
             when(userService.findAllUsers()).thenReturn(allUsers);
 
             // Act
-            ResponseEntity<List<UserResponse>> response = searchController.searchUsersByName(query);
+            ResponseEntity<Page<UserResponse>> paginatedResponse = searchController.searchUsersByName(query, 0, 10);
+            Page<UserResponse> page = paginatedResponse.getBody();
+            List<UserResponse> users = page != null ? page.getContent() : Collections.emptyList();
+
+            ResponseEntity<List<UserResponse>> response = ResponseEntity
+                    .status(paginatedResponse.getStatusCode())
+                    .headers(paginatedResponse.getHeaders())
+                    .body(users);
 
             // Assert
             assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -196,7 +225,14 @@ class SearchControllerTest {
             when(userService.findUsersByNameContaining(query)).thenReturn(Collections.emptyList());
 
             // Act
-            ResponseEntity<List<UserResponse>> response = searchController.searchUsersByName(query);
+            ResponseEntity<Page<UserResponse>> paginatedResponse = searchController.searchUsersByName(query, 0, 10);
+            Page<UserResponse> page = paginatedResponse.getBody();
+            List<UserResponse> users = page != null ? page.getContent() : Collections.emptyList();
+
+            ResponseEntity<List<UserResponse>> response = ResponseEntity
+                    .status(paginatedResponse.getStatusCode())
+                    .headers(paginatedResponse.getHeaders())
+                    .body(users);
 
             // Assert
             assertEquals(HttpStatus.OK, response.getStatusCode());
