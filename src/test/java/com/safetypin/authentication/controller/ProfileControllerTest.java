@@ -39,6 +39,7 @@ class ProfileControllerTest {
     private UpdateProfileRequest testUpdateRequest;
     private String testAuthHeader;
     private String testToken;
+    @SuppressWarnings("unused")
     private List<UserPostResponse> testAllProfiles;
 
     @BeforeEach
@@ -103,10 +104,10 @@ class ProfileControllerTest {
     @Test
     void getProfile_Success() {
         // Arrange
-        when(profileService.getProfile(testUserId)).thenReturn(testProfileResponse);
+        when(profileService.getProfile(testUserId, testUserId)).thenReturn(testProfileResponse);
 
         // Act
-        ResponseEntity<AuthResponse> response = profileController.getProfile(testUserId);
+        ResponseEntity<AuthResponse> response = profileController.getProfile(testUserId, testAuthHeader);
 
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -120,11 +121,11 @@ class ProfileControllerTest {
     @Test
     void getProfile_NotFound() {
         // Arrange
-        when(profileService.getProfile(testUserId))
+        when(profileService.getProfile(testUserId, testUserId))
                 .thenThrow(new ResourceNotFoundException("User not found with id " + testUserId));
 
         // Act
-        ResponseEntity<AuthResponse> response = profileController.getProfile(testUserId);
+        ResponseEntity<AuthResponse> response = profileController.getProfile(testUserId, testAuthHeader);
 
         // Assert
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
@@ -139,11 +140,11 @@ class ProfileControllerTest {
     void getProfile_InternalServerError() {
         // Arrange
         String errorMessage = "Database connection error";
-        when(profileService.getProfile(testUserId))
+        when(profileService.getProfile(testUserId, testUserId))
                 .thenThrow(new RuntimeException(errorMessage));
 
         // Act
-        ResponseEntity<AuthResponse> response = profileController.getProfile(testUserId);
+        ResponseEntity<AuthResponse> response = profileController.getProfile(testUserId, testAuthHeader);
 
         // Assert
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());

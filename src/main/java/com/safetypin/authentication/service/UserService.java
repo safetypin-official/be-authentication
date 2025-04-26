@@ -35,4 +35,13 @@ public class UserService {
     public List<User> findAllUsers() {
         return userRepository.findAll();
     }
+
+    /**
+     * Find all users by their IDs
+     * @param ids List of user IDs
+     * @return List of users
+     */
+    public List<User> findAllById(List<UUID> ids) {
+        return userRepository.findAllById(ids);
+    }
 }

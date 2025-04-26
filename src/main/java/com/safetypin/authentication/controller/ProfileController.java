@@ -18,6 +18,8 @@ import java.util.UUID;
 @RequestMapping("/api/profiles")
 public class ProfileController {
 
+    private static final String BEARER_PREFIX = "Bearer ";
+    
     private final ProfileService profileService;
 
     private final JwtService jwtService;
@@ -29,9 +31,15 @@ public class ProfileController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<AuthResponse> getProfile(@PathVariable UUID id) {
+    public ResponseEntity<AuthResponse> getProfile(@PathVariable UUID id, @RequestHeader("Authorization") String authHeader) {
         try {
-            ProfileResponse profile = profileService.getProfile(id);
+            String token = authHeader.replace(BEARER_PREFIX, "");
+            
+            UserResponse user = jwtService.getUserFromJwtToken(token);
+
+            UUID userId = user.getId();
+
+            ProfileResponse profile = profileService.getProfile(id, userId);
             return ResponseEntity.ok(new AuthResponse(true, "Profile retrieved successfully", profile));
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -46,8 +54,8 @@ public class ProfileController {
     public ResponseEntity<AuthResponse> getMyProfile(@RequestHeader("Authorization") String authHeader) {
         try {
             // Extract the token from the Authorization header
-            String token = authHeader.replace("Bearer ", "");
-
+            String token = authHeader.replace(BEARER_PREFIX, "");
+            
             // Extract user ID from JWT token
             UserResponse user = jwtService.getUserFromJwtToken(token);
 
@@ -69,9 +77,9 @@ public class ProfileController {
             @RequestBody UpdateProfileRequest request,
             @RequestHeader("Authorization") String authHeader) {
 
-        try {
-            String token = authHeader.replace("Bearer ", "");
-
+        try { 
+            String token = authHeader.replace(BEARER_PREFIX, "");
+            
             UserResponse user = jwtService.getUserFromJwtToken(token);
 
             UUID id = user.getId();

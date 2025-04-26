@@ -41,6 +41,9 @@ class ProfileServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private FollowService followService;
+
     @InjectMocks
     private ProfileService profileService;
 
@@ -74,6 +77,8 @@ class ProfileServiceTest {
         void getProfile_UserExists_ReturnsProfileResponse() {
             // Arrange
             when(userService.findById(userId)).thenReturn(Optional.of(testUser));
+        when(followService.getFollowersCount(userId)).thenReturn(10L);
+        when(followService.getFollowingCount(userId)).thenReturn(20L);
 
             // Act
             ProfileResponse response = profileService.getProfile(userId);
@@ -91,6 +96,9 @@ class ProfileServiceTest {
             assertEquals("testdiscord", response.getDiscord());
             assertEquals(testUser.getProfilePicture(), response.getProfilePicture());
             assertEquals(testUser.getProfileBanner(), response.getProfileBanner());
+        assertEquals(10, response.getFollowersCount());
+        assertEquals(20, response.getFollowingCount());
+        assertFalse(response.isFollowing());
 
             verify(userService, times(1)).findById(userId);
         }
@@ -272,6 +280,25 @@ class ProfileServiceTest {
             verify(userService, times(1)).findById(userId);
             verify(userService, times(1)).save(any(User.class));
         }
+
+    @Test
+    void extractInstagramUsername_WithComplexUrl_CorrectlyExtractsUsername() throws Exception {
+        // Use reflection to access private method
+        java.lang.reflect.Method method = ProfileService.class.getDeclaredMethod("extractInstagramUsername", String.class);
+        method.setAccessible(true);
+        
+        // Test with complex URL that tests the regex matcher.find() logic
+        String result1 = (String) method.invoke(profileService, "https://www.instagram.com/username?hl=en");
+        assertEquals("username", result1);
+        
+        // Test with URL that has subdirectories after username
+        String result2 = (String) method.invoke(profileService, "instagram.com/username/posts/");
+        assertEquals("username", result2);
+        
+        // Test with URL that doesn't match the pattern (should return input as-is)
+        String result3 = (String) method.invoke(profileService, "not-instagram-url");
+        assertEquals("not-instagram-url", result3);
+    }
 
         @Test
         void updateProfile_PartialUpdateRequest_UpdatesOnlyProvidedFields() {
@@ -557,5 +584,41 @@ class ProfileServiceTest {
 
             verify(userRepository, times(1)).findAllById(requestedUserIds);
         }
+    }
+
+    @Test
+    void getProfile_WithCurrentUserId_ChecksFollowingStatus() {
+        // Arrange
+        UUID currentUserId = UUID.randomUUID();
+        when(userService.findById(userId)).thenReturn(Optional.of(testUser));
+        when(followService.getFollowersCount(userId)).thenReturn(10L);
+        when(followService.getFollowingCount(userId)).thenReturn(20L);
+        
+        // Test when user is following
+        when(followService.isFollowing(currentUserId, userId)).thenReturn(true);
+        
+        // Act
+        ProfileResponse response = profileService.getProfile(userId, currentUserId);
+        
+        // Assert
+        assertNotNull(response);
+        assertEquals(userId, response.getId());
+        assertTrue(response.isFollowing());
+        verify(followService, times(1)).isFollowing(currentUserId, userId);
+        
+        // Reset and test when user is not following
+        reset(followService);
+        when(followService.getFollowersCount(userId)).thenReturn(10L);
+        when(followService.getFollowingCount(userId)).thenReturn(20L);
+        when(followService.isFollowing(currentUserId, userId)).thenReturn(false);
+        
+        // Act again
+        response = profileService.getProfile(userId, currentUserId);
+        
+        // Assert
+        assertNotNull(response);
+        assertEquals(userId, response.getId());
+        assertFalse(response.isFollowing());
+        verify(followService, times(1)).isFollowing(currentUserId, userId);
     }
 }

@@ -24,18 +24,31 @@ public class ProfileService {
 
     private final UserService userService;
     private final JwtService jwtService;
+    private final FollowService followService;
     private final UserRepository userRepository;
 
     @Autowired
-    public ProfileService(UserService userService, JwtService jwtService, UserRepository userRepository) {
+    public ProfileService(UserService userService, JwtService jwtService, FollowService followService, UserRepository userRepository) {
+        this.userRepository = userRepository;
         this.userService = userService;
         this.jwtService = jwtService;
-        this.userRepository = userRepository;
+        this.followService = followService;
     }
 
     public ProfileResponse getProfile(UUID userId) {
+        return getProfile(userId, null);
+    }
+
+    public ProfileResponse getProfile(UUID userId, UUID currentUserId) {
         User user = userService.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + userId));
+
+        // If currentUserId is provided, check if the user is following the profile
+        boolean isFollowing = false;
+
+        if (currentUserId != null) {
+            isFollowing = followService.isFollowing(currentUserId, userId);
+        }
 
         return ProfileResponse.builder()
                 .id(user.getId())
@@ -49,6 +62,10 @@ public class ProfileService {
                 .discord(user.getDiscord())
                 .profileBanner(user.getProfileBanner())
                 .profilePicture(user.getProfilePicture())
+                .profileBanner(user.getProfileBanner())
+                .followersCount(followService.getFollowersCount(userId))
+                .followingCount(followService.getFollowingCount(userId))
+                .isFollowing(isFollowing)
                 .build();
     }
 
@@ -102,6 +119,10 @@ public class ProfileService {
                     .discord(savedUser.getDiscord())
                     .profileBanner(savedUser.getProfileBanner())
                     .profilePicture(savedUser.getProfilePicture())
+                    .profileBanner(savedUser.getProfileBanner())
+                    .followersCount(followService.getFollowersCount(userId))
+                    .followingCount(followService.getFollowingCount(userId))
+                    .isFollowing(false)
                     .build();
 
         } catch (ResourceNotFoundException | InvalidCredentialsException e) {
@@ -119,13 +140,13 @@ public class ProfileService {
         List<User> users = userService.findAllUsers();
 
         return users.stream()
-                .map(user -> UserPostResponse.builder()
-                        .id(user.getId())
-                        .name(user.getName())
-                        .profilePicture(user.getProfilePicture())
-                        .profileBanner(user.getProfileBanner())
-                        .build())
-                .toList();
+            .map(user -> UserPostResponse.builder()
+                .id(user.getId())
+                .name(user.getName())
+                .profilePicture(user.getProfilePicture())
+                .profileBanner(user.getProfileBanner())
+                .build())
+            .toList();
     }
 
     private String extractInstagramUsername(String input) {
