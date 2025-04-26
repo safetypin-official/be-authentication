@@ -39,10 +39,7 @@ public class SearchController {
 
         List<UserResponse> userResponses = users.stream()
                 .map(User::generateUserResponse)
-                .toList(); // Use toList()
-
-
-
+                .toList(); // TODO: Sort by followers count
 
         Pageable pageable = PageRequest.of(page, size);
         int start = (int) pageable.getOffset();
