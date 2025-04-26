@@ -5,10 +5,11 @@ import com.safetypin.authentication.dto.UserPostResponse;
 import com.safetypin.authentication.dto.UserResponse;
 import com.safetypin.authentication.model.User;
 import com.safetypin.authentication.service.FollowService;
-import com.safetypin.authentication.service.JwtService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,36 +19,22 @@ import java.util.UUID;
 @RequestMapping("/api/follow")
 public class FollowController {
     private final FollowService followService;
-    private final JwtService jwtService;
-    private static final String BEARER_PREFIX = "Bearer ";
     
     @Autowired
-    public FollowController(FollowService followService, JwtService jwtService) {
+    public FollowController(FollowService followService) {
         this.followService = followService;
-        this.jwtService = jwtService;
     }
     
     @PostMapping("/{userIdToFollow}")
-    public ResponseEntity<Void> followUser(
-            @PathVariable UUID userIdToFollow,
-            @RequestHeader("Authorization") String authHeader) {
-        String token = authHeader.replace(BEARER_PREFIX, "");
-        UserResponse user = jwtService.getUserFromJwtToken(token);
-        UUID currentUserId = user.getId();
-        
+    public ResponseEntity<Void> followUser(@PathVariable UUID userIdToFollow) {
+        UUID currentUserId = getCurrentUserId();
         followService.followUser(currentUserId, userIdToFollow);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
     
     @DeleteMapping("/{userIdToUnfollow}")
-    public ResponseEntity<Void> unfollowUser(
-            @PathVariable UUID userIdToUnfollow,
-            @RequestHeader("Authorization") String authHeader) {
-        
-        String token = authHeader.replace(BEARER_PREFIX, "");
-        UserResponse user = jwtService.getUserFromJwtToken(token);
-        UUID currentUserId = user.getId();
-        
+    public ResponseEntity<Void> unfollowUser(@PathVariable UUID userIdToUnfollow) {
+        UUID currentUserId = getCurrentUserId();
         followService.unfollowUser(currentUserId, userIdToUnfollow);
         return ResponseEntity.noContent().build();
     }
@@ -83,20 +70,14 @@ public class FollowController {
     }
     
     @GetMapping("/stats/{userId}")
-    public ResponseEntity<FollowStats> getFollowStats(
-            @PathVariable UUID userId,
-            @RequestHeader(value = "Authorization") String authHeader) {
-        
+    public ResponseEntity<FollowStats> getFollowStats(@PathVariable UUID userId) {
         boolean isFollowing = false;
 
         try {
-            String token = authHeader.replace(BEARER_PREFIX, "");
-            UserResponse user = jwtService.getUserFromJwtToken(token);
-            UUID currentUserId = user.getId();
-            
+            UUID currentUserId = getCurrentUserId();
             isFollowing = followService.isFollowing(currentUserId, userId);
         } catch (Exception e) {
-            // Invalid token, keep isFollowing as false
+            // User not authenticated, keep isFollowing as false
         }
         
         FollowStats stats = FollowStats.builder()
@@ -106,5 +87,11 @@ public class FollowController {
             .build();
         
         return ResponseEntity.ok(stats);
+    }
+    
+    private UUID getCurrentUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserResponse userDetails = (UserResponse) authentication.getPrincipal();
+        return userDetails.getId();
     }
 }
