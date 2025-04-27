@@ -170,6 +170,8 @@ class GoogleAuthServiceTest {
         AuthToken result = googleAuthService.authenticate(googleAuthDTO);
 
         // Verify
+        assertNotNull(result);
+        assertEquals(testUserId, result.getUserId());
         assertEquals("test-jwt-token", result.getAccessToken());
         assertEquals(testRefreshToken, result.getRefreshToken());
         verify(userService).findByEmail("test@example.com");
@@ -202,6 +204,8 @@ class GoogleAuthServiceTest {
         AuthToken result = googleAuthService.authenticate(googleAuthDTO);
 
         // Verify
+        assertNotNull(result);
+        assertEquals(testUserId, result.getUserId());
         assertEquals("test-jwt-token", result.getAccessToken());
         assertEquals(testRefreshToken, result.getRefreshToken());
         verify(userService).findByEmail("test@example.com");
@@ -761,6 +765,8 @@ class GoogleAuthServiceTest {
         AuthToken result = googleAuthService.authenticate(googleAuthDTO);
 
         // Verify
+        assertNotNull(result);
+        assertEquals(testUserId, result.getUserId());
         assertEquals("test-jwt-token", result.getAccessToken());
         assertEquals(testRefreshToken, result.getRefreshToken());
         verify(userService).save(any(User.class));
