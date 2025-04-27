@@ -458,22 +458,25 @@ class AuthenticationControllerTest {
         String validToken = "valid.jwt.token";
 
         // Create a mock UserResponse
-        UserResponse userResponse = Mockito.mock(UserResponse.class);
         UUID userId = UUID.randomUUID();
-
-        // Set up basic behavior for the mock
-        Mockito.when(userResponse.getId()).thenReturn(userId);
-        Mockito.when(userResponse.getEmail()).thenReturn("test@example.com");
-        Mockito.when(userResponse.getName()).thenReturn("Test User");
+        UserResponse userResponse = UserResponse.builder()
+                .id(userId)
+                .name("Test User")
+                .email("test@example.com")
+                .build();
 
         // Mock the service method to return the mocked user response
         Mockito.when(jwtService.getUserFromJwtToken(validToken)).thenReturn(userResponse);
 
         // Perform the test
         mockMvc.perform(post("/api/auth/verify-jwt")
-                        .param("token", validToken))
+                .param("token", validToken))
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("OK"));
+                .andExpect(jsonPath("$.message").value("OK"))
+                .andExpect(jsonPath("$.data.id").value(userId.toString()))
+                .andExpect(jsonPath("$.data.email").value("test@example.com"))
+                .andExpect(jsonPath("$.data.name").value("Test User"));
     }
 
     @Test
