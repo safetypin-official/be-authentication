@@ -1,9 +1,10 @@
 package com.safetypin.authentication.seeder;
 
-import com.safetypin.authentication.model.Role;
-import com.safetypin.authentication.model.User;
-import com.safetypin.authentication.repository.UserRepository;
-import jakarta.transaction.Transactional;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import java.time.LocalDate;
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,13 +12,15 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.time.LocalDate;
-import java.util.List;
+import com.safetypin.authentication.model.Role;
+import com.safetypin.authentication.model.User;
+import com.safetypin.authentication.repository.FollowRepository;
+import com.safetypin.authentication.repository.UserRepository;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import jakarta.transaction.Transactional;
 
 @SpringBootTest
-@ActiveProfiles("dev")  // Use the 'dev' profile during tests
+@ActiveProfiles("dev") // Use the 'dev' profile during tests
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Transactional
 class DevDataSeederTest {
@@ -28,18 +31,22 @@ class DevDataSeederTest {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private FollowRepository followRepository; // Mocked or real repository
+
     // Test that the seeder inserts 5 users when no users exist
     @Test
     void testSeederInsertsUsersWhenEmpty() {
         userRepository.deleteAll(); // Ensure the database is empty before seeding
 
-        new DevDataSeeder(userRepository, passwordEncoder).run(); // Run the seeder
+        new DevDataSeeder(userRepository, passwordEncoder, followRepository).run(); // Run the seeder
 
         List<User> users = userRepository.findAll();
         assertEquals(5, users.size(), "Seeder should insert 5 users when repository is empty");
     }
 
-    // Test that the seeder does not add any users if at least one user already exists
+    // Test that the seeder does not add any users if at least one user already
+    // exists
     @Test
     void testSeederDoesNotInsertIfUsersExist() {
         // Save an existing user into the repository
@@ -54,7 +61,7 @@ class DevDataSeederTest {
         userRepository.save(user);
 
         long countBefore = userRepository.count();
-        new DevDataSeeder(userRepository, passwordEncoder).run();
+        new DevDataSeeder(userRepository, passwordEncoder, followRepository).run();
         long countAfter = userRepository.count();
 
         assertEquals(countBefore, countAfter, "Seeder should not insert new users if users already exist");

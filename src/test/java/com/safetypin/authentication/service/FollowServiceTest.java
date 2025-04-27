@@ -1,9 +1,26 @@
 package com.safetypin.authentication.service;
 
-import com.safetypin.authentication.exception.ResourceNotFoundException;
-import com.safetypin.authentication.model.Follow;
-import com.safetypin.authentication.model.User;
-import com.safetypin.authentication.repository.FollowRepository;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,15 +28,11 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import com.safetypin.authentication.dto.FollowerNotificationDTO;
+import com.safetypin.authentication.exception.ResourceNotFoundException;
+import com.safetypin.authentication.model.Follow;
+import com.safetypin.authentication.model.User;
+import com.safetypin.authentication.repository.FollowRepository;
 
 @ExtendWith(MockitoExtension.class)
 class FollowServiceTest {
@@ -85,9 +98,8 @@ class FollowServiceTest {
         when(userService.findById(followerId)).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThrows(ResourceNotFoundException.class, () -> 
-            followService.followUser(followerId, followingId));
-        
+        assertThrows(ResourceNotFoundException.class, () -> followService.followUser(followerId, followingId));
+
         verify(userService, times(1)).findById(followerId);
         verify(userService, never()).findById(followingId);
         verify(followRepository, never()).existsByFollowerIdAndFollowingId(any(), any());
@@ -101,9 +113,8 @@ class FollowServiceTest {
         when(userService.findById(followingId)).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThrows(ResourceNotFoundException.class, () -> 
-            followService.followUser(followerId, followingId));
-        
+        assertThrows(ResourceNotFoundException.class, () -> followService.followUser(followerId, followingId));
+
         verify(userService, times(1)).findById(followerId);
         verify(userService, times(1)).findById(followingId);
         verify(followRepository, never()).existsByFollowerIdAndFollowingId(any(), any());
@@ -116,14 +127,13 @@ class FollowServiceTest {
         UUID sameId = UUID.randomUUID();
         User user = new User();
         user.setId(sameId);
-        
+
         // Need to mock the userService to return the user when checking if exists
         when(userService.findById(sameId)).thenReturn(Optional.of(user));
 
         // Act & Assert
-        assertThrows(IllegalArgumentException.class, () -> 
-            followService.followUser(sameId, sameId));
-        
+        assertThrows(IllegalArgumentException.class, () -> followService.followUser(sameId, sameId));
+
         // Update verification to expect findById to be called twice
         verify(userService, times(2)).findById(sameId);
         verify(followRepository, never()).existsByFollowerIdAndFollowingId(any(), any());
@@ -138,9 +148,8 @@ class FollowServiceTest {
         when(followRepository.existsByFollowerIdAndFollowingId(followerId, followingId)).thenReturn(true);
 
         // Act & Assert
-        assertThrows(IllegalArgumentException.class, () -> 
-            followService.followUser(followerId, followingId));
-        
+        assertThrows(IllegalArgumentException.class, () -> followService.followUser(followerId, followingId));
+
         verify(userService, times(1)).findById(followerId);
         verify(userService, times(1)).findById(followingId);
         verify(followRepository, times(1)).existsByFollowerIdAndFollowingId(followerId, followingId);
@@ -167,9 +176,8 @@ class FollowServiceTest {
         when(followRepository.existsByFollowerIdAndFollowingId(followerId, followingId)).thenReturn(false);
 
         // Act & Assert
-        assertThrows(IllegalArgumentException.class, () -> 
-            followService.unfollowUser(followerId, followingId));
-        
+        assertThrows(IllegalArgumentException.class, () -> followService.unfollowUser(followerId, followingId));
+
         verify(followRepository, times(1)).existsByFollowerIdAndFollowingId(followerId, followingId);
         verify(followRepository, never()).deleteByFollowerIdAndFollowingId(any(), any());
     }
@@ -251,7 +259,7 @@ class FollowServiceTest {
     void getFollowers_ReturnsUsers() {
         // Arrange
         UUID follower2Id = UUID.randomUUID();
-        
+
         Follow follow1 = new Follow();
         follow1.setFollowerId(followerId);
         follow1.setFollowingId(followingId);
@@ -319,5 +327,166 @@ class FollowServiceTest {
         // Assert
         assertEquals(10L, result);
         verify(followRepository, times(1)).countByFollowingId(followingId);
+    }
+
+    // --- Tests for getRecentFollowers ---
+
+    @Test
+    void getRecentFollowers_Success() {
+        // Arrange
+        UUID userId = UUID.randomUUID();
+        User user = new User();
+        user.setId(userId);
+
+        UUID follower1Id = UUID.randomUUID();
+        User follower1 = new User();
+        follower1.setId(follower1Id);
+        follower1.setName("Follower One");
+        follower1.setProfilePicture("pic1.jpg");
+
+        UUID follower2Id = UUID.randomUUID();
+        User follower2 = new User();
+        follower2.setId(follower2Id);
+        follower2.setName("Follower Two");
+        follower2.setProfilePicture("pic2.jpg");
+
+        LocalDateTime now = LocalDateTime.now();
+        Follow follow1 = new Follow();
+        follow1.setFollowerId(follower1Id);
+        follow1.setFollowingId(userId);
+        follow1.setCreatedAt(now.minusDays(5)); // 5 days ago
+
+        Follow follow2 = new Follow();
+        follow2.setFollowerId(follower2Id);
+        follow2.setFollowingId(userId);
+        follow2.setCreatedAt(now.minusDays(15)); // 15 days ago
+
+        List<Follow> recentFollows = Arrays.asList(follow1, follow2); // Assume repo returns ordered desc
+        List<UUID> followerIds = Arrays.asList(follower1Id, follower2Id);
+        List<User> followers = Arrays.asList(follower1, follower2);
+
+        when(userService.findById(userId)).thenReturn(Optional.of(user));
+        when(followRepository.findByFollowingIdAndCreatedAtAfterOrderByCreatedAtDesc(eq(userId),
+                any(LocalDateTime.class)))
+                .thenReturn(recentFollows);
+        when(userService.findAllById(followerIds)).thenReturn(followers);
+
+        // Act
+        List<FollowerNotificationDTO> result = followService.getRecentFollowers(userId);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(2, result.size());
+
+        // Verify first follower (most recent)
+        FollowerNotificationDTO dto1 = result.get(0);
+        assertEquals(follower1Id, dto1.getUserId());
+        assertEquals("Follower One", dto1.getName());
+        assertEquals("pic1.jpg", dto1.getProfilePicture());
+        assertEquals(follow1.getCreatedAt(), dto1.getFollowedAt());
+        assertEquals(5, dto1.getDaysAgo()); // Approximate check
+
+        // Verify second follower
+        FollowerNotificationDTO dto2 = result.get(1);
+        assertEquals(follower2Id, dto2.getUserId());
+        assertEquals("Follower Two", dto2.getName());
+        assertEquals("pic2.jpg", dto2.getProfilePicture());
+        assertEquals(follow2.getCreatedAt(), dto2.getFollowedAt());
+        assertEquals(15, dto2.getDaysAgo()); // Approximate check
+
+        verify(userService, times(1)).findById(userId);
+        verify(followRepository, times(1)).findByFollowingIdAndCreatedAtAfterOrderByCreatedAtDesc(eq(userId),
+                any(LocalDateTime.class));
+        verify(userService, times(1)).findAllById(followerIds);
+    }
+
+    @Test
+    void getRecentFollowers_UserNotFound() {
+        // Arrange
+        UUID userId = UUID.randomUUID();
+        when(userService.findById(userId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThrows(ResourceNotFoundException.class, () -> followService.getRecentFollowers(userId));
+
+        verify(userService, times(1)).findById(userId);
+        verify(followRepository, never()).findByFollowingIdAndCreatedAtAfterOrderByCreatedAtDesc(any(), any());
+        verify(userService, never()).findAllById(anyList());
+    }
+
+    @Test
+    void getRecentFollowers_NoRecentFollowers() {
+        // Arrange
+        UUID userId = UUID.randomUUID();
+        User user = new User();
+        user.setId(userId);
+
+        when(userService.findById(userId)).thenReturn(Optional.of(user));
+        when(followRepository.findByFollowingIdAndCreatedAtAfterOrderByCreatedAtDesc(eq(userId),
+                any(LocalDateTime.class)))
+                .thenReturn(Collections.emptyList()); // Return empty list
+
+        // Act
+        List<FollowerNotificationDTO> result = followService.getRecentFollowers(userId);
+
+        // Assert
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+
+        verify(userService, times(1)).findById(userId);
+        verify(followRepository, times(1)).findByFollowingIdAndCreatedAtAfterOrderByCreatedAtDesc(eq(userId),
+                any(LocalDateTime.class));
+        verify(userService, never()).findAllById(anyList()); // Should not be called if no follows found
+    }
+
+    @Test
+    void getRecentFollowers_FollowerDetailsNotFound() {
+        // Arrange - Simulate a scenario where userService.findAllById doesn't return
+        // all requested users
+        UUID userId = UUID.randomUUID();
+        User user = new User();
+        user.setId(userId);
+
+        UUID follower1Id = UUID.randomUUID();
+        UUID follower2Id = UUID.randomUUID(); // This follower's details won't be found
+
+        LocalDateTime now = LocalDateTime.now();
+        Follow follow1 = new Follow();
+        follow1.setFollowerId(follower1Id);
+        follow1.setFollowingId(userId);
+        follow1.setCreatedAt(now.minusDays(5));
+
+        Follow follow2 = new Follow(); // Follow from the missing user
+        follow2.setFollowerId(follower2Id);
+        follow2.setFollowingId(userId);
+        follow2.setCreatedAt(now.minusDays(10));
+
+        List<Follow> recentFollows = Arrays.asList(follow1, follow2);
+        List<UUID> followerIds = Arrays.asList(follower1Id, follower2Id);
+
+        User follower1Details = new User(); // Only details for follower1 are available
+        follower1Details.setId(follower1Id);
+        follower1Details.setName("Follower One");
+
+        when(userService.findById(userId)).thenReturn(Optional.of(user));
+        when(followRepository.findByFollowingIdAndCreatedAtAfterOrderByCreatedAtDesc(eq(userId),
+                any(LocalDateTime.class)))
+                .thenReturn(recentFollows);
+        // Mock userService to return only one user's details
+        when(userService.findAllById(followerIds)).thenReturn(Collections.singletonList(follower1Details));
+
+        // Act
+        List<FollowerNotificationDTO> result = followService.getRecentFollowers(userId);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.size()); // Only one DTO should be created
+        assertEquals(follower1Id, result.get(0).getUserId());
+        assertEquals("Follower One", result.get(0).getName());
+
+        verify(userService, times(1)).findById(userId);
+        verify(followRepository, times(1)).findByFollowingIdAndCreatedAtAfterOrderByCreatedAtDesc(eq(userId),
+                any(LocalDateTime.class));
+        verify(userService, times(1)).findAllById(followerIds);
     }
 }
