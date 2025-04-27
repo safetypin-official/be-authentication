@@ -408,12 +408,12 @@ class ProfileServiceTest {
             // Assert
             assertEquals(2, result.size());
 
-            assertEquals(user1.getId(), result.get(0).getId());
+            assertEquals(user1.getId(), result.get(0).getUserId());
             assertEquals(user1.getName(), result.get(0).getName());
             assertEquals(user1.getProfilePicture(), result.get(0).getProfilePicture());
             assertEquals(user1.getProfileBanner(), result.get(0).getProfileBanner());
 
-            assertEquals(user2.getId(), result.get(1).getId());
+            assertEquals(user2.getId(), result.get(1).getUserId());
             assertEquals(user2.getName(), result.get(1).getName());
             assertEquals(user2.getProfilePicture(), result.get(1).getProfilePicture());
             assertEquals(user2.getProfileBanner(), result.get(1).getProfileBanner());

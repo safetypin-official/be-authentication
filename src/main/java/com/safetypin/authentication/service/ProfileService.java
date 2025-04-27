@@ -121,13 +121,13 @@ public class ProfileService {
         List<User> users = userService.findAllUsers();
 
         return users.stream()
-            .map(user -> UserPostResponse.builder()
-                .id(user.getId())
-                .name(user.getName())
-                .profilePicture(user.getProfilePicture())
-                .profileBanner(user.getProfileBanner())
-                .build())
-            .toList();
+                .map(user -> UserPostResponse.builder()
+                        .userId(user.getId())
+                        .name(user.getName())
+                        .profilePicture(user.getProfilePicture())
+                        .profileBanner(user.getProfileBanner())
+                        .build())
+                .toList();
     }
 
     // If user is premium, return all profile views to that user
