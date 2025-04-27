@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -51,7 +52,7 @@ public class ProfileController {
                     .body(new AuthResponse(false, "Error retrieving profile: " + e.getMessage(), null));
         }
     }
-    
+
     @GetMapping("/me")
     public ResponseEntity<AuthResponse> getMyProfile(@RequestHeader("Authorization") String authHeader) {
         try {
@@ -69,7 +70,7 @@ public class ProfileController {
                     .body(new AuthResponse(false, "Error retrieving profile: " + e.getMessage(), null));
         }
     }
-    
+
     @PutMapping("/me")
     public ResponseEntity<AuthResponse> updateMyProfile(
             @RequestBody UpdateProfileRequest request,
@@ -113,15 +114,9 @@ public class ProfileController {
         }
     }
 
-    @GetMapping
-    public ResponseEntity<AuthResponse> getAllProfiles() {
-        try {
-            List<UserPostResponse> profiles = profileService.getAllProfiles();
-            return ResponseEntity.ok(new AuthResponse(true, "All profiles retrieved successfully", profiles));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new AuthResponse(false, "Error retrieving profiles: " + e.getMessage(), null));
-        }
+    @PostMapping("/batch")
+    public Map<UUID, PostedByData> getUsersBatch(@RequestBody List<UUID> userIds) {
+        return profileService.getUsersBatch(userIds);
     }
 
     private UserResponse parseUserResponseFromAuthHeader(String authHeader) throws InvalidCredentialsException {

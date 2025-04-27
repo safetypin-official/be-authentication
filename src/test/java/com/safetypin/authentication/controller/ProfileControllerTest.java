@@ -16,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -102,10 +103,10 @@ class ProfileControllerTest {
     @Test
     void getProfile_Success() {
         // Arrange
-        when(profileService.getProfile(testUserId, null)).thenReturn(testProfileResponse);
+        when(profileService.getProfile(testUserId, testUserId)).thenReturn(testProfileResponse);
 
         // Act
-        ResponseEntity<AuthResponse> response = profileController.getProfile(testUserId);
+        ResponseEntity<AuthResponse> response = profileController.getProfile(testUserId, testAuthHeader);
 
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -119,11 +120,11 @@ class ProfileControllerTest {
     @Test
     void getProfile_NotFound() {
         // Arrange
-        when(profileService.getProfile(testUserId, null))
+        when(profileService.getProfile(testUserId, testUserId))
                 .thenThrow(new ResourceNotFoundException("User not found with id " + testUserId));
 
         // Act
-        ResponseEntity<AuthResponse> response = profileController.getProfile(testUserId);
+        ResponseEntity<AuthResponse> response = profileController.getProfile(testUserId, testAuthHeader);
 
         // Assert
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
@@ -138,11 +139,11 @@ class ProfileControllerTest {
     void getProfile_InternalServerError() {
         // Arrange
         String errorMessage = "Database connection error";
-        when(profileService.getProfile(testUserId, null))
+        when(profileService.getProfile(testUserId, testUserId))
                 .thenThrow(new RuntimeException(errorMessage));
 
         // Act
-        ResponseEntity<AuthResponse> response = profileController.getProfile(testUserId);
+        ResponseEntity<AuthResponse> response = profileController.getProfile(testUserId, testAuthHeader);
 
         // Assert
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
@@ -290,42 +291,36 @@ class ProfileControllerTest {
         assertNull(body.getData());
     }
 
-    // GET ALL PROFILES TESTS
+    // GET USERS BATCH TEST
 
     @Test
-    void getAllProfiles_Success() {
+    void getUsersBatch_Success() {
         // Arrange
-        when(profileService.getAllProfiles()).thenReturn(testAllProfiles);
+        List<UUID> userIds = Arrays.asList(UUID.randomUUID(), UUID.randomUUID());
+        // Create PostedByData instances using the builder
+        PostedByData user1Data = PostedByData.builder()
+                .userId(userIds.get(0))
+                .name("User1")
+                .profilePicture("pic1.jpg")
+                .build();
+        PostedByData user2Data = PostedByData.builder()
+                .userId(userIds.get(1))
+                .name("User2")
+                .profilePicture("pic2.jpg")
+                .build();
+        Map<UUID, PostedByData> expectedResponse = Map.of(
+                userIds.get(0), user1Data,
+                userIds.get(1), user2Data);
+
+        when(profileService.getUsersBatch(userIds)).thenReturn(expectedResponse);
 
         // Act
-        ResponseEntity<AuthResponse> response = profileController.getAllProfiles();
+        Map<UUID, PostedByData> response = profileController.getUsersBatch(userIds);
 
         // Assert
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        AuthResponse body = response.getBody();
-        assertNotNull(body);
-        assertTrue(body.isSuccess());
-        assertEquals("All profiles retrieved successfully", body.getMessage());
-        assertEquals(testAllProfiles, body.getData());
-    }
-
-    @Test
-    void getAllProfiles_InternalServerError() {
-        // Arrange
-        String errorMessage = "Database connection error";
-        when(profileService.getAllProfiles())
-                .thenThrow(new RuntimeException(errorMessage));
-
-        // Act
-        ResponseEntity<AuthResponse> response = profileController.getAllProfiles();
-
-        // Assert
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        AuthResponse body = response.getBody();
-        assertNotNull(body);
-        assertFalse(body.isSuccess());
-        assertEquals("Error retrieving profiles: " + errorMessage, body.getMessage());
-        assertNull(body.getData());
+        assertNotNull(response);
+        assertEquals(expectedResponse, response);
+        assertEquals(2, response.size());
     }
 
     // AUTHENTICATED PROFILE VIEW TESTS
