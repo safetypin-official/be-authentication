@@ -119,6 +119,12 @@ public class ProfileController {
 
     private UserResponse parseUserResponseFromAuthHeader(String authHeader) throws InvalidCredentialsException {
         String token = authHeader.replace("Bearer ", "");
-        return jwtService.getUserFromJwtToken(token);
+        try {
+            return jwtService.getUserFromJwtToken(token);
+        } catch (InvalidCredentialsException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new InvalidCredentialsException("Invalid token");
+        }
     }
 }

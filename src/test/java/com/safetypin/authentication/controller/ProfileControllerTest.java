@@ -7,9 +7,10 @@ import com.safetypin.authentication.service.JwtService;
 import com.safetypin.authentication.service.ProfileService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -22,9 +23,11 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 class ProfileControllerTest {
 
     @Mock
@@ -43,7 +46,6 @@ class ProfileControllerTest {
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
         testUserId = UUID.randomUUID();
         String testToken = "test-token";
         testAuthHeader = "Bearer " + testToken;
@@ -78,7 +80,8 @@ class ProfileControllerTest {
         testUpdateRequest.setProfileBanner("https://example.com/banner.jpg");
 
         // Configure JWT service mock
-        when(jwtService.getUserFromJwtToken(testToken)).thenReturn(testUserResponse);
+        // (lenient since some tests don't parse the token)
+        lenient().when(jwtService.getUserFromJwtToken(testToken)).thenReturn(testUserResponse);
     }
 
     // GET PROFILE TESTS
@@ -154,6 +157,26 @@ class ProfileControllerTest {
         assertTrue(body.isSuccess());
         assertEquals("Profile retrieved successfully", body.getMessage());
         assertEquals(testProfileResponse, body.getData());
+    }
+
+    @Test
+    void getMyProfile_Unauthorized() {
+        // Arrange
+        String invalidToken = "invalid-token";
+        String invalidAuthToken = "Bearer " + invalidToken;
+        when(jwtService.getUserFromJwtToken(invalidToken))
+                .thenThrow(new RuntimeException("Invalid token"));
+
+        // Act
+        ResponseEntity<AuthResponse> response = profileController.getMyProfile(invalidAuthToken);
+
+        // Assert
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        AuthResponse body = response.getBody();
+        assertNotNull(body);
+        assertFalse(body.isSuccess());
+        assertEquals("Invalid token", body.getMessage());
+        assertNull(body.getData());
     }
 
     @Test
@@ -439,6 +462,26 @@ class ProfileControllerTest {
         assertNotNull(body);
         assertFalse(body.isSuccess());
         assertEquals(errorMessage, body.getMessage());
+        assertNull(body.getData());
+    }
+
+    @Test
+    void getProfileViews_InternalServerError() {
+        // Arrange
+        String errorMessage = "Database update failed";
+        when(profileService.getProfileViews(testUserId))
+                .thenThrow(new RuntimeException(errorMessage));
+
+        // Act
+        ResponseEntity<AuthResponse> response = profileController.getProfileViews(testAuthHeader);
+
+        // Assert
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        AuthResponse body = response.getBody();
+        assertNotNull(body);
+        assertFalse(body.isSuccess());
+        assertTrue(body.getMessage().contains("Error retrieving profile views:"));
+        assertTrue(body.getMessage().contains(errorMessage));
         assertNull(body.getData());
     }
 }
