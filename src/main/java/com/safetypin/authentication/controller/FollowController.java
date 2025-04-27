@@ -2,7 +2,7 @@ package com.safetypin.authentication.controller;
 
 import com.safetypin.authentication.dto.FollowStats;
 import com.safetypin.authentication.dto.UserPostResponse;
-import com.safetypin.authentication.dto.UserResponse;
+import com.safetypin.authentication.dto.UserDetails;
 import com.safetypin.authentication.model.User;
 import com.safetypin.authentication.service.FollowService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -91,7 +91,7 @@ public class FollowController {
 
     private UUID getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        UserResponse userDetails = (UserResponse) authentication.getPrincipal();
-        return userDetails.getId();
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        return userDetails.getUserId();
     }
 }
