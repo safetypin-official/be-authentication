@@ -341,7 +341,6 @@ class ProfileServiceTest {
             verify(userService, times(1)).save(any(User.class));
         }
 
-        // TODO: Fix
         @Test
         void updateProfile_PartialUpdateRequest_UpdatesOnlyProvidedFields() {
             // Arrange
@@ -349,8 +348,6 @@ class ProfileServiceTest {
             request.setInstagram("only.new.insta"); // Only update Instagram
             // Other fields in request are null
 
-            when(jwtService.parseToken(validToken)).thenReturn(claims);
-            when(claims.getSubject()).thenReturn(userId.toString());
             when(userService.findById(userId)).thenReturn(Optional.of(testUser));
             when(userService.save(any(User.class))).thenAnswer(invocation -> {
                 User userToSave = invocation.getArgument(0);
@@ -366,7 +363,7 @@ class ProfileServiceTest {
             });
 
             // Act
-            ProfileResponse response = profileService.updateProfile(userId, request, validToken);
+            ProfileResponse response = profileService.updateProfile(userId, request);
 
             // Assert
             assertNotNull(response);
@@ -379,7 +376,6 @@ class ProfileServiceTest {
             assertEquals("pic.jpg", response.getProfilePicture()); // Should be original value
             assertEquals("banner.jpg", response.getProfileBanner()); // Should be original value
 
-            verify(jwtService, times(1)).parseToken(validToken);
             verify(userService, times(1)).findById(userId);
             verify(userService, times(1)).save(any(User.class));
         }
@@ -445,7 +441,7 @@ class ProfileServiceTest {
     class ExtractionLogicTests {
         @ParameterizedTest
         @MethodSource("provideUsernameCases")
-        void extractUsername_FromUrl_ReturnsUsername(String methodName, String expected, String input) throws Exception {
+        void extractUsername_FromInput_ReturnsCleanedUsername(String methodName, String expected, String input) throws Exception {
             // Use reflection to access private method
             java.lang.reflect.Method method = ProfileService.class.getDeclaredMethod(methodName, String.class);
             method.setAccessible(true);
@@ -461,20 +457,28 @@ class ProfileServiceTest {
                     // 1. Username extraction from URL
                     Arguments.of("extractInstagramUsername", "username", "instagram.com/username"),
                     Arguments.of("extractInstagramUsername", "username", "instagram.com/@username"),
+                    Arguments.of("extractInstagramUsername", "user_name.123", "instagram.com/user_name.123"),
                     // 2. Username extraction from plain username
                     Arguments.of("extractInstagramUsername", "username", "username"),
-                    // 3. Null or empty cases
+                    Arguments.of("extractInstagramUsername", "user_name.123", "user_name.123"),
+                    // 3. Username with whitespace
+                    Arguments.of("extractInstagramUsername", "user name", " user name "), // Trim test
+                    // 4. Null or empty cases
                     Arguments.of("extractInstagramUsername", null, null),
                     Arguments.of("extractInstagramUsername", null, ""),
-                    Arguments.of("extractInstagramUsername", null, " "),
+                    Arguments.of("extractInstagramUsername", null, "  "),
 
                     // Twitter cases
                     // 1. Username extraction from URL
                     Arguments.of("extractTwitterUsername", "username", "twitter.com/username"),
                     Arguments.of("extractTwitterUsername", "username", "twitter.com/@username"),
+                    Arguments.of("extractTwitterUsername", "user_name123", "twitter.com/user_name123"),
                     // 2. Username extraction from plain username
                     Arguments.of("extractTwitterUsername", "username", "username"),
-                    // 3. Null or empty cases
+                    Arguments.of("extractTwitterUsername", "user_name123", "user_name123"),
+                    // 3. Username with whitespace
+                    Arguments.of("extractTwitterUsername", "user name", " user name "), // Trim test
+                    // 4. Null or empty cases
                     Arguments.of("extractTwitterUsername", null, null),
                     Arguments.of("extractTwitterUsername", null, ""),
                     Arguments.of("extractTwitterUsername", null, " "),
@@ -483,130 +487,43 @@ class ProfileServiceTest {
                     // 1. Username extraction from URL
                     Arguments.of("extractTiktokUsername", "username", "tiktok.com/username"),
                     Arguments.of("extractTiktokUsername", "username", "tiktok.com/@username"),
+                    Arguments.of("extractTiktokUsername", "user.name_123", "tiktok.com/@user.name_123"),
                     // 2. Username extraction from plain username
                     Arguments.of("extractTiktokUsername", "username", "username"),
-                    // 3. Null or empty cases
+                    Arguments.of("extractTiktokUsername", "user.name_123", "user.name_123"),
+                    // 3. Username with whitespace
+                    Arguments.of("extractTiktokUsername", "user name", " user name "), // Trim test
+                    // 4. Null or empty cases
                     Arguments.of("extractTiktokUsername", null, null),
                     Arguments.of("extractTiktokUsername", null, ""),
-                    Arguments.of("extractTiktokUsername", null, " ")
+                    Arguments.of("extractTiktokUsername", null, "  "),
+
+                    // Line cases
+                    // 1. Username extraction from plain username
+                    Arguments.of("extractLineUsername", "lineusername", "lineusername"),
+                    Arguments.of("extractLineUsername", "line.user_name-123", "line.user_name-123"),
+                    // 2. Username with whitespace
+                    Arguments.of("extractLineUsername", "lineusername", " lineusername "),
+                    Arguments.of("extractLineUsername", "line user", " line user "), // Trim test
+                    // 3. Null or empty cases
+                    Arguments.of("extractLineUsername", null, null),
+                    Arguments.of("extractLineUsername", null, ""),
+                    Arguments.of("extractLineUsername", null, " "),
+
+                    // Discord cases
+                    // 1. Username extraction from plain username
+                    Arguments.of("extractDiscordId", "discorduser#1234", "discorduser#1234"),
+                    // 2. Username with whitespace
+                    Arguments.of("extractDiscordId", "discorduser#1234", " discorduser#1234 "),
+                    Arguments.of("extractDiscordId", "discord user", " discord user "), // Trim test
+                    // 3. Null or empty cases
+                    Arguments.of("extractDiscordId", null, null),
+                    Arguments.of("extractDiscordId", null, ""),
+                    Arguments.of("extractDiscordId", null, " ")
             );
-        }
-
-        @Test
-        void extractLineUsername_FromInput_ReturnsCleanedInput() throws Exception {
-            // Use reflection to access private method
-            java.lang.reflect.Method method = ProfileService.class.getDeclaredMethod("extractLineUsername", String.class);
-            method.setAccessible(true);
-
-            // Test with normal input
-            String result1 = (String) method.invoke(profileService, "lineusername");
-            assertEquals("lineusername", result1);
-
-            // Test with whitespace
-            String result2 = (String) method.invoke(profileService, " lineusername ");
-            assertEquals("lineusername", result2);
-
-            // Test with null
-            String result3 = (String) method.invoke(profileService, (Object) null);
-            assertNull(result3);
-
-            // Test with empty string
-            String result4 = (String) method.invoke(profileService, "");
-            assertNull(result4);
-        }
-
-        @Test
-        void extractDiscordId_FromInput_ReturnsCleanedInput() throws Exception {
-            // Use reflection to access private method
-            java.lang.reflect.Method method = ProfileService.class.getDeclaredMethod("extractDiscordId", String.class);
-            method.setAccessible(true);
-
-            // Test with normal input
-            String result1 = (String) method.invoke(profileService, "discorduser#1234");
-            assertEquals("discorduser#1234", result1);
-
-            // Test with whitespace
-            String result2 = (String) method.invoke(profileService, " discorduser#1234 ");
-            assertEquals("discorduser#1234", result2);
-
-            // Test with null
-            String result3 = (String) method.invoke(profileService, (Object) null);
-            assertNull(result3);
-
-            // Test with empty string
-            String result4 = (String) method.invoke(profileService, "");
-            assertNull(result4);
-        }
-
-
-        // TODO: Combine with above
-        // Helper to invoke private methods
-        private String invokeExtractionMethod(String methodName, String input) throws Exception {
-            Method method = ProfileService.class.getDeclaredMethod(methodName, String.class);
-            method.setAccessible(true);
-            return (String) method.invoke(profileService, input);
-        }
-
-        @Test
-        void extractInstagramUsername_VariousInputs() throws Exception {
-            assertEquals("username", invokeExtractionMethod("extractInstagramUsername", "instagram.com/username"));
-            assertEquals("username", invokeExtractionMethod("extractInstagramUsername", "instagram.com/@username"));
-            assertEquals("username", invokeExtractionMethod("extractInstagramUsername", "username"));
-            assertEquals("user_name.123",
-                    invokeExtractionMethod("extractInstagramUsername", "instagram.com/user_name.123"));
-            assertEquals("user_name.123", invokeExtractionMethod("extractInstagramUsername", "user_name.123"));
-            assertEquals("user name", invokeExtractionMethod("extractInstagramUsername", " user name ")); // Trim test
-            assertNull(invokeExtractionMethod("extractInstagramUsername", null));
-            assertNull(invokeExtractionMethod("extractInstagramUsername", ""));
-            assertNull(invokeExtractionMethod("extractInstagramUsername", "   ")); // Whitespace only
-        }
-
-        @Test
-        void extractTwitterUsername_VariousInputs() throws Exception {
-            assertEquals("username", invokeExtractionMethod("extractTwitterUsername", "twitter.com/username"));
-            assertEquals("username", invokeExtractionMethod("extractTwitterUsername", "twitter.com/@username"));
-            assertEquals("username", invokeExtractionMethod("extractTwitterUsername", "username"));
-            assertEquals("user_name123", invokeExtractionMethod("extractTwitterUsername", "twitter.com/user_name123"));
-            assertEquals("user_name123", invokeExtractionMethod("extractTwitterUsername", "user_name123"));
-            assertEquals("user name", invokeExtractionMethod("extractTwitterUsername", " user name ")); // Trim test
-            assertNull(invokeExtractionMethod("extractTwitterUsername", null));
-            assertNull(invokeExtractionMethod("extractTwitterUsername", ""));
-            assertNull(invokeExtractionMethod("extractTwitterUsername", "   ")); // Whitespace only
-        }
-
-        @Test
-        void extractLineUsername_VariousInputs() throws Exception {
-            assertEquals("line.user_name-123", invokeExtractionMethod("extractLineUsername", "line.user_name-123"));
-            assertEquals("line user", invokeExtractionMethod("extractLineUsername", " line user ")); // Trim test
-            assertNull(invokeExtractionMethod("extractLineUsername", null));
-            assertNull(invokeExtractionMethod("extractLineUsername", ""));
-            assertNull(invokeExtractionMethod("extractLineUsername", "   ")); // Whitespace only
-        }
-
-        @Test
-        void extractTiktokUsername_VariousInputs() throws Exception {
-            assertEquals("username", invokeExtractionMethod("extractTiktokUsername", "tiktok.com/username"));
-            assertEquals("username", invokeExtractionMethod("extractTiktokUsername", "tiktok.com/@username"));
-            assertEquals("username", invokeExtractionMethod("extractTiktokUsername", "username"));
-            assertEquals("user.name_123", invokeExtractionMethod("extractTiktokUsername", "tiktok.com/@user.name_123"));
-            assertEquals("user.name_123", invokeExtractionMethod("extractTiktokUsername", "user.name_123"));
-            assertEquals("user name", invokeExtractionMethod("extractTiktokUsername", " user name ")); // Trim test
-            assertNull(invokeExtractionMethod("extractTiktokUsername", null));
-            assertNull(invokeExtractionMethod("extractTiktokUsername", ""));
-            assertNull(invokeExtractionMethod("extractTiktokUsername", "   ")); // Whitespace only
-        }
-
-        @Test
-        void extractDiscordId_VariousInputs() throws Exception {
-            assertEquals("discorduser#1234", invokeExtractionMethod("extractDiscordId", "discorduser#1234"));
-            assertEquals("discord user", invokeExtractionMethod("extractDiscordId", " discord user ")); // Trim test
-            assertNull(invokeExtractionMethod("extractDiscordId", null));
-            assertNull(invokeExtractionMethod("extractDiscordId", ""));
-            assertNull(invokeExtractionMethod("extractDiscordId", "   ")); // Whitespace only
         }
     }
 
-    // TODO: Fix userRepository -> userService
     @Nested
     @DisplayName("getUsersBatch Tests")
     class GetUsersBatchTests {
@@ -629,7 +546,7 @@ class ProfileServiceTest {
             List<UUID> userIds = Arrays.asList(userId1, userId2);
             List<User> users = Arrays.asList(user1, user2);
 
-            when(userRepository.findAllById(userIds)).thenReturn(users);
+            when(userService.findAllById(userIds)).thenReturn(users);
 
             // Act
             Map<UUID, PostedByData> result = profileService.getUsersBatch(userIds);
@@ -649,7 +566,7 @@ class ProfileServiceTest {
             assertEquals("pic2.jpg", result.get(userId2).getProfilePicture());
             assertEquals(userId2, result.get(userId2).getUserId()); // Verify userId
 
-            verify(userRepository, times(1)).findAllById(userIds);
+            verify(userService, times(1)).findAllById(userIds);
         }
 
         @Test
@@ -663,7 +580,7 @@ class ProfileServiceTest {
             // Assert
             assertNotNull(result);
             assertTrue(result.isEmpty());
-            verify(userRepository, never()).findAllById(any()); // Should not call repo if list is empty
+            verify(userService, never()).findAllById(any()); // Should not call repo if list is empty
         }
 
         @Test
@@ -677,7 +594,7 @@ class ProfileServiceTest {
             // Assert
             assertNotNull(result);
             assertTrue(result.isEmpty());
-            verify(userRepository, never()).findAllById(any()); // Should not call repo if list is null
+            verify(userService, never()).findAllById(any()); // Should not call repo if list is null
         }
 
         @Test
@@ -700,7 +617,7 @@ class ProfileServiceTest {
             List<UUID> requestedUserIds = Arrays.asList(userId1, userId2, userId3);
             // Simulate repository returning only found users
             List<User> foundUsers = Arrays.asList(user1, user3);
-            when(userRepository.findAllById(requestedUserIds)).thenReturn(foundUsers); // Mock repo call
+            when(userService.findAllById(requestedUserIds)).thenReturn(foundUsers); // Mock repo call
 
             // Act
             Map<UUID, PostedByData> result = profileService.getUsersBatch(requestedUserIds);
@@ -720,84 +637,85 @@ class ProfileServiceTest {
 
             assertFalse(result.containsKey(userId2)); // User 2 should not be present
 
-            verify(userRepository, times(1)).findAllById(requestedUserIds);
+            verify(userService, times(1)).findAllById(requestedUserIds);
         }
     }
 
+    @Nested
+    @DisplayName("getProfileViews Tests")
+    class GetProfileViewsTessts {
+        @Test
+        void getProfileViews_PremiumUser_ReturnsProfileViewDTOList() {
+            // Arrange
+            User viewer1 = new User();
+            viewer1.setId(UUID.randomUUID());
+            viewer1.setName("Viewer 1");
+            viewer1.setProfilePicture("viewer1.jpg");
 
+            User viewer2 = new User();
+            viewer2.setId(UUID.randomUUID());
+            viewer2.setName("Viewer 2");
+            viewer2.setProfilePicture("viewer2.jpg");
 
-    // TODO: Nested
-    @Test
-    void getProfileViews_PremiumUser_ReturnsProfileViewDTOList() {
-        // Arrange
-        User viewer1 = new User();
-        viewer1.setId(UUID.randomUUID());
-        viewer1.setName("Viewer 1");
-        viewer1.setProfilePicture("viewer1.jpg");
+            ProfileView view1 = new ProfileView();
+            view1.setUser(testPremiumUser);
+            view1.setViewer(viewer1);
+            view1.setViewedAt(LocalDateTime.now());
 
-        User viewer2 = new User();
-        viewer2.setId(UUID.randomUUID());
-        viewer2.setName("Viewer 2");
-        viewer2.setProfilePicture("viewer2.jpg");
+            ProfileView view2 = new ProfileView();
+            view2.setUser(testPremiumUser);
+            view2.setViewer(viewer2);
+            view2.setViewedAt(LocalDateTime.now());
 
-        ProfileView view1 = new ProfileView();
-        view1.setUser(testPremiumUser);
-        view1.setViewer(viewer1);
-        view1.setViewedAt(LocalDateTime.now());
+            when(userService.findById(premiumUserId)).thenReturn(Optional.of(testPremiumUser));
+            when(profileViewRepository.findByUser_Id(premiumUserId)).thenReturn(List.of(view1, view2));
 
-        ProfileView view2 = new ProfileView();
-        view2.setUser(testPremiumUser);
-        view2.setViewer(viewer2);
-        view2.setViewedAt(LocalDateTime.now());
+            // Act
+            List<ProfileViewDTO> result = profileService.getProfileViews(premiumUserId);
 
-        when(userService.findById(premiumUserId)).thenReturn(Optional.of(testPremiumUser));
-        when(profileViewRepository.findByUser_Id(premiumUserId)).thenReturn(List.of(view1, view2));
+            // Assert
+            assertEquals(2, result.size());
+            assertEquals(viewer1.getId(), result.get(0).getViewerUserId());
+            assertEquals(viewer1.getName(), result.get(0).getName());
+            assertEquals(viewer1.getProfilePicture(), result.get(0).getProfilePicture());
+            assertEquals(viewer2.getId(), result.get(1).getViewerUserId());
+            assertEquals(viewer2.getName(), result.get(1).getName());
+            assertEquals(viewer2.getProfilePicture(), result.get(1).getProfilePicture());
 
-        // Act
-        List<ProfileViewDTO> result = profileService.getProfileViews(premiumUserId);
+            verify(userService, times(1)).findById(premiumUserId);
+            verify(profileViewRepository, times(1)).findByUser_Id(premiumUserId);
+        }
 
-        // Assert
-        assertEquals(2, result.size());
-        assertEquals(viewer1.getId(), result.get(0).getViewerUserId());
-        assertEquals(viewer1.getName(), result.get(0).getName());
-        assertEquals(viewer1.getProfilePicture(), result.get(0).getProfilePicture());
-        assertEquals(viewer2.getId(), result.get(1).getViewerUserId());
-        assertEquals(viewer2.getName(), result.get(1).getName());
-        assertEquals(viewer2.getProfilePicture(), result.get(1).getProfilePicture());
+        @Test
+        void getProfileViews_NonPremiumUser_ThrowsInvalidCredentialsException() {
+            // Arrange
+            when(userService.findById(userId)).thenReturn(Optional.of(testUser));
 
-        verify(userService, times(1)).findById(premiumUserId);
-        verify(profileViewRepository, times(1)).findByUser_Id(premiumUserId);
-    }
+            // Act & Assert
+            InvalidCredentialsException exception = assertThrows(
+                    InvalidCredentialsException.class,
+                    () -> profileService.getProfileViews(userId)
+            );
 
-    @Test
-    void getProfileViews_NonPremiumUser_ThrowsInvalidCredentialsException() {
-        // Arrange
-        when(userService.findById(userId)).thenReturn(Optional.of(testUser));
+            assertEquals("You need to be a premium user to view profile views.", exception.getMessage());
+            verify(userService, times(1)).findById(userId);
+            verify(profileViewRepository, never()).findByUser_Id(any());
+        }
 
-        // Act & Assert
-        InvalidCredentialsException exception = assertThrows(
-                InvalidCredentialsException.class,
-                () -> profileService.getProfileViews(userId)
-        );
+        @Test
+        void getProfileViews_UserNotFound_ThrowsResourceNotFoundException() {
+            // Arrange
+            when(userService.findById(userId)).thenReturn(Optional.empty());
 
-        assertEquals("You need to be a premium user to view profile views.", exception.getMessage());
-        verify(userService, times(1)).findById(userId);
-        verify(profileViewRepository, never()).findByUser_Id(any());
-    }
+            // Act & Assert
+            ResourceNotFoundException exception = assertThrows(
+                    ResourceNotFoundException.class,
+                    () -> profileService.getProfileViews(userId)
+            );
 
-    @Test
-    void getProfileViews_UserNotFound_ThrowsResourceNotFoundException() {
-        // Arrange
-        when(userService.findById(userId)).thenReturn(Optional.empty());
-
-        // Act & Assert
-        ResourceNotFoundException exception = assertThrows(
-                ResourceNotFoundException.class,
-                () -> profileService.getProfileViews(userId)
-        );
-
-        assertEquals("User not found with id " + userId, exception.getMessage());
-        verify(userService, times(1)).findById(userId);
-        verify(profileViewRepository, never()).findByUser_Id(any());
+            assertEquals("User not found with id " + userId, exception.getMessage());
+            verify(userService, times(1)).findById(userId);
+            verify(profileViewRepository, never()).findByUser_Id(any());
+        }
     }
 }
