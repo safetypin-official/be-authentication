@@ -3,6 +3,7 @@ package com.safetypin.authentication.controller;
 import com.safetypin.authentication.dto.FollowStats;
 import com.safetypin.authentication.dto.UserPostResponse;
 import com.safetypin.authentication.dto.UserResponse;
+import com.safetypin.authentication.dto.UserDetails;
 import com.safetypin.authentication.model.Follow;
 import com.safetypin.authentication.model.User;
 import com.safetypin.authentication.service.FollowService;
@@ -44,7 +45,7 @@ class FollowControllerTest {
 
     private UUID userId;
     private UUID targetUserId;
-    private UserResponse userResponse;
+    private UserDetails userDetails;
     private User user1;
     private User user2;
 
@@ -53,10 +54,17 @@ class FollowControllerTest {
         userId = UUID.randomUUID();
         targetUserId = UUID.randomUUID();
 
-        userResponse = UserResponse.builder()
-                .id(userId)
-                .name("Test User")
-                .build();
+        userDetails = new UserDetails() {
+            @Override
+            public UUID getUserId() {
+                return userId;
+            }
+
+            @Override
+            public String toString() {
+                return "Test User";
+            }
+        };
 
         user1 = new User();
         user1.setId(UUID.randomUUID());
@@ -73,19 +81,17 @@ class FollowControllerTest {
 
     @AfterEach
     void tearDown() {
-        // Clear security context after each test
         SecurityContextHolder.clearContext();
     }
 
     private void setAuthenticatedUser() {
-        when(authentication.getPrincipal()).thenReturn(userResponse);
+        when(authentication.getPrincipal()).thenReturn(userDetails);
         when(securityContext.getAuthentication()).thenReturn(authentication);
         SecurityContextHolder.setContext(securityContext);
     }
 
     @Test
     void followUser_ReturnsCreated() {
-        // Arrange
         setAuthenticatedUser();
 
         Follow follow = new Follow();
@@ -93,38 +99,30 @@ class FollowControllerTest {
         follow.setFollowingId(targetUserId);
         when(followService.followUser(userId, targetUserId)).thenReturn(follow);
 
-        // Act
         ResponseEntity<Void> response = followController.followUser(targetUserId);
 
-        // Assert
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         verify(followService, times(1)).followUser(userId, targetUserId);
     }
 
     @Test
     void unfollowUser_ReturnsNoContent() {
-        // Arrange
         setAuthenticatedUser();
         doNothing().when(followService).unfollowUser(userId, targetUserId);
 
-        // Act
         ResponseEntity<Void> response = followController.unfollowUser(targetUserId);
 
-        // Assert
         assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
         verify(followService, times(1)).unfollowUser(userId, targetUserId);
     }
 
     @Test
     void getFollowers_ReturnsFollowersList() {
-        // Arrange
         List<User> followers = Arrays.asList(user1, user2);
         when(followService.getFollowers(targetUserId)).thenReturn(followers);
 
-        // Act
         ResponseEntity<List<UserPostResponse>> response = followController.getFollowers(targetUserId);
 
-        // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals(2, response.getBody().size());
@@ -144,14 +142,11 @@ class FollowControllerTest {
 
     @Test
     void getFollowing_ReturnsFollowingList() {
-        // Arrange
         List<User> following = Arrays.asList(user1, user2);
         when(followService.getFollowing(targetUserId)).thenReturn(following);
 
-        // Act
         ResponseEntity<List<UserPostResponse>> response = followController.getFollowing(targetUserId);
 
-        // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals(2, response.getBody().size());
@@ -171,23 +166,19 @@ class FollowControllerTest {
 
     @Test
     void getFollowStats_WithAuthentication_ReturnsStatsWithIsFollowing() {
-        // Arrange
         setAuthenticatedUser();
         when(followService.isFollowing(userId, targetUserId)).thenReturn(true);
         when(followService.getFollowersCount(targetUserId)).thenReturn(5L);
         when(followService.getFollowingCount(targetUserId)).thenReturn(10L);
 
-        // Act
         ResponseEntity<FollowStats> response = followController.getFollowStats(targetUserId);
 
-        // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals(5L, response.getBody().getFollowersCount());
         assertEquals(10L, response.getBody().getFollowingCount());
         assertTrue(response.getBody().isFollowing());
 
-        verify(authentication, times(1)).getPrincipal();
         verify(followService, times(1)).isFollowing(userId, targetUserId);
         verify(followService, times(1)).getFollowersCount(targetUserId);
         verify(followService, times(1)).getFollowingCount(targetUserId);
@@ -195,17 +186,14 @@ class FollowControllerTest {
 
     @Test
     void getFollowStats_WithoutAuthentication_ReturnsStatsWithoutIsFollowing() {
-        // Arrange - no authentication in context
         when(securityContext.getAuthentication()).thenReturn(null);
         SecurityContextHolder.setContext(securityContext);
 
         when(followService.getFollowersCount(targetUserId)).thenReturn(5L);
         when(followService.getFollowingCount(targetUserId)).thenReturn(10L);
 
-        // Act
         ResponseEntity<FollowStats> response = followController.getFollowStats(targetUserId);
 
-        // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals(5L, response.getBody().getFollowersCount());
@@ -219,7 +207,6 @@ class FollowControllerTest {
 
     @Test
     void getFollowStats_WithAuthenticationException_HandlesException() {
-        // Arrange
         when(securityContext.getAuthentication()).thenReturn(authentication);
         SecurityContextHolder.setContext(securityContext);
         when(authentication.getPrincipal()).thenThrow(new RuntimeException("Authentication error"));
@@ -227,10 +214,8 @@ class FollowControllerTest {
         when(followService.getFollowersCount(targetUserId)).thenReturn(5L);
         when(followService.getFollowingCount(targetUserId)).thenReturn(10L);
 
-        // Act
         ResponseEntity<FollowStats> response = followController.getFollowStats(targetUserId);
 
-        // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals(5L, response.getBody().getFollowersCount());
