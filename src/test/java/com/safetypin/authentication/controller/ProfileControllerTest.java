@@ -39,7 +39,6 @@ class ProfileControllerTest {
     private ProfileResponse testProfileResponse;
     private UpdateProfileRequest testUpdateRequest;
     private String testAuthHeader;
-    private List<UserPostResponse> testAllProfiles;
 
     @BeforeEach
     void setUp() {
@@ -76,23 +75,6 @@ class ProfileControllerTest {
         testUpdateRequest.setDiscord("newuser#5678");
         testUpdateRequest.setProfilePicture("https://example.com/profile.jpg");
         testUpdateRequest.setProfileBanner("https://example.com/banner.jpg");
-
-        // Set up test profiles list
-        UserPostResponse profile1 = UserPostResponse.builder()
-                .userId(testUserId)
-                .name("testuser")
-                .profilePicture("https://example.com/profile1.jpg")
-                .profileBanner("https://example.com/banner1.jpg")
-                .build();
-
-        UserPostResponse profile2 = UserPostResponse.builder()
-                .userId(UUID.randomUUID())
-                .name("otheruser")
-                .profilePicture("https://example.com/profile2.jpg")
-                .profileBanner("https://example.com/banner2.jpg")
-                .build();
-
-        testAllProfiles = Arrays.asList(profile1, profile2);
 
         // Configure JWT service mock
         when(jwtService.getUserFromJwtToken(testToken)).thenReturn(testUserResponse);
