@@ -88,7 +88,7 @@ public class GoogleAuthService {
                 RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
 
                 logger.info("User logged in with Google Auth at {}", java.time.LocalDateTime.now());
-                return new AuthToken(accessToken, refreshToken.getToken());
+                return new AuthToken(user.getId(), accessToken, refreshToken.getToken());
             }
 
             String accessToken = getAccessToken(googleAuthDTO.getServerAuthCode());
@@ -116,7 +116,7 @@ public class GoogleAuthService {
             String jwtAccessToken = jwtService.generateToken(user.getId());
             RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
 
-            return new AuthToken(jwtAccessToken, refreshToken.getToken());
+            return new AuthToken(user.getId(), jwtAccessToken, refreshToken.getToken());
         } catch (UserAlreadyExistsException | IllegalArgumentException e) {
             throw e;
         } catch (Exception e) {

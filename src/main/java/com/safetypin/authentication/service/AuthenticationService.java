@@ -84,7 +84,7 @@ public class AuthenticationService {
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
 
         logger.info("User registered at {}", java.time.LocalDateTime.now());
-        return new AuthToken(accessToken, refreshToken.getToken());
+        return new AuthToken(user.getId(), accessToken, refreshToken.getToken());
     }
 
     // Email login with detailed error messages
@@ -105,7 +105,7 @@ public class AuthenticationService {
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
 
         logger.info("User logged in at {}", java.time.LocalDateTime.now());
-        return new AuthToken(accessToken, refreshToken.getToken());
+        return new AuthToken(user.getId(), accessToken, refreshToken.getToken());
     }
 
     // OTP verification – marks user as verified upon success
@@ -194,7 +194,7 @@ public class AuthenticationService {
         refreshTokenService.deleteRefreshToken(oldToken.getToken());
 
         logger.info("User with id: {}, refreshed new tokens", user.getId());
-        return new AuthToken(accessToken, newRefreshToken.getToken());
+        return new AuthToken(user.getId(), accessToken, newRefreshToken.getToken());
     }
 
     private int calculateAge(LocalDate birthdate) {

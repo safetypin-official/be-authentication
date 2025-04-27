@@ -116,6 +116,7 @@ class AuthenticationServiceTest {
         AuthToken token = authenticationService.registerUser(request);
 
         assertNotNull(token);
+        assertEquals(id, token.getUserId());
         assertEquals("jwtToken", token.getAccessToken());
         assertEquals("refreshToken", token.getRefreshToken());
         verify(otpService, times(1)).generateOTP("test@example.com");
@@ -182,6 +183,7 @@ class AuthenticationServiceTest {
         AuthToken token = authenticationService.loginUser("test@example.com", "password");
 
         assertNotNull(token);
+        assertEquals(id, token.getUserId());
         assertEquals("jwtToken", token.getAccessToken());
         assertEquals("refreshToken", token.getRefreshToken());
     }
@@ -425,6 +427,7 @@ class AuthenticationServiceTest {
         AuthToken authToken = authenticationService.renewRefreshToken(oldRefreshToken);
 
         assertNotNull(authToken);
+        assertEquals(userId, authToken.getUserId());
         assertEquals("newAccessToken", authToken.getAccessToken());
         assertEquals("newRefreshToken", authToken.getRefreshToken());
 
