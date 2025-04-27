@@ -12,6 +12,7 @@ import com.safetypin.authentication.model.User;
 import com.safetypin.authentication.repository.ProfileViewRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -38,6 +39,7 @@ public class ProfileService {
         this.followService = followService;
     }
 
+    @Transactional
     public ProfileResponse getProfile(UUID userId, UUID viewerId) {
         User user = userService.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND + userId));
