@@ -237,6 +237,8 @@ class ProfileServiceTest {
             // Arrange
             UUID currentUserId = UUID.randomUUID();
             when(userService.findById(userId)).thenReturn(Optional.of(testUser));
+            when(userService.findById(currentUserId)).thenReturn(Optional.of(testPremiumUser));
+            when(profileViewRepository.findByUser_IdAndViewer_Id(userId, currentUserId)).thenReturn(Optional.empty());
             when(followService.getFollowersCount(userId)).thenReturn(10L);
             when(followService.getFollowingCount(userId)).thenReturn(20L);
 
