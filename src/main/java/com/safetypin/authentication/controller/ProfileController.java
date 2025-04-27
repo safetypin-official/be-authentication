@@ -28,11 +28,6 @@ public class ProfileController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<AuthResponse> getProfile(@PathVariable UUID id) {
-        return getProfile(id, null);
-    }
-
-    @GetMapping("/{id}")
     public ResponseEntity<AuthResponse> getProfile(@PathVariable UUID id, @RequestHeader("Authorization") String authHeader) {
         UUID viewerId;
         try {
