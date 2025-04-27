@@ -57,6 +57,9 @@ public class ProfileController {
             
             ProfileResponse profile = profileService.getProfile(id, id);
             return ResponseEntity.ok(new AuthResponse(true, "Profile retrieved successfully", profile));
+        } catch (InvalidCredentialsException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new AuthResponse(false, e.getMessage(), null));
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(new AuthResponse(false, e.getMessage(), null));

@@ -234,6 +234,26 @@ class ProfileControllerTest {
     }
 
     @Test
+    void updateMyProfile_WrongToken() {
+        // Arrange
+        String errorMessage = "Token expired";
+        when(profileService.updateProfile(eq(testUserId), any(UpdateProfileRequest.class)))
+                .thenThrow(new InvalidCredentialsException(errorMessage));
+
+        // Act
+        ResponseEntity<AuthResponse> response =
+                profileController.updateMyProfile(testUpdateRequest, testAuthHeader);
+
+        // Assert
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        AuthResponse body = response.getBody();
+        assertNotNull(body);
+        assertFalse(body.isSuccess());
+        assertEquals(errorMessage, body.getMessage());
+        assertNull(body.getData());
+    }
+
+    @Test
     void updateMyProfile_NotFound() {
         // Arrange
         String errorMessage = "User not found with id " + testUserId;
