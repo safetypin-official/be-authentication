@@ -16,9 +16,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.safetypin.authentication.dto.FollowStats;
 import com.safetypin.authentication.dto.FollowerNotificationDTO;
-import com.safetypin.authentication.dto.UserPostResponse;
+import com.safetypin.authentication.dto.UserFollowResponse;
 import com.safetypin.authentication.dto.UserResponse;
-import com.safetypin.authentication.model.User;
+import com.safetypin.authentication.dto.ApiResponse;
 import com.safetypin.authentication.service.FollowService;
 import com.safetypin.authentication.service.JwtService;
 
@@ -28,6 +28,7 @@ public class FollowController {
     private final FollowService followService;
     private final JwtService jwtService;
     private static final String BEARER_PREFIX = "Bearer ";
+    private static final String STATUS_SUCCESS = "success";
 
     @Autowired
     public FollowController(FollowService followService, JwtService jwtService) {
@@ -61,37 +62,45 @@ public class FollowController {
     }
 
     @GetMapping("/followers/{userId}")
-    public ResponseEntity<List<UserPostResponse>> getFollowers(@PathVariable UUID userId) {
-        List<User> followers = followService.getFollowers(userId);
-        List<UserPostResponse> response = followers.stream()
-                .map(user -> UserPostResponse.builder()
-                        .userId(user.getId())
-                        .name(user.getName())
-                        .profilePicture(user.getProfilePicture())
-                        .profileBanner(user.getProfileBanner())
-                        .build())
-                .toList();
-
+    public ResponseEntity<ApiResponse<List<UserFollowResponse>>> getFollowers(
+            @PathVariable UUID userId,
+            @RequestHeader("Authorization") String authHeader) {
+        
+        String token = authHeader.replace(BEARER_PREFIX, "");
+        UserResponse currentUser = jwtService.getUserFromJwtToken(token);
+        UUID viewerId = currentUser.getId();
+        
+        List<UserFollowResponse> followers = followService.getFollowers(userId, viewerId);
+        ApiResponse<List<UserFollowResponse>> response = ApiResponse.<List<UserFollowResponse>>builder()
+                .status(STATUS_SUCCESS)
+                .data(followers)
+                .message("Followers retrieved successfully")
+                .build();
+        
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/following/{userId}")
-    public ResponseEntity<List<UserPostResponse>> getFollowing(@PathVariable UUID userId) {
-        List<User> following = followService.getFollowing(userId);
-        List<UserPostResponse> response = following.stream()
-                .map(user -> UserPostResponse.builder()
-                        .userId(user.getId())
-                        .name(user.getName())
-                        .profilePicture(user.getProfilePicture())
-                        .profileBanner(user.getProfileBanner())
-                        .build())
-                .toList();
-
+    public ResponseEntity<ApiResponse<List<UserFollowResponse>>> getFollowing(
+            @PathVariable UUID userId,
+            @RequestHeader("Authorization") String authHeader) {
+        
+        String token = authHeader.replace(BEARER_PREFIX, "");
+        UserResponse currentUser = jwtService.getUserFromJwtToken(token);
+        UUID viewerId = currentUser.getId();
+        
+        List<UserFollowResponse> following = followService.getFollowing(userId, viewerId);
+        ApiResponse<List<UserFollowResponse>> response = ApiResponse.<List<UserFollowResponse>>builder()
+                .status(STATUS_SUCCESS)
+                .data(following)
+                .message("Following list retrieved successfully")
+                .build();
+        
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/stats/{userId}")
-    public ResponseEntity<FollowStats> getFollowStats(
+    public ResponseEntity<ApiResponse<FollowStats>> getFollowStats(
             @PathVariable UUID userId,
             @RequestHeader(value = "Authorization") String authHeader) {
 
@@ -112,8 +121,13 @@ public class FollowController {
                 .followingCount(followService.getFollowingCount(userId))
                 .isFollowing(isFollowing)
                 .build();
+        ApiResponse<FollowStats> response = ApiResponse.<FollowStats>builder()
+                .status(STATUS_SUCCESS)
+                .data(stats)
+                .message("Follow statistics retrieved successfully")
+                .build();
 
-        return ResponseEntity.ok(stats);
+        return ResponseEntity.ok(response);
     }
 
     /**

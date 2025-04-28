@@ -27,7 +27,8 @@ import org.springframework.http.ResponseEntity;
 
 import com.safetypin.authentication.dto.FollowStats;
 import com.safetypin.authentication.dto.FollowerNotificationDTO;
-import com.safetypin.authentication.dto.UserPostResponse;
+import com.safetypin.authentication.dto.UserFollowResponse;
+import com.safetypin.authentication.dto.ApiResponse;
 import com.safetypin.authentication.dto.UserResponse;
 import com.safetypin.authentication.model.Follow;
 import com.safetypin.authentication.model.User;
@@ -115,55 +116,99 @@ class FollowControllerTest {
     @Test
     void getFollowers_ReturnsFollowersList() {
         // Arrange
-        List<User> followers = Arrays.asList(user1, user2);
-        when(followService.getFollowers(targetUserId)).thenReturn(followers);
+        when(jwtService.getUserFromJwtToken("mock-token")).thenReturn(userResponse);
+        
+        UserFollowResponse user1Response = UserFollowResponse.builder()
+                .userId(user1.getId())
+                .name(user1.getName())
+                .profilePicture(user1.getProfilePicture())
+                .isFollowing(true)
+                .build();
+        
+        UserFollowResponse user2Response = UserFollowResponse.builder()
+                .userId(user2.getId())
+                .name(user2.getName())
+                .profilePicture(user2.getProfilePicture())
+                .isFollowing(false)
+                .build();
+        
+        List<UserFollowResponse> followerResponses = Arrays.asList(user1Response, user2Response);
+        when(followService.getFollowers(targetUserId, userId)).thenReturn(followerResponses);
 
         // Act
-        ResponseEntity<List<UserPostResponse>> response = followController.getFollowers(targetUserId);
+        ResponseEntity<ApiResponse<List<UserFollowResponse>>> response = followController.getFollowers(targetUserId, authHeader);
 
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals(2, response.getBody().size());
+        assertEquals("success", response.getBody().getStatus());
+        assertEquals("Followers retrieved successfully", response.getBody().getMessage());
+        
+        List<UserFollowResponse> responseData = response.getBody().getData();
+        assertNotNull(responseData);
+        assertEquals(2, responseData.size());
+        
+        assertEquals(user1.getId(), responseData.get(0).getUserId());
+        assertEquals(user1.getName(), responseData.get(0).getName());
+        assertEquals(user1.getProfilePicture(), responseData.get(0).getProfilePicture());
+        assertTrue(responseData.get(0).isFollowing());
+        
+        assertEquals(user2.getId(), responseData.get(1).getUserId());
+        assertEquals(user2.getName(), responseData.get(1).getName());
+        assertEquals(user2.getProfilePicture(), responseData.get(1).getProfilePicture());
+        assertFalse(responseData.get(1).isFollowing());
 
-        assertEquals(user1.getId(), response.getBody().get(0).getUserId());
-        assertEquals(user1.getName(), response.getBody().get(0).getName());
-        assertEquals(user1.getProfilePicture(), response.getBody().get(0).getProfilePicture());
-        assertEquals(user1.getProfileBanner(), response.getBody().get(0).getProfileBanner());
-
-        assertEquals(user2.getId(), response.getBody().get(1).getUserId());
-        assertEquals(user2.getName(), response.getBody().get(1).getName());
-        assertEquals(user2.getProfilePicture(), response.getBody().get(1).getProfilePicture());
-        assertEquals(user2.getProfileBanner(), response.getBody().get(1).getProfileBanner());
-
-        verify(followService, times(1)).getFollowers(targetUserId);
+        verify(jwtService, times(1)).getUserFromJwtToken("mock-token");
+        verify(followService, times(1)).getFollowers(targetUserId, userId);
     }
 
     @Test
     void getFollowing_ReturnsFollowingList() {
         // Arrange
-        List<User> following = Arrays.asList(user1, user2);
-        when(followService.getFollowing(targetUserId)).thenReturn(following);
+        when(jwtService.getUserFromJwtToken("mock-token")).thenReturn(userResponse);
+        
+        UserFollowResponse user1Response = UserFollowResponse.builder()
+                .userId(user1.getId())
+                .name(user1.getName())
+                .profilePicture(user1.getProfilePicture())
+                .isFollowing(true)
+                .build();
+        
+        UserFollowResponse user2Response = UserFollowResponse.builder()
+                .userId(user2.getId())
+                .name(user2.getName())
+                .profilePicture(user2.getProfilePicture())
+                .isFollowing(false)
+                .build();
+        
+        List<UserFollowResponse> followingResponses = Arrays.asList(user1Response, user2Response);
+        when(followService.getFollowing(targetUserId, userId)).thenReturn(followingResponses);
 
         // Act
-        ResponseEntity<List<UserPostResponse>> response = followController.getFollowing(targetUserId);
+        ResponseEntity<ApiResponse<List<UserFollowResponse>>> response = followController.getFollowing(targetUserId, authHeader);
 
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals(2, response.getBody().size());
+        assertEquals("success", response.getBody().getStatus());
+        assertEquals("Following list retrieved successfully", response.getBody().getMessage());
+        
+        List<UserFollowResponse> responseData = response.getBody().getData();
+        assertNotNull(responseData);
+        assertEquals(2, responseData.size());
+        
+        assertEquals(user1.getId(), responseData.get(0).getUserId());
+        assertEquals(user1.getName(), responseData.get(0).getName());
+        assertEquals(user1.getProfilePicture(), responseData.get(0).getProfilePicture());
+        assertTrue(responseData.get(0).isFollowing());
+        
+        assertEquals(user2.getId(), responseData.get(1).getUserId());
+        assertEquals(user2.getName(), responseData.get(1).getName());
+        assertEquals(user2.getProfilePicture(), responseData.get(1).getProfilePicture());
+        assertFalse(responseData.get(1).isFollowing());
 
-        assertEquals(user1.getId(), response.getBody().get(0).getUserId());
-        assertEquals(user1.getName(), response.getBody().get(0).getName());
-        assertEquals(user1.getProfilePicture(), response.getBody().get(0).getProfilePicture());
-        assertEquals(user1.getProfileBanner(), response.getBody().get(0).getProfileBanner());
-
-        assertEquals(user2.getId(), response.getBody().get(1).getUserId());
-        assertEquals(user2.getName(), response.getBody().get(1).getName());
-        assertEquals(user2.getProfilePicture(), response.getBody().get(1).getProfilePicture());
-        assertEquals(user2.getProfileBanner(), response.getBody().get(1).getProfileBanner());
-
-        verify(followService, times(1)).getFollowing(targetUserId);
+        verify(jwtService, times(1)).getUserFromJwtToken("mock-token");
+        verify(followService, times(1)).getFollowing(targetUserId, userId);
     }
 
     @Test
@@ -175,14 +220,19 @@ class FollowControllerTest {
         when(followService.getFollowingCount(targetUserId)).thenReturn(10L);
 
         // Act
-        ResponseEntity<FollowStats> response = followController.getFollowStats(targetUserId, authHeader);
+        ResponseEntity<ApiResponse<FollowStats>> response = followController.getFollowStats(targetUserId, authHeader);
 
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals(5L, response.getBody().getFollowersCount());
-        assertEquals(10L, response.getBody().getFollowingCount());
-        assertTrue(response.getBody().isFollowing());
+        assertEquals("success", response.getBody().getStatus());
+        assertEquals("Follow statistics retrieved successfully", response.getBody().getMessage());
+        
+        FollowStats stats = response.getBody().getData();
+        assertNotNull(stats);
+        assertEquals(5L, stats.getFollowersCount());
+        assertEquals(10L, stats.getFollowingCount());
+        assertTrue(stats.isFollowing());
 
         verify(jwtService, times(1)).getUserFromJwtToken("mock-token");
         verify(followService, times(1)).isFollowing(userId, targetUserId);
@@ -197,14 +247,19 @@ class FollowControllerTest {
         when(followService.getFollowingCount(targetUserId)).thenReturn(10L);
 
         // Act
-        ResponseEntity<FollowStats> response = followController.getFollowStats(targetUserId, null);
+        ResponseEntity<ApiResponse<FollowStats>> response = followController.getFollowStats(targetUserId, null);
 
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals(5L, response.getBody().getFollowersCount());
-        assertEquals(10L, response.getBody().getFollowingCount());
-        assertFalse(response.getBody().isFollowing());
+        assertEquals("success", response.getBody().getStatus());
+        assertEquals("Follow statistics retrieved successfully", response.getBody().getMessage());
+        
+        FollowStats stats = response.getBody().getData();
+        assertNotNull(stats);
+        assertEquals(5L, stats.getFollowersCount());
+        assertEquals(10L, stats.getFollowingCount());
+        assertFalse(stats.isFollowing());
 
         verify(jwtService, never()).getUserFromJwtToken(any());
         verify(followService, never()).isFollowing(any(), any());
@@ -220,14 +275,19 @@ class FollowControllerTest {
         when(followService.getFollowingCount(targetUserId)).thenReturn(10L);
 
         // Act
-        ResponseEntity<FollowStats> response = followController.getFollowStats(targetUserId, authHeader);
+        ResponseEntity<ApiResponse<FollowStats>> response = followController.getFollowStats(targetUserId, authHeader);
 
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals(5L, response.getBody().getFollowersCount());
-        assertEquals(10L, response.getBody().getFollowingCount());
-        assertFalse(response.getBody().isFollowing());
+        assertEquals("success", response.getBody().getStatus());
+        assertEquals("Follow statistics retrieved successfully", response.getBody().getMessage());
+        
+        FollowStats stats = response.getBody().getData();
+        assertNotNull(stats);
+        assertEquals(5L, stats.getFollowersCount());
+        assertEquals(10L, stats.getFollowingCount());
+        assertFalse(stats.isFollowing());
 
         verify(jwtService, times(1)).getUserFromJwtToken("mock-token");
         verify(followService, never()).isFollowing(any(), any());
