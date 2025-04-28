@@ -936,6 +936,50 @@ class GoogleAuthServiceTest {
     }
 
     @Test
+    void authenticate_UserWithNullBirthdate_ManualBirthdate_UseManualBirthdate() throws Exception {
+        // Set birthdate in googleAuthDTO
+        LocalDate backupBirthdate = LocalDate.of(1990, 1, 1);
+        googleAuthDTO.setBirthdate(backupBirthdate);
+
+        // Mock verify ID token
+        doReturn(payload).when(googleAuthService).verifyIdToken(anyString());
+        when(payload.getEmail()).thenReturn("test@example.com");
+        when(payload.get("name")).thenReturn("Test User");
+
+        // Mock user service to return empty (new user)
+        when(userService.findByEmail(anyString())).thenReturn(Optional.empty());
+
+        // Mock getAccessToken
+        doReturn(testAccessToken).when(googleAuthService).getAccessToken(anyString());
+
+        // Mock getUserBirthdate to return null
+        doReturn(null).when(googleAuthService).getUserBirthdate(anyString());
+
+        // Mock user save
+        User savedUser = new User();
+        savedUser.setId(testUserId);
+        when(userService.save(any(User.class))).thenReturn(savedUser);
+
+        // Mock JWT generation
+        when(jwtService.generateToken(any(UUID.class))).thenReturn("test-jwt-token");
+
+        // Mock refresh token creation
+        RefreshToken mockRefreshToken = new RefreshToken();
+        mockRefreshToken.setToken(testRefreshToken);
+        when(refreshTokenService.createRefreshToken(any(UUID.class))).thenReturn(mockRefreshToken);
+
+        // Execute
+        AuthToken result = googleAuthService.authenticate(googleAuthDTO);
+
+        // Verify
+        assertNotNull(result);
+        assertEquals(testUserId, result.getUserId());
+        assertEquals("test-jwt-token", result.getAccessToken());
+        assertEquals(testRefreshToken, result.getRefreshToken());
+        verify(userService).save(argThat(user -> user.getBirthdate() == backupBirthdate));
+    }
+
+    @Test
     void testCreateURL_WithInvalidURL() {
         String invalidUrl = "ht:/invalid-url-format";
 
