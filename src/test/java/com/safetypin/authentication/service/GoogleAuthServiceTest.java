@@ -299,6 +299,66 @@ class GoogleAuthServiceTest {
 
     @Test
     void extractBirthday_ValidResponse_ReturnsBirthdate() {
+        // Birthday taken from ACCOUNT source
+        String jsonResponse = "{"
+                + "\"birthdays\": ["
+                + "  {"
+                + "    \"date\": {"
+                + "      \"year\": 1990,"
+                + "      \"month\": 1,"
+                + "      \"day\": 15"
+                + "    },"
+                + "    \"metadata\": {"
+                + "      \"source\": {"
+                + "        \"type\": \"ACCOUNT\""
+                + "      }"
+                + "    }"
+                + "  }"
+                + "]"
+                + "}";
+
+        LocalDate result = googleAuthService.extractBirthday(jsonResponse);
+
+        assertEquals(LocalDate.of(1990, 1, 15), result);
+    }
+
+    @Test
+    void extractBirthday_ValidResponseWithAccountType_ReturnsAccountBirthday() {
+        String jsonResponse = "{"
+                + "\"birthdays\": ["
+                + "  {"
+                + "    \"date\": {"
+                + "      \"day\": 22,"
+                + "      \"month\": 8"
+                + "    },"
+                + "    \"metadata\": {"
+                + "      \"source\": {"
+                + "        \"type\": \"PROFILE\""
+                + "      }"
+                + "    }"
+                + "  },"
+                + "  {"
+                + "    \"date\": {"
+                + "      \"year\": 1998,"
+                + "      \"month\": 8,"
+                + "      \"day\": 22"
+                + "    },"
+                + "    \"metadata\": {"
+                + "      \"source\": {"
+                + "        \"type\": \"ACCOUNT\""
+                + "      }"
+                + "    }"
+                + "  }"
+                + "]"
+                + "}";
+
+        LocalDate result = googleAuthService.extractBirthday(jsonResponse);
+
+        assertEquals(LocalDate.of(1998, 8, 22), result);
+    }
+
+    @Test
+    void extractBirthday_NoMetadata_ReturnsFirstBirthday() {
         String jsonResponse = "{"
                 + "\"birthdays\": ["
                 + "  {"
@@ -324,6 +384,11 @@ class GoogleAuthServiceTest {
                 + "    \"date\": {"
                 + "      \"month\": 1,"
                 + "      \"day\": 15"
+                + "    },"
+                + "    \"metadata\": {"
+                + "      \"source\": {"
+                + "        \"type\": \"PROFILE\""
+                + "      }"
                 + "    }"
                 + "  }"
                 + "]"
@@ -332,6 +397,50 @@ class GoogleAuthServiceTest {
         LocalDate result = googleAuthService.extractBirthday(jsonResponse);
 
         assertEquals(LocalDate.of(LocalDate.now().getYear(), 1, 15), result);
+    }
+
+    @Test
+    void extractBirthday_NoAccountSource_ReturnsFirstBirthday() {
+        String jsonResponse = "{"
+                + "\"birthdays\": ["
+                + "  {"
+                + "    \"date\": {"
+                + "      \"year\": 1990,"
+                + "      \"month\": 1,"
+                + "      \"day\": 15"
+                + "    },"
+                + "    \"metadata\": {"
+                + "      \"source\": {"
+                + "        \"type\": \"PROFILE\""
+                + "      }"
+                + "    }"
+                + "  }"
+                + "]"
+                + "}";
+
+        LocalDate result = googleAuthService.extractBirthday(jsonResponse);
+
+        assertEquals(LocalDate.of(1990, 1, 15), result);
+    }
+
+    @Test
+    void extractBirthday_NoMetadataSource_ReturnsFirstBirthday() {
+        String jsonResponse = "{"
+                + "\"birthdays\": ["
+                + "  {"
+                + "    \"date\": {"
+                + "      \"year\": 1990,"
+                + "      \"month\": 1,"
+                + "      \"day\": 15"
+                + "    },"
+                + "    \"metadata\": {}"
+                + "  }"
+                + "]"
+                + "}";
+
+        LocalDate result = googleAuthService.extractBirthday(jsonResponse);
+
+        assertEquals(LocalDate.of(1990, 1, 15), result);
     }
 
     @Test
