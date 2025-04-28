@@ -27,7 +27,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class LocationServiceTest {
+class LocationServiceTest {
 
     @Mock
     private LocationRepository locationRepository;
@@ -42,7 +42,7 @@ public class LocationServiceTest {
     private LocationService locationService;
 
     @Test
-    public void updateLocation_WhenUserExistsAndLocationExists_ShouldUpdateLocation() {
+    void updateLocation_WhenUserExistsAndLocationExists_ShouldUpdateLocation() {
         // Arrange
         UUID userId = UUID.randomUUID();
         User user = new User();
@@ -70,7 +70,7 @@ public class LocationServiceTest {
     }
 
     @Test
-    public void updateLocation_WhenUserExistsAndLocationDoesNotExist_ShouldCreateLocation() {
+    void updateLocation_WhenUserExistsAndLocationDoesNotExist_ShouldCreateLocation() {
         // Arrange
         UUID userId = UUID.randomUUID();
         User user = new User();
@@ -92,7 +92,7 @@ public class LocationServiceTest {
     }
 
     @Test
-    public void updateLocation_WhenUserDoesNotExist_ShouldThrowResourceNotFoundException() {
+    void updateLocation_WhenUserDoesNotExist_ShouldThrowResourceNotFoundException() {
         // Arrange
         UUID userId = UUID.randomUUID();
         
@@ -111,7 +111,7 @@ public class LocationServiceTest {
     }
 
     @Test
-    public void getFriendsLocations_WhenMutualFollowersExist_ShouldReturnLocations() {
+    void getFriendsLocations_WhenMutualFollowersExist_ShouldReturnLocations() {
         // Arrange
         UUID userId = UUID.randomUUID();
         UUID friend1Id = UUID.randomUUID();
@@ -148,7 +148,7 @@ public class LocationServiceTest {
     }
 
     @Test
-    public void getFriendsLocations_WhenNoMutualFollowers_ShouldReturnEmptyList() {
+    void getFriendsLocations_WhenNoMutualFollowers_ShouldReturnEmptyList() {
         // Arrange
         UUID userId = UUID.randomUUID();
         
@@ -165,7 +165,7 @@ public class LocationServiceTest {
     }
     
     @Test
-    public void getFriendsLocations_WhenFollowingButNotFollowedBack_ShouldNotIncludeInResults() {
+    void getFriendsLocations_WhenFollowingButNotFollowedBack_ShouldNotIncludeInResults() {
         // Arrange
         UUID userId = UUID.randomUUID();
         UUID friendId = UUID.randomUUID();

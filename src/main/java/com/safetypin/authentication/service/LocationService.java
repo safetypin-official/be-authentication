@@ -64,7 +64,7 @@ public class LocationService {
         // Convert to DTOs with required information
         return friendLocations.stream()
                 .map(this::convertToFriendLocationResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -80,7 +80,7 @@ public class LocationService {
         // Find the intersection (mutual followers)
         return followers.stream()
                 .filter(following::contains)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
