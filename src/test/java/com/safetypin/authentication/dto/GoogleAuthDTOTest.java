@@ -7,6 +7,7 @@ import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDate;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -33,13 +34,19 @@ class GoogleAuthDTOTest {
         // Create DTO
         GoogleAuthDTO dto = new GoogleAuthDTO();
 
+        // Verify default value for birthdate
+        assertNull(dto.getBirthdate(), "Default birthdate should be null");
+
         // Set values
         dto.setIdToken("test-id-token");
         dto.setServerAuthCode("test-server-auth-code");
+        dto.setBirthdate(LocalDate.of(2025, 1, 1));
 
         // Verify getters
         assertEquals("test-id-token", dto.getIdToken());
         assertEquals("test-server-auth-code", dto.getServerAuthCode());
+        assertEquals(LocalDate.of(2025, 1, 1), dto.getBirthdate(),
+                "Birthdate should match the set value");
     }
 
     @Test
@@ -48,6 +55,7 @@ class GoogleAuthDTOTest {
         GoogleAuthDTO dto = new GoogleAuthDTO();
         dto.setIdToken("valid-id-token");
         dto.setServerAuthCode("valid-server-auth-code");
+        dto.setBirthdate(LocalDate.of(2025, 1, 1));
 
         // Validate
         Set<ConstraintViolation<GoogleAuthDTO>> violations = validator.validate(dto);
@@ -60,6 +68,7 @@ class GoogleAuthDTOTest {
         GoogleAuthDTO dto = new GoogleAuthDTO();
         dto.setIdToken("");
         dto.setServerAuthCode("valid-server-auth-code");
+        dto.setBirthdate(LocalDate.of(2025, 1, 1));
 
         // Validate
         Set<ConstraintViolation<GoogleAuthDTO>> violations = validator.validate(dto);
@@ -78,6 +87,7 @@ class GoogleAuthDTOTest {
         GoogleAuthDTO dto = new GoogleAuthDTO();
         dto.setIdToken("valid-id-token");
         dto.setServerAuthCode("");
+        dto.setBirthdate(LocalDate.of(2025, 1, 1));
 
         // Validate
         Set<ConstraintViolation<GoogleAuthDTO>> violations = validator.validate(dto);
@@ -96,6 +106,7 @@ class GoogleAuthDTOTest {
         GoogleAuthDTO dto = new GoogleAuthDTO();
         dto.setIdToken("");
         dto.setServerAuthCode("");
+        dto.setBirthdate(LocalDate.of(2025, 1, 1));
 
         // Validate
         Set<ConstraintViolation<GoogleAuthDTO>> violations = validator.validate(dto);

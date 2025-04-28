@@ -98,7 +98,7 @@ public class AuthenticationController {
         try {
             AuthToken tokens = googleAuthService.authenticate(googleAuthData);
             return ResponseEntity.ok(new AuthResponse(true, "OK", tokens));
-        } catch (UserAlreadyExistsException e) {
+        } catch (UserAlreadyExistsException | IllegalArgumentException e ) {
             AuthResponse response = new AuthResponse(false, e.getMessage(), null);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         } catch (Exception e) {

@@ -6,6 +6,8 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.time.LocalDate;
+
 @Setter
 @Getter
 @EqualsAndHashCode
@@ -17,4 +19,6 @@ public class GoogleAuthDTO {
 
     @NotBlank
     private String serverAuthCode;
+
+    private LocalDate birthdate = null;
 }

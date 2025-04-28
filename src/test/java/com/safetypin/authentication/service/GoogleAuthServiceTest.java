@@ -299,6 +299,66 @@ class GoogleAuthServiceTest {
 
     @Test
     void extractBirthday_ValidResponse_ReturnsBirthdate() {
+        // Birthday taken from ACCOUNT source
+        String jsonResponse = "{"
+                + "\"birthdays\": ["
+                + "  {"
+                + "    \"date\": {"
+                + "      \"year\": 1990,"
+                + "      \"month\": 1,"
+                + "      \"day\": 15"
+                + "    },"
+                + "    \"metadata\": {"
+                + "      \"source\": {"
+                + "        \"type\": \"ACCOUNT\""
+                + "      }"
+                + "    }"
+                + "  }"
+                + "]"
+                + "}";
+
+        LocalDate result = googleAuthService.extractBirthday(jsonResponse);
+
+        assertEquals(LocalDate.of(1990, 1, 15), result);
+    }
+
+    @Test
+    void extractBirthday_ValidResponseWithAccountType_ReturnsAccountBirthday() {
+        String jsonResponse = "{"
+                + "\"birthdays\": ["
+                + "  {"
+                + "    \"date\": {"
+                + "      \"day\": 22,"
+                + "      \"month\": 8"
+                + "    },"
+                + "    \"metadata\": {"
+                + "      \"source\": {"
+                + "        \"type\": \"PROFILE\""
+                + "      }"
+                + "    }"
+                + "  },"
+                + "  {"
+                + "    \"date\": {"
+                + "      \"year\": 1998,"
+                + "      \"month\": 8,"
+                + "      \"day\": 22"
+                + "    },"
+                + "    \"metadata\": {"
+                + "      \"source\": {"
+                + "        \"type\": \"ACCOUNT\""
+                + "      }"
+                + "    }"
+                + "  }"
+                + "]"
+                + "}";
+
+        LocalDate result = googleAuthService.extractBirthday(jsonResponse);
+
+        assertEquals(LocalDate.of(1998, 8, 22), result);
+    }
+
+    @Test
+    void extractBirthday_NoMetadata_ReturnsFirstBirthday() {
         String jsonResponse = "{"
                 + "\"birthdays\": ["
                 + "  {"
@@ -324,6 +384,11 @@ class GoogleAuthServiceTest {
                 + "    \"date\": {"
                 + "      \"month\": 1,"
                 + "      \"day\": 15"
+                + "    },"
+                + "    \"metadata\": {"
+                + "      \"source\": {"
+                + "        \"type\": \"PROFILE\""
+                + "      }"
                 + "    }"
                 + "  }"
                 + "]"
@@ -332,6 +397,50 @@ class GoogleAuthServiceTest {
         LocalDate result = googleAuthService.extractBirthday(jsonResponse);
 
         assertEquals(LocalDate.of(LocalDate.now().getYear(), 1, 15), result);
+    }
+
+    @Test
+    void extractBirthday_NoAccountSource_ReturnsFirstBirthday() {
+        String jsonResponse = "{"
+                + "\"birthdays\": ["
+                + "  {"
+                + "    \"date\": {"
+                + "      \"year\": 1990,"
+                + "      \"month\": 1,"
+                + "      \"day\": 15"
+                + "    },"
+                + "    \"metadata\": {"
+                + "      \"source\": {"
+                + "        \"type\": \"PROFILE\""
+                + "      }"
+                + "    }"
+                + "  }"
+                + "]"
+                + "}";
+
+        LocalDate result = googleAuthService.extractBirthday(jsonResponse);
+
+        assertEquals(LocalDate.of(1990, 1, 15), result);
+    }
+
+    @Test
+    void extractBirthday_NoMetadataSource_ReturnsFirstBirthday() {
+        String jsonResponse = "{"
+                + "\"birthdays\": ["
+                + "  {"
+                + "    \"date\": {"
+                + "      \"year\": 1990,"
+                + "      \"month\": 1,"
+                + "      \"day\": 15"
+                + "    },"
+                + "    \"metadata\": {}"
+                + "  }"
+                + "]"
+                + "}";
+
+        LocalDate result = googleAuthService.extractBirthday(jsonResponse);
+
+        assertEquals(LocalDate.of(1990, 1, 15), result);
     }
 
     @Test
@@ -824,6 +933,50 @@ class GoogleAuthServiceTest {
 
         assertEquals("Permission denied: Birthdate not provided", exception.getMessage());
         verify(userService, never()).save(any(User.class));
+    }
+
+    @Test
+    void authenticate_UserWithNullBirthdate_ManualBirthdate_UseManualBirthdate() throws Exception {
+        // Set birthdate in googleAuthDTO
+        LocalDate backupBirthdate = LocalDate.of(1990, 1, 1);
+        googleAuthDTO.setBirthdate(backupBirthdate);
+
+        // Mock verify ID token
+        doReturn(payload).when(googleAuthService).verifyIdToken(anyString());
+        when(payload.getEmail()).thenReturn("test@example.com");
+        when(payload.get("name")).thenReturn("Test User");
+
+        // Mock user service to return empty (new user)
+        when(userService.findByEmail(anyString())).thenReturn(Optional.empty());
+
+        // Mock getAccessToken
+        doReturn(testAccessToken).when(googleAuthService).getAccessToken(anyString());
+
+        // Mock getUserBirthdate to return null
+        doReturn(null).when(googleAuthService).getUserBirthdate(anyString());
+
+        // Mock user save
+        User savedUser = new User();
+        savedUser.setId(testUserId);
+        when(userService.save(any(User.class))).thenReturn(savedUser);
+
+        // Mock JWT generation
+        when(jwtService.generateToken(any(UUID.class))).thenReturn("test-jwt-token");
+
+        // Mock refresh token creation
+        RefreshToken mockRefreshToken = new RefreshToken();
+        mockRefreshToken.setToken(testRefreshToken);
+        when(refreshTokenService.createRefreshToken(any(UUID.class))).thenReturn(mockRefreshToken);
+
+        // Execute
+        AuthToken result = googleAuthService.authenticate(googleAuthDTO);
+
+        // Verify
+        assertNotNull(result);
+        assertEquals(testUserId, result.getUserId());
+        assertEquals("test-jwt-token", result.getAccessToken());
+        assertEquals(testRefreshToken, result.getRefreshToken());
+        verify(userService).save(argThat(user -> user.getBirthdate() == backupBirthdate));
     }
 
     @Test

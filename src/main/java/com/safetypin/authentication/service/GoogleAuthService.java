@@ -82,7 +82,8 @@ public class GoogleAuthService {
                 User user = existingUser.get();
                 String userProvider = user.getProvider();
                 if (!EMAIL_PROVIDER.equals(userProvider)) {
-                    throw new UserAlreadyExistsException("An account with this email exists. Please sign in using " + userProvider);
+                    throw new UserAlreadyExistsException(
+                            "An account with this email exists. Please sign in using " + userProvider);
                 }
                 String accessToken = jwtService.generateToken(user.getId());
                 RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
@@ -92,10 +93,16 @@ public class GoogleAuthService {
             }
 
             String accessToken = getAccessToken(googleAuthDTO.getServerAuthCode());
-            LocalDate userBirthdate = getUserBirthdate(accessToken);
 
+            // Try retrieving the user's birthdate from Google API first
+            LocalDate userBirthdate = getUserBirthdate(accessToken);
+            // If the birthdate is not available, use the one provided in the request (if any)
             if (userBirthdate == null) {
-                throw new IllegalArgumentException("Permission denied: Birthdate not provided");
+                // Check if the birthdate is null
+                if (googleAuthDTO.getBirthdate() == null) {
+                    throw new IllegalArgumentException("Permission denied: Birthdate not provided");
+                }
+                userBirthdate = googleAuthDTO.getBirthdate();
             }
 
             if (Period.between(userBirthdate, LocalDate.now()).getYears() < 16)
@@ -322,13 +329,29 @@ public class GoogleAuthService {
             return null;
         }
 
-        JsonObject birthdayObj = birthdaysArray.get(0).getAsJsonObject();
+        for (JsonElement birthdayElement : birthdaysArray) {
+            JsonObject birthdayObj = birthdayElement.getAsJsonObject();
+            if (birthdayObj.has("metadata")) {
+                JsonObject metadata = birthdayObj.getAsJsonObject("metadata");
+                if (metadata.has("source")) {
+                    JsonObject source = metadata.getAsJsonObject("source");
+                    if ("ACCOUNT".equals(source.get("type").getAsString())) {
+                        return parseDate(birthdayObj);
+                    }
+                }
+            }
+        }
+
+        // Fallback to the first birthday if "ACCOUNT" type is not found
+        return parseDate(birthdaysArray.get(0).getAsJsonObject());
+    }
+
+    LocalDate parseDate(JsonObject birthdayObj) {
         if (!birthdayObj.has("date")) {
             return null;
         }
 
         JsonObject dateObj = birthdayObj.getAsJsonObject("date");
-
         int year = dateObj.has("year") ? dateObj.get("year").getAsInt() : 0;
         int month = dateObj.get("month").getAsInt();
         int day = dateObj.get("day").getAsInt();
