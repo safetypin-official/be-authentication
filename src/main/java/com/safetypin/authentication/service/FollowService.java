@@ -1,6 +1,7 @@
 package com.safetypin.authentication.service;
 
 import com.safetypin.authentication.dto.FollowerNotificationDTO;
+import com.safetypin.authentication.dto.UserFollowResponse;
 import com.safetypin.authentication.exception.ResourceNotFoundException;
 import com.safetypin.authentication.model.Follow;
 import com.safetypin.authentication.model.User;
@@ -106,6 +107,35 @@ public class FollowService {
     }
 
     /**
+     * Get all users that a user is following, with follow status for viewer
+     * 
+     * @param userId ID of the user
+     * @param viewerId ID of the user viewing the list
+     * @return List of users that the user is following with follow status
+     */
+    public List<UserFollowResponse> getFollowing(UUID userId, UUID viewerId) {
+        List<UUID> followingIds = followRepository.findByFollowerId(userId)
+                .stream()
+                .map(Follow::getFollowingId)
+                .toList();
+
+        if (followingIds.isEmpty()) {
+            return List.of();
+        }
+
+        List<User> followingUsers = userService.findAllById(followingIds);
+        
+        return followingUsers.stream()
+                .map(user -> UserFollowResponse.builder()
+                        .userId(user.getId())
+                        .name(user.getName())
+                        .profilePicture(user.getProfilePicture())
+                        .isFollowing(isFollowing(viewerId, user.getId()))
+                        .build())
+                .toList();
+    }
+
+    /**
      * Get all followers of a user
      * 
      * @param userId ID of the user
@@ -122,6 +152,35 @@ public class FollowService {
         }
 
         return userService.findAllById(followerIds);
+    }
+
+    /**
+     * Get all followers of a user, with follow status for viewer
+     * 
+     * @param userId ID of the user
+     * @param viewerId ID of the user viewing the list
+     * @return List of users that follow the user with follow status
+     */
+    public List<UserFollowResponse> getFollowers(UUID userId, UUID viewerId) {
+        List<UUID> followerIds = followRepository.findByFollowingId(userId)
+                .stream()
+                .map(Follow::getFollowerId)
+                .toList();
+
+        if (followerIds.isEmpty()) {
+            return List.of();
+        }
+
+        List<User> followers = userService.findAllById(followerIds);
+        
+        return followers.stream()
+                .map(user -> UserFollowResponse.builder()
+                        .userId(user.getId())
+                        .name(user.getName())
+                        .profilePicture(user.getProfilePicture())
+                        .isFollowing(isFollowing(viewerId, user.getId()))
+                        .build())
+                .toList();
     }
 
     /**
