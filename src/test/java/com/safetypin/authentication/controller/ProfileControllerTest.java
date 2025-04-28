@@ -7,26 +7,32 @@ import com.safetypin.authentication.service.JwtService;
 import com.safetypin.authentication.service.ProfileService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 class ProfileControllerTest {
 
     @Mock
     private ProfileService profileService;
-    
+
     @Mock
     private JwtService jwtService;
 
@@ -37,19 +43,15 @@ class ProfileControllerTest {
     private ProfileResponse testProfileResponse;
     private UpdateProfileRequest testUpdateRequest;
     private String testAuthHeader;
-    private String testToken;
-    private UserResponse testUserResponse;
-    private List<UserPostResponse> testAllProfiles;
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
         testUserId = UUID.randomUUID();
-        testToken = "test-token";
+        String testToken = "test-token";
         testAuthHeader = "Bearer " + testToken;
 
         // Set up test user response from JWT
-        testUserResponse = UserResponse.builder()
+        UserResponse testUserResponse = UserResponse.builder()
                 .id(testUserId)
                 .name("testuser")
                 .email("test@example.com")
@@ -76,26 +78,10 @@ class ProfileControllerTest {
         testUpdateRequest.setDiscord("newuser#5678");
         testUpdateRequest.setProfilePicture("https://example.com/profile.jpg");
         testUpdateRequest.setProfileBanner("https://example.com/banner.jpg");
-        
-        // Set up test profiles list
-        UserPostResponse profile1 = UserPostResponse.builder()
-                .id(testUserId)
-                .name("testuser")
-                .profilePicture("https://example.com/profile1.jpg")
-                .profileBanner("https://example.com/banner1.jpg")
-                .build();
-        
-        UserPostResponse profile2 = UserPostResponse.builder()
-                .id(UUID.randomUUID())
-                .name("otheruser")
-                .profilePicture("https://example.com/profile2.jpg")
-                .profileBanner("https://example.com/banner2.jpg")
-                .build();
-        
-        testAllProfiles = Arrays.asList(profile1, profile2);
-        
+
         // Configure JWT service mock
-        when(jwtService.getUserFromJwtToken(testToken)).thenReturn(testUserResponse);
+        // (lenient since some tests don't parse the token)
+        lenient().when(jwtService.getUserFromJwtToken(testToken)).thenReturn(testUserResponse);
     }
 
     // GET PROFILE TESTS
@@ -103,10 +89,10 @@ class ProfileControllerTest {
     @Test
     void getProfile_Success() {
         // Arrange
-        when(profileService.getProfile(testUserId)).thenReturn(testProfileResponse);
+        when(profileService.getProfile(testUserId, testUserId)).thenReturn(testProfileResponse);
 
         // Act
-        ResponseEntity<AuthResponse> response = profileController.getProfile(testUserId);
+        ResponseEntity<AuthResponse> response = profileController.getProfile(testUserId, testAuthHeader);
 
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -120,11 +106,11 @@ class ProfileControllerTest {
     @Test
     void getProfile_NotFound() {
         // Arrange
-        when(profileService.getProfile(testUserId))
+        when(profileService.getProfile(testUserId, testUserId))
                 .thenThrow(new ResourceNotFoundException("User not found with id " + testUserId));
 
         // Act
-        ResponseEntity<AuthResponse> response = profileController.getProfile(testUserId);
+        ResponseEntity<AuthResponse> response = profileController.getProfile(testUserId, testAuthHeader);
 
         // Assert
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
@@ -139,11 +125,11 @@ class ProfileControllerTest {
     void getProfile_InternalServerError() {
         // Arrange
         String errorMessage = "Database connection error";
-        when(profileService.getProfile(testUserId))
+        when(profileService.getProfile(testUserId, testUserId))
                 .thenThrow(new RuntimeException(errorMessage));
 
         // Act
-        ResponseEntity<AuthResponse> response = profileController.getProfile(testUserId);
+        ResponseEntity<AuthResponse> response = profileController.getProfile(testUserId, testAuthHeader);
 
         // Assert
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
@@ -153,17 +139,17 @@ class ProfileControllerTest {
         assertEquals("Error retrieving profile: " + errorMessage, body.getMessage());
         assertNull(body.getData());
     }
-    
+
     // GET MY PROFILE TESTS
-    
+
     @Test
     void getMyProfile_Success() {
         // Arrange
-        when(profileService.getProfile(testUserId)).thenReturn(testProfileResponse);
-        
+        when(profileService.getProfile(testUserId, testUserId)).thenReturn(testProfileResponse);
+
         // Act
         ResponseEntity<AuthResponse> response = profileController.getMyProfile(testAuthHeader);
-        
+
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
         AuthResponse body = response.getBody();
@@ -172,16 +158,36 @@ class ProfileControllerTest {
         assertEquals("Profile retrieved successfully", body.getMessage());
         assertEquals(testProfileResponse, body.getData());
     }
-    
+
+    @Test
+    void getMyProfile_Unauthorized() {
+        // Arrange
+        String invalidToken = "invalid-token";
+        String invalidAuthToken = "Bearer " + invalidToken;
+        when(jwtService.getUserFromJwtToken(invalidToken))
+                .thenThrow(new RuntimeException("Invalid token"));
+
+        // Act
+        ResponseEntity<AuthResponse> response = profileController.getMyProfile(invalidAuthToken);
+
+        // Assert
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        AuthResponse body = response.getBody();
+        assertNotNull(body);
+        assertFalse(body.isSuccess());
+        assertEquals("Invalid token", body.getMessage());
+        assertNull(body.getData());
+    }
+
     @Test
     void getMyProfile_NotFound() {
         // Arrange
-        when(profileService.getProfile(testUserId))
+        when(profileService.getProfile(testUserId, testUserId))
                 .thenThrow(new ResourceNotFoundException("User not found with id " + testUserId));
-        
+
         // Act
         ResponseEntity<AuthResponse> response = profileController.getMyProfile(testAuthHeader);
-        
+
         // Assert
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
         AuthResponse body = response.getBody();
@@ -190,17 +196,17 @@ class ProfileControllerTest {
         assertEquals("User not found with id " + testUserId, body.getMessage());
         assertNull(body.getData());
     }
-    
+
     @Test
     void getMyProfile_InternalServerError() {
         // Arrange
         String errorMessage = "Database connection error";
-        when(profileService.getProfile(testUserId))
+        when(profileService.getProfile(testUserId, testUserId))
                 .thenThrow(new RuntimeException(errorMessage));
-        
+
         // Act
         ResponseEntity<AuthResponse> response = profileController.getMyProfile(testAuthHeader);
-        
+
         // Assert
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
         AuthResponse body = response.getBody();
@@ -215,7 +221,7 @@ class ProfileControllerTest {
     @Test
     void updateMyProfile_Success() {
         // Arrange
-        when(profileService.updateProfile(eq(testUserId), any(UpdateProfileRequest.class), eq(testToken)))
+        when(profileService.updateProfile(eq(testUserId), any(UpdateProfileRequest.class)))
                 .thenReturn(testProfileResponse);
 
         // Act
@@ -235,7 +241,27 @@ class ProfileControllerTest {
     void updateMyProfile_Unauthorized() {
         // Arrange
         String errorMessage = "You are not authorized to update this profile";
-        when(profileService.updateProfile(eq(testUserId), any(UpdateProfileRequest.class), eq(testToken)))
+        when(profileService.updateProfile(eq(testUserId), any(UpdateProfileRequest.class)))
+                .thenThrow(new InvalidCredentialsException(errorMessage));
+
+        // Act
+        ResponseEntity<AuthResponse> response =
+                profileController.updateMyProfile(testUpdateRequest, testAuthHeader);
+
+        // Assert
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        AuthResponse body = response.getBody();
+        assertNotNull(body);
+        assertFalse(body.isSuccess());
+        assertEquals(errorMessage, body.getMessage());
+        assertNull(body.getData());
+    }
+
+    @Test
+    void updateMyProfile_WrongToken() {
+        // Arrange
+        String errorMessage = "Token expired";
+        when(profileService.updateProfile(eq(testUserId), any(UpdateProfileRequest.class)))
                 .thenThrow(new InvalidCredentialsException(errorMessage));
 
         // Act
@@ -255,7 +281,7 @@ class ProfileControllerTest {
     void updateMyProfile_NotFound() {
         // Arrange
         String errorMessage = "User not found with id " + testUserId;
-        when(profileService.updateProfile(eq(testUserId), any(UpdateProfileRequest.class), eq(testToken)))
+        when(profileService.updateProfile(eq(testUserId), any(UpdateProfileRequest.class)))
                 .thenThrow(new ResourceNotFoundException(errorMessage));
 
         // Act
@@ -275,7 +301,7 @@ class ProfileControllerTest {
     void updateMyProfile_InternalServerError() {
         // Arrange
         String errorMessage = "Database update failed";
-        when(profileService.updateProfile(eq(testUserId), any(UpdateProfileRequest.class), eq(testToken)))
+        when(profileService.updateProfile(eq(testUserId), any(UpdateProfileRequest.class)))
                 .thenThrow(new RuntimeException(errorMessage));
 
         // Act
@@ -290,42 +316,172 @@ class ProfileControllerTest {
         assertEquals("Error updating profile: " + errorMessage, body.getMessage());
         assertNull(body.getData());
     }
-    
-    // GET ALL PROFILES TESTS
-    
+
+    // GET USERS BATCH TEST
+
     @Test
-    void getAllProfiles_Success() {
+    void getUsersBatch_Success() {
         // Arrange
-        when(profileService.getAllProfiles()).thenReturn(testAllProfiles);
-        
+        List<UUID> userIds = Arrays.asList(UUID.randomUUID(), UUID.randomUUID());
+        // Create PostedByData instances using the builder
+        PostedByData user1Data = PostedByData.builder()
+                .userId(userIds.get(0))
+                .name("User1")
+                .profilePicture("pic1.jpg")
+                .build();
+        PostedByData user2Data = PostedByData.builder()
+                .userId(userIds.get(1))
+                .name("User2")
+                .profilePicture("pic2.jpg")
+                .build();
+        Map<UUID, PostedByData> expectedResponse = Map.of(
+                userIds.get(0), user1Data,
+                userIds.get(1), user2Data);
+
+        when(profileService.getUsersBatch(userIds)).thenReturn(expectedResponse);
+
         // Act
-        ResponseEntity<AuthResponse> response = profileController.getAllProfiles();
-        
+        Map<UUID, PostedByData> response = profileController.getUsersBatch(userIds);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(expectedResponse, response);
+        assertEquals(2, response.size());
+    }
+
+    // AUTHENTICATED PROFILE VIEW TESTS
+
+    @Test
+    void getProfile_AuthenticatedSuccess() {
+        // Arrange
+        UUID viewerId = testUserId;
+        UUID profileId = UUID.randomUUID();
+        when(profileService.getProfile(profileId, viewerId)).thenReturn(testProfileResponse);
+
+        // Act
+        ResponseEntity<AuthResponse> response = profileController.getProfile(profileId, testAuthHeader);
+
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
         AuthResponse body = response.getBody();
         assertNotNull(body);
         assertTrue(body.isSuccess());
-        assertEquals("All profiles retrieved successfully", body.getMessage());
-        assertEquals(testAllProfiles, body.getData());
+        assertEquals("Profile retrieved successfully", body.getMessage());
+        assertEquals(testProfileResponse, body.getData());
     }
-    
+
     @Test
-    void getAllProfiles_InternalServerError() {
+    void getProfile_FailedAuthenticationDoesNotAffectOutput() {
         // Arrange
-        String errorMessage = "Database connection error";
-        when(profileService.getAllProfiles())
-                .thenThrow(new RuntimeException(errorMessage));
-        
+        String invalidAuthHeader = "Bearer invalid-token";
+        UUID profileId = UUID.randomUUID();
+        when(jwtService.getUserFromJwtToken("invalid-token"))
+                .thenThrow(new InvalidCredentialsException("Invalid token"));
+        when(profileService.getProfile(profileId, null)).thenReturn(testProfileResponse);
+
         // Act
-        ResponseEntity<AuthResponse> response = profileController.getAllProfiles();
-        
+        ResponseEntity<AuthResponse> response = profileController.getProfile(profileId, invalidAuthHeader);
+
+        // Assert
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        AuthResponse body = response.getBody();
+        assertNotNull(body);
+        assertTrue(body.isSuccess());
+        assertEquals("Profile retrieved successfully", body.getMessage());
+        assertEquals(testProfileResponse, body.getData());
+        // Verify that profileService.getProfile was called with null viewerId
+        verify(profileService).getProfile(profileId, null);
+    }
+
+    // PROFILE VIEWS TESTS
+
+    @Test
+    void getProfileViews_Success() {
+        // Arrange
+        List<ProfileViewDTO> testViews = Arrays.asList(
+                ProfileViewDTO.builder()
+                        .viewerUserId(UUID.randomUUID())
+                        .name("Viewer 1")
+                        .profilePicture("pic1.jpg")
+                        .viewedAt(LocalDateTime.now())
+                        .build(),
+                ProfileViewDTO.builder()
+                        .viewerUserId(UUID.randomUUID())
+                        .name("Viewer 2")
+                        .profilePicture("pic2.jpg")
+                        .viewedAt(LocalDateTime.now())
+                        .build()
+        );
+
+        when(profileService.getProfileViews(testUserId)).thenReturn(testViews);
+
+        // Act
+        ResponseEntity<AuthResponse> response = profileController.getProfileViews(testAuthHeader);
+
+        // Assert
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        AuthResponse body = response.getBody();
+        assertNotNull(body);
+        assertTrue(body.isSuccess());
+        assertEquals("Profile views retrieved successfully", body.getMessage());
+        assertEquals(testViews, body.getData());
+    }
+
+    @Test
+    void getProfileViews_Unauthorized() {
+        // Arrange
+        String errorMessage = "You need to be a premium user to view profile views.";
+        when(profileService.getProfileViews(testUserId))
+                .thenThrow(new InvalidCredentialsException(errorMessage));
+
+        // Act
+        ResponseEntity<AuthResponse> response = profileController.getProfileViews(testAuthHeader);
+
+        // Assert
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        AuthResponse body = response.getBody();
+        assertNotNull(body);
+        assertFalse(body.isSuccess());
+        assertEquals(errorMessage, body.getMessage());
+        assertNull(body.getData());
+    }
+
+    @Test
+    void getProfileViews_NotFound() {
+        // Arrange
+        String errorMessage = "User not found";
+        when(profileService.getProfileViews(testUserId))
+                .thenThrow(new ResourceNotFoundException(errorMessage));
+
+        // Act
+        ResponseEntity<AuthResponse> response = profileController.getProfileViews(testAuthHeader);
+
+        // Assert
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        AuthResponse body = response.getBody();
+        assertNotNull(body);
+        assertFalse(body.isSuccess());
+        assertEquals(errorMessage, body.getMessage());
+        assertNull(body.getData());
+    }
+
+    @Test
+    void getProfileViews_InternalServerError() {
+        // Arrange
+        String errorMessage = "Database update failed";
+        when(profileService.getProfileViews(testUserId))
+                .thenThrow(new RuntimeException(errorMessage));
+
+        // Act
+        ResponseEntity<AuthResponse> response = profileController.getProfileViews(testAuthHeader);
+
         // Assert
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
         AuthResponse body = response.getBody();
         assertNotNull(body);
         assertFalse(body.isSuccess());
-        assertEquals("Error retrieving profiles: " + errorMessage, body.getMessage());
+        assertTrue(body.getMessage().contains("Error retrieving profile views:"));
+        assertTrue(body.getMessage().contains(errorMessage));
         assertNull(body.getData());
     }
 }

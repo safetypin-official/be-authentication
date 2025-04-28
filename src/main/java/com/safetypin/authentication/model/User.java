@@ -36,6 +36,7 @@ public class User {
     @Column(nullable = false)
     private String name;
 
+    @Getter // Explicitly add getter for boolean field for Jackson/Lombok interaction
     @Column(nullable = false)
     private boolean isVerified = false;
 
@@ -51,7 +52,7 @@ public class User {
 
     @Setter
     @Getter
-    private String provider;  // "EMAIL", "GOOGLE", "APPLE"
+    private String provider; // "EMAIL", "GOOGLE", "APPLE"
 
     @Setter
     @Getter
@@ -73,19 +74,15 @@ public class User {
     @Getter
     private String discord;
 
+    @Setter
+    @Getter
     private String profilePicture;
+
+    @Setter
+    @Getter
     private String profileBanner;
 
-    // Getters and setters
-
-    public boolean isVerified() {
-        return isVerified;
-    }
-
-    public void setVerified(boolean verified) {
-        isVerified = verified;
-    }
-
+    // used for jwt
     public UserResponse generateUserResponse() {
         return UserResponse.builder()
                 .email(email)
@@ -94,7 +91,7 @@ public class User {
                 .birthdate(birthdate)
                 .role(role != null ? role.name() : null)
                 .name(name)
-                .isVerified(isVerified)
+                .isVerified(this.isVerified()) // Explicitly call the getter
                 .profilePicture(profilePicture)
                 .profileBanner(profileBanner)
                 .build();

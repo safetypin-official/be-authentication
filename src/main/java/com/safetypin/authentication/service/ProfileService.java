@@ -1,16 +1,23 @@
 package com.safetypin.authentication.service;
 
+import com.safetypin.authentication.dto.PostedByData;
 import com.safetypin.authentication.dto.ProfileResponse;
+import com.safetypin.authentication.dto.ProfileViewDTO;
 import com.safetypin.authentication.dto.UpdateProfileRequest;
 import com.safetypin.authentication.dto.UserPostResponse;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.ResourceNotFoundException;
+import com.safetypin.authentication.model.ProfileView;
 import com.safetypin.authentication.model.User;
+import com.safetypin.authentication.repository.ProfileViewRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -18,107 +25,165 @@ import java.util.stream.Collectors;
 
 @Service
 public class ProfileService {
+    private static final String USER_NOT_FOUND = "User not found with id ";
+    private static final String VIEWER_NOT_FOUND = "Viewer not found with id ";
 
     private final UserService userService;
-    private final JwtService jwtService;
+    private final ProfileViewRepository profileViewRepository;
+    private final FollowService followService;
 
     @Autowired
-    public ProfileService(UserService userService, JwtService jwtService) {
+    public ProfileService(UserService userService, ProfileViewRepository profileViewRepository, FollowService followService) {
         this.userService = userService;
-        this.jwtService = jwtService;
-    }
-
-    public ProfileResponse getProfile(UUID userId) {
-        User user = userService.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + userId));
-
-        return ProfileResponse.builder()
-                .id(user.getId())
-                .role(user.getRole() != null ? user.getRole().name() : null)
-                .isVerified(user.isVerified())
-                .instagram(user.getInstagram())
-                .twitter(user.getTwitter())
-                .line(user.getLine())
-                .tiktok(user.getTiktok())
-                .discord(user.getDiscord())
-                .name(user.getName())
-                .profilePicture(user.getProfilePicture())
-                .profileBanner(user.getProfileBanner())
-                .build();
+        this.profileViewRepository = profileViewRepository;
+        this.followService = followService;
     }
 
     @Transactional
-    public ProfileResponse updateProfile(UUID userId, UpdateProfileRequest request, String token) {
-        // Verify the JWT token and get the user
-        try {
-            UUID tokenUserId = UUID.fromString(jwtService.parseToken(token).getSubject());
+    public ProfileResponse getProfile(UUID userId, UUID viewerId) {
+        User user = userService.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND + userId));
 
-            // Check if token user ID matches the requested user ID
-            if (!tokenUserId.equals(userId)) {
-                throw new InvalidCredentialsException("You are not authorized to update this profile");
+        // Profile view tracking
+        // Check if the viewer is the different as the user being viewed and not null
+        if (viewerId != null && !viewerId.equals(userId)) {
+            // Check if viewerId is a valid user
+            User viewer = userService.findById(viewerId)
+                    .orElseThrow(() -> new ResourceNotFoundException(VIEWER_NOT_FOUND + viewerId));
+
+            Optional<ProfileView> profileViewOpt = profileViewRepository.findByUser_IdAndViewer_Id(userId, viewerId);
+            ProfileView profileView;
+            // Check if the profile view record already exists
+            if (profileViewOpt.isPresent()) {
+                profileView = profileViewOpt.get();
+            } else {
+                // Create a new profile view record if it doesn't exist
+                profileView = new ProfileView();
+                profileView.setUser(user);
+                profileView.setViewer(viewer);
             }
-
-            User user = userService.findById(userId)
-                    .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + userId));
-
-            // Extract usernames from social media URLs and update fields
-            user.setInstagram(extractInstagramUsername(request.getInstagram()));
-            user.setTwitter(extractTwitterUsername(request.getTwitter()));
-            user.setLine(extractLineUsername(request.getLine()));
-            user.setTiktok(extractTiktokUsername(request.getTiktok()));
-            user.setDiscord(extractDiscordId(request.getDiscord()));
-            user.setProfilePicture(request.getProfilePicture());
-            user.setProfileBanner(request.getProfileBanner());
-
-            User savedUser = userService.save(user);
-
-            return ProfileResponse.builder()
-                    .id(savedUser.getId())
-                    .role(savedUser.getRole() != null ? savedUser.getRole().name() : null)
-                    .isVerified(savedUser.isVerified())
-                    .instagram(savedUser.getInstagram())
-                    .twitter(savedUser.getTwitter())
-                    .line(savedUser.getLine())
-                    .tiktok(savedUser.getTiktok())
-                    .discord(savedUser.getDiscord())
-                    .name(savedUser.getName())
-                    .profilePicture(savedUser.getProfilePicture())
-                    .profileBanner(savedUser.getProfileBanner())
-                    .build();
-
-        } catch (Exception e) {
-            throw new InvalidCredentialsException("Invalid or expired token");
+            // Set viewedAt to the current date
+            profileView.setViewedAt(LocalDateTime.now());
+            profileViewRepository.save(profileView);
         }
+
+        // If viewerId is provided, check if the user is following the profile
+        boolean isFollowing = false;
+        if (viewerId != null) {
+            isFollowing = followService.isFollowing(viewerId, userId);
+        }
+
+        return ProfileResponse.fromUserAndFollowStatus(
+                user,
+                followService.getFollowersCount(userId),
+                followService.getFollowingCount(userId),
+                isFollowing
+        );
     }
 
+    public ProfileResponse updateProfile(UUID userId, UpdateProfileRequest request) {
+        User user = userService.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND + userId));
+
+        // Update fields only if they are provided (not null) in the request
+        if (request.getInstagram() != null) {
+            user.setInstagram(extractInstagramUsername(request.getInstagram()));
+        }
+        if (request.getTwitter() != null) {
+            user.setTwitter(extractTwitterUsername(request.getTwitter()));
+        }
+        if (request.getLine() != null) {
+            user.setLine(extractLineUsername(request.getLine()));
+        }
+        if (request.getTiktok() != null) {
+            user.setTiktok(extractTiktokUsername(request.getTiktok()));
+        }
+        if (request.getDiscord() != null) {
+            user.setDiscord(extractDiscordId(request.getDiscord()));
+        }
+        if (request.getProfilePicture() != null) {
+            user.setProfilePicture(request.getProfilePicture());
+        }
+        if (request.getProfileBanner() != null) {
+            user.setProfileBanner(request.getProfileBanner());
+        }
+
+        User savedUser = userService.save(user);
+
+        return ProfileResponse.fromUserAndFollowStatus(
+                savedUser,
+                followService.getFollowersCount(userId),
+                followService.getFollowingCount(userId),
+                false
+        );
+    }
+
+    // Get all profiles
     public List<UserPostResponse> getAllProfiles() {
         List<User> users = userService.findAllUsers();
-        
+
         return users.stream()
-            .map(user -> UserPostResponse.builder()
-                .id(user.getId())
-                .name(user.getName())
-                .profilePicture(user.getProfilePicture())
-                .profileBanner(user.getProfileBanner())
-                .build())
-            .collect(Collectors.toList());
+                .map(user -> UserPostResponse.builder()
+                        .userId(user.getId())
+                        .name(user.getName())
+                        .profilePicture(user.getProfilePicture())
+                        .profileBanner(user.getProfileBanner())
+                        .build())
+                .toList();
     }
 
+    // If user is premium, return all profile views to that user
+    public List<ProfileViewDTO> getProfileViews(UUID userId) throws InvalidCredentialsException {
+        // Check if the user is premium
+        User user = userService.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND + userId));
+        if (!user.getRole().toString().contains("PREMIUM")) {
+            throw new InvalidCredentialsException("You need to be a premium user to view profile views.");
+        }
+
+        List<ProfileView> profileViews = profileViewRepository.findByUser_Id(userId);
+
+        return profileViews.stream()
+            .map(profileView -> ProfileViewDTO.builder()
+                .viewerUserId(profileView.getViewer().getId())
+                .name(profileView.getViewer().getName())
+                .profilePicture(profileView.getViewer().getProfilePicture())
+                .viewedAt(profileView.getViewedAt())
+                .build())
+            .toList();
+    }
+
+
+    public Map<UUID, PostedByData> getUsersBatch(List<UUID> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return Map.of(); // Return empty map if input is empty
+        }
+        List<User> users = userService.findAllById(userIds);
+        return users.stream()
+                .collect(Collectors.toMap(
+                        User::getId,
+                        user -> PostedByData.builder()
+                                .userId(user.getId()) // Changed from id to userId
+                                .name(user.getName())
+                                .profilePicture(user.getProfilePicture())
+                                .build()));
+    }
+
+
+
+    // Helper methods to extract usernames from social media URLs
 
     private String extractInstagramUsername(String input) {
         if (input == null || input.trim().isEmpty()) {
             return null;
         }
-
-        // Pattern to match instagram.com/username or instagram.com/@username
-        Pattern pattern = Pattern.compile("instagram\\.com/(?:@)?(\\w+)");
+        // Corrected Regex: instagram\.com/@?([\w.]+)
+        Pattern pattern = Pattern.compile("instagram\\.com/@?([\\w.]+)"); // Removed duplicate .
         Matcher matcher = pattern.matcher(input);
 
         if (matcher.find()) {
             return matcher.group(1);
         }
-
-        // If no URL pattern found, return the original input (assuming it's just the username)
         return input.trim();
     }
 
@@ -135,7 +200,8 @@ public class ProfileService {
             return matcher.group(1);
         }
 
-        // If no URL pattern found, return the original input (assuming it's just the username)
+        // If no URL pattern found, return the original input (assuming it's just the
+        // username)
         return input.trim();
     }
 
@@ -152,16 +218,13 @@ public class ProfileService {
         if (input == null || input.trim().isEmpty()) {
             return null;
         }
-
-        // Pattern to match tiktok.com/@username or tiktok.com/username
-        Pattern pattern = Pattern.compile("tiktok\\.com/(?:@)?(\\w+)");
+        // Corrected Regex: tiktok\.com/@?([\w.]+)
+        Pattern pattern = Pattern.compile("tiktok\\.com/@?([\\w.]+)"); // Removed duplicate .
         Matcher matcher = pattern.matcher(input);
 
         if (matcher.find()) {
             return matcher.group(1);
         }
-
-        // If no URL pattern found, return the original input (assuming it's just the username)
         return input.trim();
     }
 

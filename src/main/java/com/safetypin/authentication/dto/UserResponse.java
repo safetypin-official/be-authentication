@@ -12,6 +12,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @Builder
+// Yang disimpan di dalam JWT
 public class UserResponse {
     private UUID id;
 

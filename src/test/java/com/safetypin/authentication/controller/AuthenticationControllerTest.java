@@ -2,7 +2,6 @@ package com.safetypin.authentication.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.safetypin.authentication.dto.*;
-import com.safetypin.authentication.dto.LoginRequest;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.UserAlreadyExistsException;
 import com.safetypin.authentication.model.Role;
@@ -68,12 +67,12 @@ class AuthenticationControllerTest {
         user.setBirthdate(request.getBirthdate());
         user.setProvider("EMAIL");
 
-        UUID id = UUID.randomUUID();
-        user.setId(id);
+        UUID userId = UUID.randomUUID();
+        user.setId(userId);
 
         String accessToken = jwtService.generateToken(user.getId());
         String refreshToken = "test-refresh-token";
-        AuthToken returnToken = new AuthToken(accessToken, refreshToken);
+        AuthToken returnToken = new AuthToken(userId, accessToken, refreshToken);
 
         Mockito.when(authenticationService.registerUser(any(RegistrationRequest.class))).thenReturn(returnToken);
 
@@ -81,6 +80,9 @@ class AuthenticationControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("OK"))
+                .andExpect(jsonPath("$.data.userId").value(userId.toString()))
                 .andExpect(jsonPath("$.data.accessToken").value(accessToken))
                 .andExpect(jsonPath("$.data.refreshToken").value(refreshToken));
     }
@@ -96,8 +98,8 @@ class AuthenticationControllerTest {
         user.setBirthdate(LocalDate.now().minusYears(20));
         user.setProvider("EMAIL");
 
-        UUID id = UUID.randomUUID();
-        user.setId(id);
+        UUID userId = UUID.randomUUID();
+        user.setId(userId);
 
 
         // Create LoginRequest object
@@ -107,7 +109,7 @@ class AuthenticationControllerTest {
 
         String accessToken = jwtService.generateToken(user.getId());
         String refreshToken = "test-refresh-token";
-        AuthToken returnToken = new AuthToken(accessToken, refreshToken);
+        AuthToken returnToken = new AuthToken(userId, accessToken, refreshToken);
 
         Mockito.when(authenticationService.loginUser("email@example.com", "password")).thenReturn(returnToken);
 
@@ -358,9 +360,10 @@ class AuthenticationControllerTest {
         googleAuthData.setServerAuthCode("validServerAuthCode");
 
         // Generate a mock JWT token
+        UUID userId = UUID.randomUUID();
         String mockJwt = "mockJwtToken123";
         String refreshToken = "test-refreshToken123";
-        AuthToken returnToken = new AuthToken(mockJwt, refreshToken);
+        AuthToken returnToken = new AuthToken(userId, mockJwt, refreshToken);
 
         // Mock the service method to return the JWT token
         Mockito.when(googleAuthService.authenticate(any(GoogleAuthDTO.class)))
@@ -373,6 +376,7 @@ class AuthenticationControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("OK"))
+                .andExpect(jsonPath("$.data.userId").value(userId.toString()))
                 .andExpect(jsonPath("$.data.accessToken").value(mockJwt))
                 .andExpect(jsonPath("$.data.refreshToken").value(refreshToken));
     }
@@ -459,22 +463,25 @@ class AuthenticationControllerTest {
         String validToken = "valid.jwt.token";
 
         // Create a mock UserResponse
-        UserResponse userResponse = Mockito.mock(UserResponse.class);
         UUID userId = UUID.randomUUID();
-
-        // Set up basic behavior for the mock
-        Mockito.when(userResponse.getId()).thenReturn(userId);
-        Mockito.when(userResponse.getEmail()).thenReturn("test@example.com");
-        Mockito.when(userResponse.getName()).thenReturn("Test User");
+        UserResponse userResponse = UserResponse.builder()
+                .id(userId)
+                .name("Test User")
+                .email("test@example.com")
+                .build();
 
         // Mock the service method to return the mocked user response
         Mockito.when(jwtService.getUserFromJwtToken(validToken)).thenReturn(userResponse);
 
         // Perform the test
         mockMvc.perform(post("/api/auth/verify-jwt")
-                        .param("token", validToken))
+                .param("token", validToken))
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("OK"));
+                .andExpect(jsonPath("$.message").value("OK"))
+                .andExpect(jsonPath("$.data.id").value(userId.toString()))
+                .andExpect(jsonPath("$.data.email").value("test@example.com"))
+                .andExpect(jsonPath("$.data.name").value("Test User"));
     }
 
     @Test
@@ -497,9 +504,10 @@ class AuthenticationControllerTest {
 
     @Test
     void renewRefreshToken_Success() throws Exception {
+        UUID userId = UUID.randomUUID();
         String accessToken = "test-jwt";
         String refreshToken = "test-refresh-token";
-        AuthToken returnToken = new AuthToken(accessToken, refreshToken);
+        AuthToken returnToken = new AuthToken(userId, accessToken, refreshToken);
         Mockito.when(authenticationService.renewRefreshToken(anyString())).thenReturn(returnToken);
 
         mockMvc.perform(post("/api/auth/refresh-token")
@@ -508,6 +516,7 @@ class AuthenticationControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("OK"))
+                .andExpect(jsonPath("$.data.userId").value(userId.toString()))
                 .andExpect(jsonPath("$.data.accessToken").value(accessToken))
                 .andExpect(jsonPath("$.data.refreshToken").value(refreshToken));
     }

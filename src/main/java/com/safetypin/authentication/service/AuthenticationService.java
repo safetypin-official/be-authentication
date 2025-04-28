@@ -1,20 +1,22 @@
 package com.safetypin.authentication.service;
 
-import com.safetypin.authentication.dto.AuthToken;
-import com.safetypin.authentication.dto.RegistrationRequest;
-import com.safetypin.authentication.exception.InvalidCredentialsException;
-import com.safetypin.authentication.exception.UserAlreadyExistsException;
-import com.safetypin.authentication.model.RefreshToken;
-import com.safetypin.authentication.model.Role;
-import com.safetypin.authentication.model.User;
+import java.time.LocalDate;
+import java.time.Period;
+import java.util.Optional;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
-import java.time.Period;
-import java.util.Optional;
+import com.safetypin.authentication.dto.AuthToken;
+import com.safetypin.authentication.dto.RegistrationRequest;
+import com.safetypin.authentication.exception.InvalidCredentialsException;
+import com.safetypin.authentication.exception.PendingVerificationException;
+import com.safetypin.authentication.exception.UserAlreadyExistsException;
+import com.safetypin.authentication.model.RefreshToken;
+import com.safetypin.authentication.model.Role;
+import com.safetypin.authentication.model.User;
 
 @Service
 public class AuthenticationService {
@@ -44,9 +46,23 @@ public class AuthenticationService {
         if (calculateAge(request.getBirthdate()) < 16) {
             throw new IllegalArgumentException("User must be at least 16 years old");
         }
-        Optional<User> existingUser = userService.findByEmail(request.getEmail());
-        if (existingUser.isPresent()) {
-            throw new UserAlreadyExistsException("Email address is already registered. If you previously used social login (Google/Apple), please use that method to sign in.");
+        Optional<User> existingUserOpt = userService.findByEmail(request.getEmail());
+        if (existingUserOpt.isPresent()) {
+            User existingUser = existingUserOpt.get();
+            // Check if user exists, is unverified, and uses EMAIL provider
+            if (EMAIL_PROVIDER.equals(existingUser.getProvider()) && !existingUser.isVerified()) {
+                // Resend OTP instead of throwing UserAlreadyExistsException
+                otpService.generateOTP(request.getEmail());
+                logger.info("Existing unverified EMAIL user found. Resending OTP for email: {}", request.getEmail());
+                // Throw a specific exception to indicate pending verification
+                throw new PendingVerificationException(
+                        "User already exists but is not verified. A new OTP has been sent.");
+            } else {
+                // Throw original error for other cases (e.g., verified user, different
+                // provider)
+                throw new UserAlreadyExistsException(
+                        "Email address is already registered. If you previously used social login (Google/Apple), please use that method to sign in.");
+            }
         }
         String encodedPassword = passwordEncoder.encode(request.getPassword());
 
@@ -68,7 +84,7 @@ public class AuthenticationService {
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
 
         logger.info("User registered at {}", java.time.LocalDateTime.now());
-        return new AuthToken(accessToken, refreshToken.getToken());
+        return new AuthToken(user.getId(), accessToken, refreshToken.getToken());
     }
 
     // Email login with detailed error messages
@@ -89,7 +105,7 @@ public class AuthenticationService {
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
 
         logger.info("User logged in at {}", java.time.LocalDateTime.now());
-        return new AuthToken(accessToken, refreshToken.getToken());
+        return new AuthToken(user.getId(), accessToken, refreshToken.getToken());
     }
 
     // OTP verification – marks user as verified upon success
@@ -134,7 +150,8 @@ public class AuthenticationService {
         if (isValid) {
             // Generate a reset token valid for 3 minutes
             String resetToken = otpService.generateResetToken(email);
-            logger.info("Password reset OTP verified for {}. Reset token generated at {}", email, java.time.LocalDateTime.now());
+            logger.info("Password reset OTP verified for {}. Reset token generated at {}", email,
+                    java.time.LocalDateTime.now());
             return resetToken;
         } else {
             logger.warn("Invalid password reset OTP attempt for {} at {}", email, java.time.LocalDateTime.now());
@@ -177,7 +194,7 @@ public class AuthenticationService {
         refreshTokenService.deleteRefreshToken(oldToken.getToken());
 
         logger.info("User with id: {}, refreshed new tokens", user.getId());
-        return new AuthToken(accessToken, newRefreshToken.getToken());
+        return new AuthToken(user.getId(), accessToken, newRefreshToken.getToken());
     }
 
     private int calculateAge(LocalDate birthdate) {
