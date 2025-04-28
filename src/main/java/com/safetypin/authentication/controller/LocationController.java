@@ -29,6 +29,15 @@ public class LocationController {
     }
 
     /**
+     * Extract user ID from authorization header
+     */
+    private UUID extractUserIdFromAuthHeader(String authHeader) {
+        String token = authHeader.replace(BEARER_PREFIX, "");
+        UserResponse user = jwtService.getUserFromJwtToken(token);
+        return user.getId();
+    }
+
+    /**
      * Update the current user's location
      */
     @PostMapping("/update")
@@ -36,9 +45,7 @@ public class LocationController {
             @RequestBody LocationRequest locationRequest,
             @RequestHeader("Authorization") String authHeader) {
         
-        String token = authHeader.replace(BEARER_PREFIX, "");
-        UserResponse user = jwtService.getUserFromJwtToken(token);
-        UUID currentUserId = user.getId();
+        UUID currentUserId = extractUserIdFromAuthHeader(authHeader);
         
         locationService.updateLocation(currentUserId, locationRequest);
         
@@ -57,9 +64,7 @@ public class LocationController {
     public ResponseEntity<ApiResponse<List<FriendLocationResponse>>> getFriendsLocations(
             @RequestHeader("Authorization") String authHeader) {
         
-        String token = authHeader.replace(BEARER_PREFIX, "");
-        UserResponse user = jwtService.getUserFromJwtToken(token);
-        UUID currentUserId = user.getId();
+        UUID currentUserId = extractUserIdFromAuthHeader(authHeader);
         
         List<FriendLocationResponse> friendsLocations = locationService.getFriendsLocations(currentUserId);
         
