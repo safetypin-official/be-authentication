@@ -182,6 +182,7 @@ public class AuthenticationService {
         Optional<RefreshToken> optOldToken = refreshTokenService.getAndVerifyRefreshToken(refreshToken);
         // Check token validity
         if (optOldToken.isEmpty()) {
+            logger.warn("Invalid refresh token provided: {}", refreshToken);
             throw new InvalidCredentialsException("Invalid token provided");
         }
 
