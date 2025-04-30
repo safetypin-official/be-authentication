@@ -4,7 +4,8 @@ import com.safetypin.authentication.model.RefreshToken;
 import com.safetypin.authentication.model.User;
 import com.safetypin.authentication.repository.RefreshTokenRepository;
 import com.safetypin.authentication.repository.UserRepository;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -14,9 +15,10 @@ import java.util.Base64;
 import java.util.Optional;
 import java.util.UUID;
 
-@Slf4j
 @Service
 public class RefreshTokenService {
+    private static final Logger logger = LoggerFactory.getLogger(RefreshTokenService.class);
+
     private static final long EXPIRATION_TIME = 24 * 60 * 60L; // 1 day in seconds
     private static final SecureRandom random = new SecureRandom();
     private final RefreshTokenRepository refreshTokenRepository;
@@ -53,18 +55,18 @@ public class RefreshTokenService {
         RefreshToken refreshToken = refreshTokenRepository.findByToken(token);
         // token doesn't exist
         if (refreshToken == null) {
-            log.warn("Refresh token not found: {}, found:", token);
+            logger.warn("Refresh token not found: {}, found:", token);
             return Optional.empty();
         }
         // Check expiry of refresh token
         if (refreshToken.getExpiryTime().isAfter(Instant.now())) {
-            log.info("Refresh token found: {}, found:", token);
-            log.info(refreshToken.toString());
+            logger.info("Refresh token found: {}, found:", token);
+            logger.info("{}", refreshToken);
             return Optional.of(refreshToken);
         }
         // Expired token, delete from database
-        log.warn("Refresh token expired: {}, found:", token);
-        log.info(refreshToken.toString());
+        logger.warn("Refresh token expired: {}, found:", token);
+        logger.info("{}", refreshToken);
         refreshTokenRepository.delete(refreshToken);
         return Optional.empty();
     }
