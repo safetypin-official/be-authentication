@@ -8,6 +8,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class UpdateProfileRequest {
+    private String name;
     private String instagram;
     private String twitter;
     private String line;
