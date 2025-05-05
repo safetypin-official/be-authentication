@@ -6,42 +6,31 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import com.safetypin.authentication.dto.FollowStats;
-import com.safetypin.authentication.dto.FollowerNotificationDTO;
-import com.safetypin.authentication.dto.UserFollowResponse;
-import com.safetypin.authentication.dto.UserResponse;
-import com.safetypin.authentication.dto.ApiResponse;
+import com.safetypin.authentication.constants.ApiConstants;
+import com.safetypin.authentication.dto.*;
 import com.safetypin.authentication.service.FollowService;
-import com.safetypin.authentication.service.JwtService;
+import com.safetypin.authentication.util.JwtUtils;
 
 @RestController
 @RequestMapping("/api/follow")
 public class FollowController {
     private final FollowService followService;
-    private final JwtService jwtService;
-    private static final String BEARER_PREFIX = "Bearer ";
-    private static final String STATUS_SUCCESS = "success";
+    private final JwtUtils jwtUtils;
 
     @Autowired
-    public FollowController(FollowService followService, JwtService jwtService) {
+    public FollowController(FollowService followService, JwtUtils jwtUtils) {
         this.followService = followService;
-        this.jwtService = jwtService;
+        this.jwtUtils = jwtUtils;
     }
 
     @PostMapping("/{userIdToFollow}")
     public ResponseEntity<Void> followUser(
             @PathVariable UUID userIdToFollow,
             @RequestHeader("Authorization") String authHeader) {
-        String token = authHeader.replace(BEARER_PREFIX, "");
-        UserResponse user = jwtService.getUserFromJwtToken(token);
+        
+        UserResponse user = jwtUtils.parseUserFromAuthHeader(authHeader);
         UUID currentUserId = user.getId();
 
         followService.followUser(currentUserId, userIdToFollow);
@@ -53,8 +42,7 @@ public class FollowController {
             @PathVariable UUID userIdToUnfollow,
             @RequestHeader("Authorization") String authHeader) {
 
-        String token = authHeader.replace(BEARER_PREFIX, "");
-        UserResponse user = jwtService.getUserFromJwtToken(token);
+        UserResponse user = jwtUtils.parseUserFromAuthHeader(authHeader);
         UUID currentUserId = user.getId();
 
         followService.unfollowUser(currentUserId, userIdToUnfollow);
@@ -66,13 +54,13 @@ public class FollowController {
             @PathVariable UUID userId,
             @RequestHeader("Authorization") String authHeader) {
         
-        String token = authHeader.replace(BEARER_PREFIX, "");
-        UserResponse currentUser = jwtService.getUserFromJwtToken(token);
+        UserResponse currentUser = jwtUtils.parseUserFromAuthHeader(authHeader);
         UUID viewerId = currentUser.getId();
         
         List<UserFollowResponse> followers = followService.getFollowers(userId, viewerId);
         ApiResponse<List<UserFollowResponse>> response = ApiResponse.<List<UserFollowResponse>>builder()
-                .status(STATUS_SUCCESS)
+                .status(ApiConstants.STATUS_SUCCESS)
+                .success(true)
                 .data(followers)
                 .message("Followers retrieved successfully")
                 .build();
@@ -85,13 +73,13 @@ public class FollowController {
             @PathVariable UUID userId,
             @RequestHeader("Authorization") String authHeader) {
         
-        String token = authHeader.replace(BEARER_PREFIX, "");
-        UserResponse currentUser = jwtService.getUserFromJwtToken(token);
+        UserResponse currentUser = jwtUtils.parseUserFromAuthHeader(authHeader);
         UUID viewerId = currentUser.getId();
         
         List<UserFollowResponse> following = followService.getFollowing(userId, viewerId);
         ApiResponse<List<UserFollowResponse>> response = ApiResponse.<List<UserFollowResponse>>builder()
-                .status(STATUS_SUCCESS)
+                .status(ApiConstants.STATUS_SUCCESS)
+                .success(true)
                 .data(following)
                 .message("Following list retrieved successfully")
                 .build();
@@ -102,32 +90,55 @@ public class FollowController {
     @GetMapping("/stats/{userId}")
     public ResponseEntity<ApiResponse<FollowStats>> getFollowStats(
             @PathVariable UUID userId,
-            @RequestHeader(value = "Authorization") String authHeader) {
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
 
-        boolean isFollowing = false;
-
-        try {
-            String token = authHeader.replace(BEARER_PREFIX, "");
-            UserResponse user = jwtService.getUserFromJwtToken(token);
-            UUID currentUserId = user.getId();
-
-            isFollowing = followService.isFollowing(currentUserId, userId);
-        } catch (Exception e) {
-            // Invalid token, keep isFollowing as false
-        }
+        boolean isFollowing = checkIsFollowing(authHeader, userId);
+        
+        // Get followers and following counts
+        long followersCount = followService.getFollowersCount(userId);
+        long followingCount = followService.getFollowingCount(userId);
 
         FollowStats stats = FollowStats.builder()
-                .followersCount(followService.getFollowersCount(userId))
-                .followingCount(followService.getFollowingCount(userId))
+                .followersCount(followersCount)
+                .followingCount(followingCount)
                 .isFollowing(isFollowing)
                 .build();
+        
         ApiResponse<FollowStats> response = ApiResponse.<FollowStats>builder()
-                .status(STATUS_SUCCESS)
+                .status(ApiConstants.STATUS_SUCCESS)
+                .success(true)
                 .data(stats)
-                .message("Follow statistics retrieved successfully")
+                .message(ApiConstants.MSG_FOLLOW_STATS)
                 .build();
 
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Helper method to check if the current user is following another user
+     * 
+     * @param authHeader JWT authorization header
+     * @param userId ID of the user to check following status for
+     * @return true if current user is following the specified user, false otherwise
+     */
+    private boolean checkIsFollowing(String authHeader, UUID userId) {
+        // Check for null or empty auth header
+        if (authHeader == null) {
+            return false;
+        }
+        
+        if (authHeader.isEmpty()) {
+            return false;
+        }
+        
+        try {
+            UserResponse user = jwtUtils.parseUserFromAuthHeader(authHeader);
+            UUID currentUserId = user.getId();
+            return followService.isFollowing(currentUserId, userId);
+        } catch (Exception e) {
+            // Invalid token, keep isFollowing as false
+            return false;
+        }
     }
 
     /**
@@ -140,8 +151,7 @@ public class FollowController {
     public ResponseEntity<List<FollowerNotificationDTO>> getRecentFollowers(
             @RequestHeader("Authorization") String authHeader) {
 
-        String token = authHeader.replace(BEARER_PREFIX, "");
-        UserResponse user = jwtService.getUserFromJwtToken(token);
+        UserResponse user = jwtUtils.parseUserFromAuthHeader(authHeader);
         UUID currentUserId = user.getId();
 
         List<FollowerNotificationDTO> recentFollowers = followService.getRecentFollowers(currentUserId);
