@@ -88,6 +88,9 @@ public class ProfileService {
 
         // Update fields only if they are provided (not null) in the request
         if (request.getName() != null) {
+            if (request.getName().length() > 100) {
+                throw new IllegalArgumentException("Name must not exceed 100 characters");
+            }
             user.setName(request.getName());
         }
         if (request.getInstagram() != null) {
