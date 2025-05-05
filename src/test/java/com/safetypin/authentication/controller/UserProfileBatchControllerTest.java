@@ -1,8 +1,10 @@
 package com.safetypin.authentication.controller;
 
+import com.safetypin.authentication.constants.ApiConstants;
+import com.safetypin.authentication.dto.ApiResponse;
 import com.safetypin.authentication.dto.PostedByData;
-import com.safetypin.authentication.service.JwtService;
 import com.safetypin.authentication.service.ProfileService;
+import com.safetypin.authentication.util.JwtUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -10,6 +12,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 
 import java.util.*;
 
@@ -17,6 +21,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.*;
 
@@ -28,7 +33,7 @@ class ProfileControllerBatchEndpointTest {
     private ProfileService profileService;
 
     @Mock
-    private JwtService jwtService;
+    private JwtUtils jwtUtils;
 
     @InjectMocks
     private ProfileController profileController;
@@ -66,15 +71,24 @@ class ProfileControllerBatchEndpointTest {
         when(profileService.getUsersBatch(userIds)).thenReturn(postedByDataMap);
 
         // Act
-        Map<UUID, PostedByData> responseMap = profileController.getUsersBatch(userIds);
+        ResponseEntity<ApiResponse<Map<UUID, PostedByData>>> response = profileController.getUsersBatch(userIds);
 
         // Assert
-        assertNotNull(responseMap);
-        assertThat(responseMap, aMapWithSize(2));
-        assertThat(responseMap, hasEntry(is(userId1), is(profile1)));
-        assertThat(responseMap, hasEntry(is(userId2), is(profile2)));
-        assertEquals("User One", responseMap.get(userId1).getName());
-        assertEquals("pic2.jpg", responseMap.get(userId2).getProfilePicture());
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        
+        ApiResponse<Map<UUID, PostedByData>> apiResponse = response.getBody();
+        assertNotNull(apiResponse);
+        assertTrue(apiResponse.isSuccess());
+        assertEquals(ApiConstants.STATUS_SUCCESS, apiResponse.getStatus());
+        assertEquals(ApiConstants.MSG_USERS_BATCH, apiResponse.getMessage());
+        
+        Map<UUID, PostedByData> responseData = apiResponse.getData();
+        assertThat(responseData, aMapWithSize(2));
+        assertThat(responseData, hasEntry(is(userId1), is(profile1)));
+        assertThat(responseData, hasEntry(is(userId2), is(profile2)));
+        assertEquals("User One", responseData.get(userId1).getName());
+        assertEquals("pic2.jpg", responseData.get(userId2).getProfilePicture());
 
         // Verify the service method was called
         verify(profileService, times(1)).getUsersBatch(userIds);
@@ -88,11 +102,20 @@ class ProfileControllerBatchEndpointTest {
         when(profileService.getUsersBatch(emptyList)).thenReturn(Collections.emptyMap());
 
         // Act
-        Map<UUID, PostedByData> responseMap = profileController.getUsersBatch(emptyList);
+        ResponseEntity<ApiResponse<Map<UUID, PostedByData>>> response = profileController.getUsersBatch(emptyList);
 
         // Assert
-        assertNotNull(responseMap);
-        assertThat(responseMap, aMapWithSize(0));
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        
+        ApiResponse<Map<UUID, PostedByData>> apiResponse = response.getBody();
+        assertNotNull(apiResponse);
+        assertTrue(apiResponse.isSuccess());
+        assertEquals(ApiConstants.STATUS_SUCCESS, apiResponse.getStatus());
+        assertEquals(ApiConstants.MSG_USERS_BATCH, apiResponse.getMessage());
+        
+        Map<UUID, PostedByData> responseData = apiResponse.getData();
+        assertThat(responseData, aMapWithSize(0));
 
         // Verify service method was called with the empty list
         verify(profileService, times(1)).getUsersBatch(emptyList);
@@ -105,11 +128,20 @@ class ProfileControllerBatchEndpointTest {
         when(profileService.getUsersBatch(isNull())).thenReturn(Collections.emptyMap());
 
         // Act
-        Map<UUID, PostedByData> responseMap = profileController.getUsersBatch(null);
+        ResponseEntity<ApiResponse<Map<UUID, PostedByData>>> response = profileController.getUsersBatch(null);
 
         // Assert
-        assertNotNull(responseMap);
-        assertThat(responseMap, aMapWithSize(0));
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        
+        ApiResponse<Map<UUID, PostedByData>> apiResponse = response.getBody();
+        assertNotNull(apiResponse);
+        assertTrue(apiResponse.isSuccess());
+        assertEquals(ApiConstants.STATUS_SUCCESS, apiResponse.getStatus());
+        assertEquals(ApiConstants.MSG_USERS_BATCH, apiResponse.getMessage());
+        
+        Map<UUID, PostedByData> responseData = apiResponse.getData();
+        assertThat(responseData, aMapWithSize(0));
 
         // Verify service method was called with null
         verify(profileService, times(1)).getUsersBatch(isNull());
@@ -127,13 +159,22 @@ class ProfileControllerBatchEndpointTest {
         when(profileService.getUsersBatch(requestedIds)).thenReturn(partialMap);
 
         // Act
-        Map<UUID, PostedByData> responseMap = profileController.getUsersBatch(requestedIds);
+        ResponseEntity<ApiResponse<Map<UUID, PostedByData>>> response = profileController.getUsersBatch(requestedIds);
 
         // Assert
-        assertNotNull(responseMap);
-        assertThat(responseMap, aMapWithSize(1));
-        assertThat(responseMap, hasEntry(is(userId1), is(profile1)));
-        assertThat(responseMap, not(hasKey(userId3)));
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        
+        ApiResponse<Map<UUID, PostedByData>> apiResponse = response.getBody();
+        assertNotNull(apiResponse);
+        assertTrue(apiResponse.isSuccess());
+        assertEquals(ApiConstants.STATUS_SUCCESS, apiResponse.getStatus());
+        assertEquals(ApiConstants.MSG_USERS_BATCH, apiResponse.getMessage());
+        
+        Map<UUID, PostedByData> responseData = apiResponse.getData();
+        assertThat(responseData, aMapWithSize(1));
+        assertThat(responseData, hasEntry(is(userId1), is(profile1)));
+        assertThat(responseData, not(hasKey(userId3)));
 
         // Verify the service method was called
         verify(profileService, times(1)).getUsersBatch(requestedIds);
@@ -146,11 +187,20 @@ class ProfileControllerBatchEndpointTest {
         when(profileService.getUsersBatch(userIds)).thenReturn(Collections.emptyMap());
 
         // Act
-        Map<UUID, PostedByData> responseMap = profileController.getUsersBatch(userIds);
+        ResponseEntity<ApiResponse<Map<UUID, PostedByData>>> response = profileController.getUsersBatch(userIds);
 
         // Assert
-        assertNotNull(responseMap);
-        assertThat(responseMap, aMapWithSize(0));
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        
+        ApiResponse<Map<UUID, PostedByData>> apiResponse = response.getBody();
+        assertNotNull(apiResponse);
+        assertTrue(apiResponse.isSuccess());
+        assertEquals(ApiConstants.STATUS_SUCCESS, apiResponse.getStatus());
+        assertEquals(ApiConstants.MSG_USERS_BATCH, apiResponse.getMessage());
+        
+        Map<UUID, PostedByData> responseData = apiResponse.getData();
+        assertThat(responseData, aMapWithSize(0));
 
         // Verify the service method was called
         verify(profileService, times(1)).getUsersBatch(userIds);
