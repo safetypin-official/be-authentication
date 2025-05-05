@@ -3,8 +3,9 @@ package com.safetypin.authentication.controller;
 import com.safetypin.authentication.dto.*;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.ResourceNotFoundException;
-import com.safetypin.authentication.service.JwtService;
 import com.safetypin.authentication.service.ProfileService;
+import com.safetypin.authentication.util.JwtUtils;
+import com.safetypin.authentication.constants.ApiConstants;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,6 +24,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -34,7 +36,7 @@ class ProfileControllerTest {
     private ProfileService profileService;
 
     @Mock
-    private JwtService jwtService;
+    private JwtUtils jwtUtils;
 
     @InjectMocks
     private ProfileController profileController;
@@ -81,7 +83,8 @@ class ProfileControllerTest {
 
         // Configure JWT service mock
         // (lenient since some tests don't parse the token)
-        lenient().when(jwtService.getUserFromJwtToken(testToken)).thenReturn(testUserResponse);
+        lenient().when(jwtUtils.parseUserFromAuthHeader(testAuthHeader)).thenReturn(testUserResponse);
+        lenient().when(jwtUtils.parseUserFromAuthHeaderSafe(testAuthHeader)).thenReturn(testUserResponse);
     }
 
     // GET PROFILE TESTS
@@ -92,14 +95,15 @@ class ProfileControllerTest {
         when(profileService.getProfile(testUserId, testUserId)).thenReturn(testProfileResponse);
 
         // Act
-        ResponseEntity<AuthResponse> response = profileController.getProfile(testUserId, testAuthHeader);
+        ResponseEntity<ApiResponse<ProfileResponse>> response = profileController.getProfile(testUserId, testAuthHeader);
 
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        AuthResponse body = response.getBody();
+        ApiResponse<ProfileResponse> body = response.getBody();
         assertNotNull(body);
         assertTrue(body.isSuccess());
-        assertEquals("Profile retrieved successfully", body.getMessage());
+        assertEquals(ApiConstants.STATUS_SUCCESS, body.getStatus());
+        assertEquals(ApiConstants.MSG_PROFILE_RETRIEVED, body.getMessage());
         assertEquals(testProfileResponse, body.getData());
     }
 
@@ -110,11 +114,11 @@ class ProfileControllerTest {
                 .thenThrow(new ResourceNotFoundException("User not found with id " + testUserId));
 
         // Act
-        ResponseEntity<AuthResponse> response = profileController.getProfile(testUserId, testAuthHeader);
+        ResponseEntity<ApiResponse<ProfileResponse>> response = profileController.getProfile(testUserId, testAuthHeader);
 
         // Assert
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        AuthResponse body = response.getBody();
+        ApiResponse<ProfileResponse> body = response.getBody();
         assertNotNull(body);
         assertFalse(body.isSuccess());
         assertEquals("User not found with id " + testUserId, body.getMessage());
@@ -129,11 +133,11 @@ class ProfileControllerTest {
                 .thenThrow(new RuntimeException(errorMessage));
 
         // Act
-        ResponseEntity<AuthResponse> response = profileController.getProfile(testUserId, testAuthHeader);
+        ResponseEntity<ApiResponse<ProfileResponse>> response = profileController.getProfile(testUserId, testAuthHeader);
 
         // Assert
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        AuthResponse body = response.getBody();
+        ApiResponse<ProfileResponse> body = response.getBody();
         assertNotNull(body);
         assertFalse(body.isSuccess());
         assertEquals("Error retrieving profile: " + errorMessage, body.getMessage());
@@ -148,14 +152,14 @@ class ProfileControllerTest {
         when(profileService.getProfile(testUserId, testUserId)).thenReturn(testProfileResponse);
 
         // Act
-        ResponseEntity<AuthResponse> response = profileController.getMyProfile(testAuthHeader);
+        ResponseEntity<ApiResponse<ProfileResponse>> response = profileController.getMyProfile(testAuthHeader);
 
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        AuthResponse body = response.getBody();
+        ApiResponse<ProfileResponse> body = response.getBody();
         assertNotNull(body);
         assertTrue(body.isSuccess());
-        assertEquals("Profile retrieved successfully", body.getMessage());
+        assertEquals(ApiConstants.MSG_PROFILE_RETRIEVED, body.getMessage());
         assertEquals(testProfileResponse, body.getData());
     }
 
@@ -164,15 +168,15 @@ class ProfileControllerTest {
         // Arrange
         String invalidToken = "invalid-token";
         String invalidAuthToken = "Bearer " + invalidToken;
-        when(jwtService.getUserFromJwtToken(invalidToken))
-                .thenThrow(new RuntimeException("Invalid token"));
+        when(jwtUtils.parseUserFromAuthHeader(invalidAuthToken))
+                .thenThrow(new InvalidCredentialsException("Invalid token"));
 
         // Act
-        ResponseEntity<AuthResponse> response = profileController.getMyProfile(invalidAuthToken);
+        ResponseEntity<ApiResponse<ProfileResponse>> response = profileController.getMyProfile(invalidAuthToken);
 
         // Assert
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        AuthResponse body = response.getBody();
+        ApiResponse<ProfileResponse> body = response.getBody();
         assertNotNull(body);
         assertFalse(body.isSuccess());
         assertEquals("Invalid token", body.getMessage());
@@ -186,11 +190,11 @@ class ProfileControllerTest {
                 .thenThrow(new ResourceNotFoundException("User not found with id " + testUserId));
 
         // Act
-        ResponseEntity<AuthResponse> response = profileController.getMyProfile(testAuthHeader);
+        ResponseEntity<ApiResponse<ProfileResponse>> response = profileController.getMyProfile(testAuthHeader);
 
         // Assert
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        AuthResponse body = response.getBody();
+        ApiResponse<ProfileResponse> body = response.getBody();
         assertNotNull(body);
         assertFalse(body.isSuccess());
         assertEquals("User not found with id " + testUserId, body.getMessage());
@@ -205,11 +209,11 @@ class ProfileControllerTest {
                 .thenThrow(new RuntimeException(errorMessage));
 
         // Act
-        ResponseEntity<AuthResponse> response = profileController.getMyProfile(testAuthHeader);
+        ResponseEntity<ApiResponse<ProfileResponse>> response = profileController.getMyProfile(testAuthHeader);
 
         // Assert
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        AuthResponse body = response.getBody();
+        ApiResponse<ProfileResponse> body = response.getBody();
         assertNotNull(body);
         assertFalse(body.isSuccess());
         assertEquals("Error retrieving profile: " + errorMessage, body.getMessage());
@@ -225,15 +229,15 @@ class ProfileControllerTest {
                 .thenReturn(testProfileResponse);
 
         // Act
-        ResponseEntity<AuthResponse> response =
+        ResponseEntity<ApiResponse<ProfileResponse>> response =
                 profileController.updateMyProfile(testUpdateRequest, testAuthHeader);
 
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        AuthResponse body = response.getBody();
+        ApiResponse<ProfileResponse> body = response.getBody();
         assertNotNull(body);
         assertTrue(body.isSuccess());
-        assertEquals("Profile updated successfully", body.getMessage());
+        assertEquals(ApiConstants.MSG_PROFILE_UPDATED, body.getMessage());
         assertEquals(testProfileResponse, body.getData());
     }
 
@@ -245,12 +249,12 @@ class ProfileControllerTest {
                 .thenThrow(new InvalidCredentialsException(errorMessage));
 
         // Act
-        ResponseEntity<AuthResponse> response =
+        ResponseEntity<ApiResponse<ProfileResponse>> response =
                 profileController.updateMyProfile(testUpdateRequest, testAuthHeader);
 
         // Assert
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        AuthResponse body = response.getBody();
+        ApiResponse<ProfileResponse> body = response.getBody();
         assertNotNull(body);
         assertFalse(body.isSuccess());
         assertEquals(errorMessage, body.getMessage());
@@ -265,12 +269,12 @@ class ProfileControllerTest {
                 .thenThrow(new InvalidCredentialsException(errorMessage));
 
         // Act
-        ResponseEntity<AuthResponse> response =
+        ResponseEntity<ApiResponse<ProfileResponse>> response =
                 profileController.updateMyProfile(testUpdateRequest, testAuthHeader);
 
         // Assert
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        AuthResponse body = response.getBody();
+        ApiResponse<ProfileResponse> body = response.getBody();
         assertNotNull(body);
         assertFalse(body.isSuccess());
         assertEquals(errorMessage, body.getMessage());
@@ -285,12 +289,12 @@ class ProfileControllerTest {
                 .thenThrow(new ResourceNotFoundException(errorMessage));
 
         // Act
-        ResponseEntity<AuthResponse> response =
+        ResponseEntity<ApiResponse<ProfileResponse>> response =
                 profileController.updateMyProfile(testUpdateRequest, testAuthHeader);
 
         // Assert
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        AuthResponse body = response.getBody();
+        ApiResponse<ProfileResponse> body = response.getBody();
         assertNotNull(body);
         assertFalse(body.isSuccess());
         assertEquals(errorMessage, body.getMessage());
@@ -305,12 +309,12 @@ class ProfileControllerTest {
                 .thenThrow(new RuntimeException(errorMessage));
 
         // Act
-        ResponseEntity<AuthResponse> response =
+        ResponseEntity<ApiResponse<ProfileResponse>> response =
                 profileController.updateMyProfile(testUpdateRequest, testAuthHeader);
 
         // Assert
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        AuthResponse body = response.getBody();
+        ApiResponse<ProfileResponse> body = response.getBody();
         assertNotNull(body);
         assertFalse(body.isSuccess());
         assertEquals("Error updating profile: " + errorMessage, body.getMessage());
@@ -323,7 +327,6 @@ class ProfileControllerTest {
     void getUsersBatch_Success() {
         // Arrange
         List<UUID> userIds = Arrays.asList(UUID.randomUUID(), UUID.randomUUID());
-        // Create PostedByData instances using the builder
         PostedByData user1Data = PostedByData.builder()
                 .userId(userIds.get(0))
                 .name("User1")
@@ -334,19 +337,22 @@ class ProfileControllerTest {
                 .name("User2")
                 .profilePicture("pic2.jpg")
                 .build();
-        Map<UUID, PostedByData> expectedResponse = Map.of(
+        Map<UUID, PostedByData> expectedData = Map.of(
                 userIds.get(0), user1Data,
                 userIds.get(1), user2Data);
 
-        when(profileService.getUsersBatch(userIds)).thenReturn(expectedResponse);
+        when(profileService.getUsersBatch(userIds)).thenReturn(expectedData);
 
         // Act
-        Map<UUID, PostedByData> response = profileController.getUsersBatch(userIds);
+        ResponseEntity<ApiResponse<Map<UUID, PostedByData>>> response = profileController.getUsersBatch(userIds);
 
         // Assert
-        assertNotNull(response);
-        assertEquals(expectedResponse, response);
-        assertEquals(2, response.size());
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        ApiResponse<Map<UUID, PostedByData>> body = response.getBody();
+        assertNotNull(body);
+        assertTrue(body.isSuccess());
+        assertEquals(ApiConstants.MSG_USERS_BATCH, body.getMessage());
+        assertEquals(expectedData, body.getData());
     }
 
     // AUTHENTICATED PROFILE VIEW TESTS
@@ -359,37 +365,37 @@ class ProfileControllerTest {
         when(profileService.getProfile(profileId, viewerId)).thenReturn(testProfileResponse);
 
         // Act
-        ResponseEntity<AuthResponse> response = profileController.getProfile(profileId, testAuthHeader);
+        ResponseEntity<ApiResponse<ProfileResponse>> response = profileController.getProfile(profileId, testAuthHeader);
 
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        AuthResponse body = response.getBody();
+        ApiResponse<ProfileResponse> body = response.getBody();
         assertNotNull(body);
         assertTrue(body.isSuccess());
-        assertEquals("Profile retrieved successfully", body.getMessage());
+        assertEquals(ApiConstants.MSG_PROFILE_RETRIEVED, body.getMessage());
         assertEquals(testProfileResponse, body.getData());
     }
 
     @Test
     void getProfile_FailedAuthenticationDoesNotAffectOutput() {
         // Arrange
-        String invalidAuthHeader = "Bearer invalid-token";
         UUID profileId = UUID.randomUUID();
-        when(jwtService.getUserFromJwtToken("invalid-token"))
-                .thenThrow(new InvalidCredentialsException("Invalid token"));
-        when(profileService.getProfile(profileId, null)).thenReturn(testProfileResponse);
+        String invalidAuthHeader = "Bearer invalid-token";
+
+        when(profileService.getProfile(eq(profileId), isNull())).thenReturn(testProfileResponse);
 
         // Act
-        ResponseEntity<AuthResponse> response = profileController.getProfile(profileId, invalidAuthHeader);
+        ResponseEntity<ApiResponse<ProfileResponse>> response = profileController.getProfile(profileId, invalidAuthHeader);
 
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        AuthResponse body = response.getBody();
-        assertNotNull(body);
-        assertTrue(body.isSuccess());
-        assertEquals("Profile retrieved successfully", body.getMessage());
-        assertEquals(testProfileResponse, body.getData());
-        // Verify that profileService.getProfile was called with null viewerId
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().isSuccess());
+        assertEquals(ApiConstants.MSG_PROFILE_RETRIEVED, response.getBody().getMessage());
+        assertEquals(testProfileResponse, response.getBody().getData());
+
+        // Verify we attempted to parse the token but didn't get a valid user
+        verify(jwtUtils).parseUserFromAuthHeaderSafe(invalidAuthHeader);
         verify(profileService).getProfile(profileId, null);
     }
 
@@ -416,11 +422,11 @@ class ProfileControllerTest {
         when(profileService.getProfileViews(testUserId)).thenReturn(testViews);
 
         // Act
-        ResponseEntity<AuthResponse> response = profileController.getProfileViews(testAuthHeader);
+        ResponseEntity<ApiResponse<List<ProfileViewDTO>>> response = profileController.getProfileViews(testAuthHeader);
 
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        AuthResponse body = response.getBody();
+        ApiResponse<List<ProfileViewDTO>> body = response.getBody();
         assertNotNull(body);
         assertTrue(body.isSuccess());
         assertEquals("Profile views retrieved successfully", body.getMessage());
@@ -435,11 +441,11 @@ class ProfileControllerTest {
                 .thenThrow(new InvalidCredentialsException(errorMessage));
 
         // Act
-        ResponseEntity<AuthResponse> response = profileController.getProfileViews(testAuthHeader);
+        ResponseEntity<ApiResponse<List<ProfileViewDTO>>> response = profileController.getProfileViews(testAuthHeader);
 
         // Assert
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        AuthResponse body = response.getBody();
+        ApiResponse<List<ProfileViewDTO>> body = response.getBody();
         assertNotNull(body);
         assertFalse(body.isSuccess());
         assertEquals(errorMessage, body.getMessage());
@@ -454,11 +460,11 @@ class ProfileControllerTest {
                 .thenThrow(new ResourceNotFoundException(errorMessage));
 
         // Act
-        ResponseEntity<AuthResponse> response = profileController.getProfileViews(testAuthHeader);
+        ResponseEntity<ApiResponse<List<ProfileViewDTO>>> response = profileController.getProfileViews(testAuthHeader);
 
         // Assert
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        AuthResponse body = response.getBody();
+        ApiResponse<List<ProfileViewDTO>> body = response.getBody();
         assertNotNull(body);
         assertFalse(body.isSuccess());
         assertEquals(errorMessage, body.getMessage());
@@ -473,11 +479,11 @@ class ProfileControllerTest {
                 .thenThrow(new RuntimeException(errorMessage));
 
         // Act
-        ResponseEntity<AuthResponse> response = profileController.getProfileViews(testAuthHeader);
+        ResponseEntity<ApiResponse<List<ProfileViewDTO>>> response = profileController.getProfileViews(testAuthHeader);
 
         // Assert
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        AuthResponse body = response.getBody();
+        ApiResponse<List<ProfileViewDTO>> body = response.getBody();
         assertNotNull(body);
         assertFalse(body.isSuccess());
         assertTrue(body.getMessage().contains("Error retrieving profile views:"));
