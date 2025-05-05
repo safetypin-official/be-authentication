@@ -287,15 +287,15 @@ class FollowControllerTest {
     @Test
     void getFollowStats_withNullAuthHeader_returnsStatsWithIsFollowingFalse() {
         // Arrange
-        UUID targetId = UUID.randomUUID();
-        String authHeader = null;
+        UUID testTargetId = UUID.randomUUID();
+        String testAuthHeader = null;
         
-        when(followService.getFollowersCount(targetId)).thenReturn(10L);
-        when(followService.getFollowingCount(targetId)).thenReturn(5L);
+        when(followService.getFollowersCount(testTargetId)).thenReturn(10L);
+        when(followService.getFollowingCount(testTargetId)).thenReturn(5L);
         
         // Act
         ResponseEntity<ApiResponse<FollowStats>> response = 
-            followController.getFollowStats(targetId, authHeader);
+            followController.getFollowStats(testTargetId, testAuthHeader);
         
         // Assert
         assertNotNull(response);
@@ -314,15 +314,15 @@ class FollowControllerTest {
     @Test
     void getFollowStats_withEmptyAuthHeader_returnsStatsWithIsFollowingFalse() {
         // Arrange
-        UUID userId = UUID.randomUUID();
-        String authHeader = "";  // Empty but not null
+        UUID testTargetId = UUID.randomUUID();
+        String testAuthHeader = "";  // Empty but not null
         
-        when(followService.getFollowersCount(userId)).thenReturn(10L);
-        when(followService.getFollowingCount(userId)).thenReturn(5L);
+        when(followService.getFollowersCount(testTargetId)).thenReturn(10L);
+        when(followService.getFollowingCount(testTargetId)).thenReturn(5L);
         
         // Act
         ResponseEntity<ApiResponse<FollowStats>> response = 
-            followController.getFollowStats(userId, authHeader);
+            followController.getFollowStats(testTargetId, testAuthHeader);
         
         // Assert
         assertNotNull(response);
@@ -341,22 +341,22 @@ class FollowControllerTest {
     @Test
     void getFollowStats_withValidAuthHeader_returnsCorrectIsFollowingStatus() {
         // Arrange
-        UUID userId = UUID.randomUUID();
-        UUID currentUserId = UUID.randomUUID();
-        String validAuthHeader = "Bearer valid-token";
+        UUID testTargetId = UUID.randomUUID();
+        UUID testCurrentUserId = UUID.randomUUID();
+        String testValidAuthHeader = "Bearer valid-token";
         
         UserResponse mockUser = UserResponse.builder()
-                .id(currentUserId)
+                .id(testCurrentUserId)
                 .build();
         
-        when(jwtUtils.parseUserFromAuthHeader(validAuthHeader)).thenReturn(mockUser);
-        when(followService.isFollowing(currentUserId, userId)).thenReturn(true);
-        when(followService.getFollowersCount(userId)).thenReturn(10L);
-        when(followService.getFollowingCount(userId)).thenReturn(5L);
+        when(jwtUtils.parseUserFromAuthHeader(testValidAuthHeader)).thenReturn(mockUser);
+        when(followService.isFollowing(testCurrentUserId, testTargetId)).thenReturn(true);
+        when(followService.getFollowersCount(testTargetId)).thenReturn(10L);
+        when(followService.getFollowingCount(testTargetId)).thenReturn(5L);
         
         // Act
         ResponseEntity<ApiResponse<FollowStats>> response = 
-            followController.getFollowStats(userId, validAuthHeader);
+            followController.getFollowStats(testTargetId, testValidAuthHeader);
         
         // Assert
         assertNotNull(response);
@@ -369,26 +369,26 @@ class FollowControllerTest {
         assertEquals(5L, stats.getFollowingCount());
         assertTrue(stats.isFollowing());
         
-        verify(jwtUtils).parseUserFromAuthHeader(validAuthHeader);
-        verify(followService).isFollowing(currentUserId, userId);
+        verify(jwtUtils).parseUserFromAuthHeader(testValidAuthHeader);
+        verify(followService).isFollowing(testCurrentUserId, testTargetId);
     }
 
     @Test
     void getFollowStats_withInvalidAuthHeader_returnsStatsWithIsFollowingFalse() {
         // Arrange
-        UUID targetUserId = UUID.randomUUID();
-        String invalidAuthHeader = "Bearer invalid-token";
+        UUID testTargetId = UUID.randomUUID();
+        String testInvalidAuthHeader = "Bearer invalid-token";
         
         // Mock the behavior to throw an exception when parsing the invalid auth header
-        when(jwtUtils.parseUserFromAuthHeader(invalidAuthHeader))
+        when(jwtUtils.parseUserFromAuthHeader(testInvalidAuthHeader))
             .thenThrow(new RuntimeException("Invalid token"));
         
-        when(followService.getFollowersCount(targetUserId)).thenReturn(10L);
-        when(followService.getFollowingCount(targetUserId)).thenReturn(5L);
+        when(followService.getFollowersCount(testTargetId)).thenReturn(10L);
+        when(followService.getFollowingCount(testTargetId)).thenReturn(5L);
         
         // Act
         ResponseEntity<ApiResponse<FollowStats>> response = 
-            followController.getFollowStats(targetUserId, invalidAuthHeader);
+            followController.getFollowStats(testTargetId, testInvalidAuthHeader);
         
         // Assert
         assertNotNull(response);
@@ -401,7 +401,7 @@ class FollowControllerTest {
         assertEquals(5L, stats.getFollowingCount());
         assertFalse(stats.isFollowing());
         
-        verify(jwtUtils).parseUserFromAuthHeader(invalidAuthHeader);
+        verify(jwtUtils).parseUserFromAuthHeader(testInvalidAuthHeader);
         verify(followService, never()).isFollowing(any(), any());
     }
 
