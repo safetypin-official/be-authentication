@@ -92,18 +92,8 @@ public class FollowController {
             @PathVariable UUID userId,
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
 
-        boolean isFollowing = false;
-
-        if (authHeader != null && !authHeader.isEmpty()) {
-            try {
-                UserResponse user = jwtUtils.parseUserFromAuthHeader(authHeader);
-                UUID currentUserId = user.getId();
-                isFollowing = followService.isFollowing(currentUserId, userId);
-            } catch (Exception e) {
-                // Invalid token, keep isFollowing as false
-            }
-        }
-
+        boolean isFollowing = checkIsFollowing(authHeader, userId);
+        
         // Get followers and following counts
         long followersCount = followService.getFollowersCount(userId);
         long followingCount = followService.getFollowingCount(userId);
@@ -122,6 +112,33 @@ public class FollowController {
                 .build();
 
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Helper method to check if the current user is following another user
+     * 
+     * @param authHeader JWT authorization header
+     * @param userId ID of the user to check following status for
+     * @return true if current user is following the specified user, false otherwise
+     */
+    private boolean checkIsFollowing(String authHeader, UUID userId) {
+        // Check for null or empty auth header
+        if (authHeader == null) {
+            return false;
+        }
+        
+        if (authHeader.isEmpty()) {
+            return false;
+        }
+        
+        try {
+            UserResponse user = jwtUtils.parseUserFromAuthHeader(authHeader);
+            UUID currentUserId = user.getId();
+            return followService.isFollowing(currentUserId, userId);
+        } catch (Exception e) {
+            // Invalid token, keep isFollowing as false
+            return false;
+        }
     }
 
     /**

@@ -284,6 +284,127 @@ class FollowControllerTest {
         verify(followService, times(1)).getFollowingCount(targetUserId);
     }
 
+    @Test
+    void getFollowStats_withNullAuthHeader_returnsStatsWithIsFollowingFalse() {
+        // Arrange
+        UUID targetId = UUID.randomUUID();
+        String authHeader = null;
+        
+        when(followService.getFollowersCount(targetId)).thenReturn(10L);
+        when(followService.getFollowingCount(targetId)).thenReturn(5L);
+        
+        // Act
+        ResponseEntity<ApiResponse<FollowStats>> response = 
+            followController.getFollowStats(targetId, authHeader);
+        
+        // Assert
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertNotNull(response.getBody().getData());
+        
+        FollowStats stats = response.getBody().getData();
+        assertEquals(10L, stats.getFollowersCount());
+        assertEquals(5L, stats.getFollowingCount());
+        assertFalse(stats.isFollowing());
+        
+        verify(followService, never()).isFollowing(any(), any());
+    }
+
+    @Test
+    void getFollowStats_withEmptyAuthHeader_returnsStatsWithIsFollowingFalse() {
+        // Arrange
+        UUID userId = UUID.randomUUID();
+        String authHeader = "";  // Empty but not null
+        
+        when(followService.getFollowersCount(userId)).thenReturn(10L);
+        when(followService.getFollowingCount(userId)).thenReturn(5L);
+        
+        // Act
+        ResponseEntity<ApiResponse<FollowStats>> response = 
+            followController.getFollowStats(userId, authHeader);
+        
+        // Assert
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertNotNull(response.getBody().getData());
+        
+        FollowStats stats = response.getBody().getData();
+        assertEquals(10L, stats.getFollowersCount());
+        assertEquals(5L, stats.getFollowingCount());
+        assertFalse(stats.isFollowing());
+        
+        verify(followService, never()).isFollowing(any(), any());
+    }
+
+    @Test
+    void getFollowStats_withValidAuthHeader_returnsCorrectIsFollowingStatus() {
+        // Arrange
+        UUID userId = UUID.randomUUID();
+        UUID currentUserId = UUID.randomUUID();
+        String validAuthHeader = "Bearer valid-token";
+        
+        UserResponse mockUser = UserResponse.builder()
+                .id(currentUserId)
+                .build();
+        
+        when(jwtUtils.parseUserFromAuthHeader(validAuthHeader)).thenReturn(mockUser);
+        when(followService.isFollowing(currentUserId, userId)).thenReturn(true);
+        when(followService.getFollowersCount(userId)).thenReturn(10L);
+        when(followService.getFollowingCount(userId)).thenReturn(5L);
+        
+        // Act
+        ResponseEntity<ApiResponse<FollowStats>> response = 
+            followController.getFollowStats(userId, validAuthHeader);
+        
+        // Assert
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertNotNull(response.getBody().getData());
+        
+        FollowStats stats = response.getBody().getData();
+        assertEquals(10L, stats.getFollowersCount());
+        assertEquals(5L, stats.getFollowingCount());
+        assertTrue(stats.isFollowing());
+        
+        verify(jwtUtils).parseUserFromAuthHeader(validAuthHeader);
+        verify(followService).isFollowing(currentUserId, userId);
+    }
+
+    @Test
+    void getFollowStats_withInvalidAuthHeader_returnsStatsWithIsFollowingFalse() {
+        // Arrange
+        UUID targetUserId = UUID.randomUUID();
+        String invalidAuthHeader = "Bearer invalid-token";
+        
+        // Mock the behavior to throw an exception when parsing the invalid auth header
+        when(jwtUtils.parseUserFromAuthHeader(invalidAuthHeader))
+            .thenThrow(new RuntimeException("Invalid token"));
+        
+        when(followService.getFollowersCount(targetUserId)).thenReturn(10L);
+        when(followService.getFollowingCount(targetUserId)).thenReturn(5L);
+        
+        // Act
+        ResponseEntity<ApiResponse<FollowStats>> response = 
+            followController.getFollowStats(targetUserId, invalidAuthHeader);
+        
+        // Assert
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertNotNull(response.getBody().getData());
+        
+        FollowStats stats = response.getBody().getData();
+        assertEquals(10L, stats.getFollowersCount());
+        assertEquals(5L, stats.getFollowingCount());
+        assertFalse(stats.isFollowing());
+        
+        verify(jwtUtils).parseUserFromAuthHeader(invalidAuthHeader);
+        verify(followService, never()).isFollowing(any(), any());
+    }
+
     // --- Tests for getRecentFollowers ---
 
     @Test
