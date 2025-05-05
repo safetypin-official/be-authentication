@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.safetypin.authentication.dto.*;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.UserAlreadyExistsException;
+import com.safetypin.authentication.exception.PendingVerificationException;
 import com.safetypin.authentication.model.Role;
 import com.safetypin.authentication.model.User;
 import com.safetypin.authentication.service.AuthenticationService;
@@ -85,6 +86,54 @@ class AuthenticationControllerTest {
                 .andExpect(jsonPath("$.data.userId").value(userId.toString()))
                 .andExpect(jsonPath("$.data.accessToken").value(accessToken))
                 .andExpect(jsonPath("$.data.refreshToken").value(refreshToken));
+    }
+
+    @Test
+    void testRegisterEmail_UserAlreadyExistsException() throws Exception {
+        // Prepare registration request
+        RegistrationRequest request = new RegistrationRequest();
+        request.setEmail("existing@example.com");
+        request.setPassword("password");
+        request.setName("Test User");
+        request.setBirthdate(LocalDate.now().minusYears(20));
+
+        // Mock the service to throw UserAlreadyExistsException
+        String errorMessage = "User with email already exists";
+        Mockito.when(authenticationService.registerUser(Mockito.any(RegistrationRequest.class)))
+                .thenThrow(new UserAlreadyExistsException(errorMessage));
+
+        // Perform the POST request to /register-email endpoint
+        mockMvc.perform(post("/api/auth/register-email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value(errorMessage))
+                .andExpect(jsonPath("$.data").doesNotExist());
+    }
+
+    @Test
+    void testRegisterEmail_PendingVerificationException() throws Exception {
+        // Prepare registration request
+        RegistrationRequest request = new RegistrationRequest();
+        request.setEmail("unverified@example.com");
+        request.setPassword("password");
+        request.setName("Unverified User");
+        request.setBirthdate(LocalDate.now().minusYears(20));
+
+        // Mock the service to throw PendingVerificationException
+        String errorMessage = "User already exists but is not verified. Please check your email for the verification code.";
+        Mockito.when(authenticationService.registerUser(Mockito.any(RegistrationRequest.class)))
+                .thenThrow(new PendingVerificationException(errorMessage));
+
+        // Perform the POST request to /register-email endpoint
+        mockMvc.perform(post("/api/auth/register-email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value(errorMessage))
+                .andExpect(jsonPath("$.data").doesNotExist());
     }
 
     @Test
@@ -319,30 +368,6 @@ class AuthenticationControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Invalid or expired reset token. Please request a new OTP."));
-    }
-
-    @Test
-    void testRegisterEmail_UserAlreadyExistsException() throws Exception {
-        // Prepare registration request
-        RegistrationRequest request = new RegistrationRequest();
-        request.setEmail("existing@example.com");
-        request.setPassword("password");
-        request.setName("Test User");
-        request.setBirthdate(LocalDate.now().minusYears(20));
-
-        // Mock the service to throw UserAlreadyExistsException
-        String errorMessage = "User with email already exists";
-        Mockito.when(authenticationService.registerUser(Mockito.any(RegistrationRequest.class)))
-                .thenThrow(new UserAlreadyExistsException(errorMessage));
-
-        // Perform the POST request to /register-email endpoint
-        mockMvc.perform(post("/api/auth/register-email")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value(errorMessage))
-                .andExpect(jsonPath("$.data").doesNotExist());
     }
 
     @Test
