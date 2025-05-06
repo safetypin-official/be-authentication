@@ -1,12 +1,23 @@
 package com.safetypin.authentication.service;
 
-import com.safetypin.authentication.dto.AuthToken;
-import com.safetypin.authentication.dto.RegistrationRequest;
-import com.safetypin.authentication.exception.InvalidCredentialsException;
-import com.safetypin.authentication.exception.UserAlreadyExistsException;
-import com.safetypin.authentication.model.RefreshToken;
-import com.safetypin.authentication.model.Role;
-import com.safetypin.authentication.model.User;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.time.LocalDate;
+import java.util.Optional;
+import java.util.UUID;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,14 +25,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.time.LocalDate;
-import java.util.Optional;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
+import com.safetypin.authentication.dto.AuthToken;
+import com.safetypin.authentication.dto.RegistrationRequest;
+import com.safetypin.authentication.exception.InvalidCredentialsException;
+import com.safetypin.authentication.exception.UserAlreadyExistsException;
+import com.safetypin.authentication.model.RefreshToken;
+import com.safetypin.authentication.model.Role;
+import com.safetypin.authentication.model.User;
 
 @ExtendWith(MockitoExtension.class)
 class AuthenticationServiceTest {
@@ -60,9 +70,8 @@ class AuthenticationServiceTest {
         // set birthdate to 15 years old
         request.setBirthdate(LocalDate.now().minusYears(15));
 
-        Exception exception = assertThrows(IllegalArgumentException.class, () ->
-                authenticationService.registerUser(request)
-        );
+        Exception exception = assertThrows(IllegalArgumentException.class,
+                () -> authenticationService.registerUser(request));
         assertEquals("User must be at least 16 years old", exception.getMessage());
     }
 
@@ -77,10 +86,34 @@ class AuthenticationServiceTest {
         User existingUser = new User();
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(existingUser));
 
-        Exception exception = assertThrows(UserAlreadyExistsException.class, () ->
-                authenticationService.registerUser(request)
-        );
+        Exception exception = assertThrows(UserAlreadyExistsException.class,
+                () -> authenticationService.registerUser(request));
         assertTrue(exception.getMessage().contains("Email address is already registered"));
+    }
+
+    @Test
+    void testRegisterUser_NameTooLong() {
+        // Create a name that's 101 characters long
+        StringBuilder longName = new StringBuilder();
+        for (int i = 0; i < 101; i++) {
+            longName.append("a");
+        }
+
+        RegistrationRequest request = new RegistrationRequest();
+        request.setEmail("test@example.com");
+        request.setPassword("password");
+        request.setName(longName.toString());
+        request.setBirthdate(LocalDate.now().minusYears(20));
+
+        Exception exception = assertThrows(IllegalArgumentException.class,
+                () -> authenticationService.registerUser(request));
+        assertEquals("Name must not exceed 100 characters", exception.getMessage());
+
+        // Verify that no interactions with other services occurred
+        verify(userService, never()).findByEmail(anyString());
+        verify(userService, never()).save(any(User.class));
+        verify(passwordEncoder, never()).encode(anyString());
+        verify(otpService, never()).generateOTP(anyString());
     }
 
     @Test
@@ -130,9 +163,8 @@ class AuthenticationServiceTest {
     void testLoginUser_EmailNotFound() {
         when(userService.findByEmail("notfound@example.com")).thenReturn(Optional.empty());
 
-        Exception exception = assertThrows(InvalidCredentialsException.class, () ->
-                authenticationService.loginUser("notfound@example.com", "password")
-        );
+        Exception exception = assertThrows(InvalidCredentialsException.class,
+                () -> authenticationService.loginUser("notfound@example.com", "password"));
 
         assertEquals("Invalid email", exception.getMessage());
     }
@@ -151,9 +183,8 @@ class AuthenticationServiceTest {
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("wrongPassword", "encodedPassword")).thenReturn(false);
 
-        Exception exception = assertThrows(InvalidCredentialsException.class, () ->
-                authenticationService.loginUser("test@example.com", "wrongPassword")
-        );
+        Exception exception = assertThrows(InvalidCredentialsException.class,
+                () -> authenticationService.loginUser("test@example.com", "wrongPassword"));
 
         assertEquals("Invalid password", exception.getMessage());
     }
@@ -259,9 +290,8 @@ class AuthenticationServiceTest {
     void testForgotPassword_UserNotFound() {
         when(userService.findByEmail("notfound@example.com")).thenReturn(Optional.empty());
 
-        Exception exception = assertThrows(IllegalArgumentException.class, () ->
-                authenticationService.forgotPassword("notfound@example.com")
-        );
+        Exception exception = assertThrows(IllegalArgumentException.class,
+                () -> authenticationService.forgotPassword("notfound@example.com"));
 
         assertTrue(exception.getMessage().contains("Password reset is only available for email-registered users"));
     }
@@ -279,9 +309,8 @@ class AuthenticationServiceTest {
 
         when(userService.findByEmail("social@example.com")).thenReturn(Optional.of(user));
 
-        Exception exception = assertThrows(IllegalArgumentException.class, () ->
-                authenticationService.forgotPassword("social@example.com")
-        );
+        Exception exception = assertThrows(IllegalArgumentException.class,
+                () -> authenticationService.forgotPassword("social@example.com"));
 
         assertTrue(exception.getMessage().contains("Password reset is only available for email-registered users"));
     }
@@ -318,9 +347,8 @@ class AuthenticationServiceTest {
     void testVerifyPasswordResetOTP_UserNotFound() {
         when(userService.findByEmail("nonexistent@example.com")).thenReturn(Optional.empty());
 
-        Exception exception = assertThrows(IllegalArgumentException.class, () ->
-                authenticationService.verifyPasswordResetOTP("nonexistent@example.com", "123456")
-        );
+        Exception exception = assertThrows(IllegalArgumentException.class,
+                () -> authenticationService.verifyPasswordResetOTP("nonexistent@example.com", "123456"));
 
         assertTrue(exception.getMessage().contains("Password reset is only available for email-registered users"));
         verify(otpService, never()).verifyOTP(anyString(), anyString());
@@ -334,9 +362,8 @@ class AuthenticationServiceTest {
 
         when(userService.findByEmail("social@example.com")).thenReturn(Optional.of(user));
 
-        Exception exception = assertThrows(IllegalArgumentException.class, () ->
-                authenticationService.verifyPasswordResetOTP("social@example.com", "123456")
-        );
+        Exception exception = assertThrows(IllegalArgumentException.class,
+                () -> authenticationService.verifyPasswordResetOTP("social@example.com", "123456"));
 
         assertTrue(exception.getMessage().contains("Password reset is only available for email-registered users"));
         verify(otpService, never()).verifyOTP(anyString(), anyString());
@@ -350,9 +377,8 @@ class AuthenticationServiceTest {
 
         when(userService.findByEmail("social@example.com")).thenReturn(Optional.of(user));
 
-        Exception exception = assertThrows(IllegalArgumentException.class, () ->
-                authenticationService.resetPassword("social@example.com", "newPassword", "reset-token")
-        );
+        Exception exception = assertThrows(IllegalArgumentException.class,
+                () -> authenticationService.resetPassword("social@example.com", "newPassword", "reset-token"));
 
         assertTrue(exception.getMessage().contains("Password reset is only available for email-registered users"));
         verify(userService, never()).save(any(User.class));
@@ -384,9 +410,8 @@ class AuthenticationServiceTest {
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(user));
         when(otpService.verifyResetToken("invalid-token", "test@example.com")).thenReturn(false);
 
-        assertThrows(InvalidCredentialsException.class, () ->
-                authenticationService.resetPassword("test@example.com", "newPassword", "invalid-token")
-        );
+        assertThrows(InvalidCredentialsException.class,
+                () -> authenticationService.resetPassword("test@example.com", "newPassword", "invalid-token"));
 
         verify(userService, never()).save(any(User.class));
     }
@@ -399,9 +424,8 @@ class AuthenticationServiceTest {
 
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(user));
 
-        assertThrows(InvalidCredentialsException.class, () ->
-                authenticationService.resetPassword("test@example.com", "newPassword", null)
-        );
+        assertThrows(InvalidCredentialsException.class,
+                () -> authenticationService.resetPassword("test@example.com", "newPassword", null));
 
         verify(userService, never()).save(any(User.class));
     }
@@ -440,9 +464,8 @@ class AuthenticationServiceTest {
 
         when(refreshTokenService.getAndVerifyRefreshToken(invalidRefreshToken)).thenReturn(Optional.empty());
 
-        Exception exception = assertThrows(InvalidCredentialsException.class, () ->
-                authenticationService.renewRefreshToken(invalidRefreshToken)
-        );
+        Exception exception = assertThrows(InvalidCredentialsException.class,
+                () -> authenticationService.renewRefreshToken(invalidRefreshToken));
         assertEquals("Invalid token provided", exception.getMessage());
     }
 

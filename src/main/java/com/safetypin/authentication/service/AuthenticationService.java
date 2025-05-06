@@ -46,6 +46,9 @@ public class AuthenticationService {
         if (calculateAge(request.getBirthdate()) < 16) {
             throw new IllegalArgumentException("User must be at least 16 years old");
         }
+        if (request.getName().length() > 100) {
+            throw new IllegalArgumentException("Name must not exceed 100 characters");
+        }
         Optional<User> existingUserOpt = userService.findByEmail(request.getEmail());
         if (existingUserOpt.isPresent()) {
             User existingUser = existingUserOpt.get();
