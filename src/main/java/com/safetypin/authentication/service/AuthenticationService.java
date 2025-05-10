@@ -101,7 +101,7 @@ public class AuthenticationService {
         User user = findUser.get();
         if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
             // incorrect password
-            logger.warn("Login failed: Incorrect password for email: {}", email);
+            logger.debug("Login failed: Incorrect password for email: {}", email);
             throw new InvalidCredentialsException("Invalid email or password");
         }
         String accessToken = jwtService.generateToken(user.getId());
