@@ -95,13 +95,13 @@ public class AuthenticationService {
         Optional<User> findUser = userService.findByEmail(email);
         if (findUser.isEmpty()) {
             // email not exists
-            logger.warn("Login failed: Email not found or incorrect password for email: {}", email);
+            logger.warn("Login failed: Email not found for email: {}", email);
             throw new InvalidCredentialsException("Invalid email or password");
         }
         User user = findUser.get();
         if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
             // incorrect password
-            logger.warn("Login failed: Email not found or incorrect password for email: {}", email);
+            logger.warn("Login failed: Incorrect password for email: {}", email);
             throw new InvalidCredentialsException("Invalid email or password");
         }
         String accessToken = jwtService.generateToken(user.getId());
