@@ -16,6 +16,9 @@ class AsyncConfigTest {
     @Autowired
     private Executor emailTaskExecutor;
 
+    @Autowired
+    private Executor asyncExecutor;
+
     @Test
     void testEmailTaskExecutorConfiguration() {
         // Verify that emailTaskExecutor is not null
@@ -48,5 +51,22 @@ class AsyncConfigTest {
             assertTrue(currentThreadName.startsWith("EmailThread-"),
                     "Thread name should start with 'EmailThread-'");
         });
+    }
+
+    @Test
+    void asyncExecutor_shouldBeConfiguredCorrectly() {
+        assertNotNull(asyncExecutor);
+        assertInstanceOf(ThreadPoolTaskExecutor.class, asyncExecutor);
+
+        ThreadPoolTaskExecutor taskExecutor = (ThreadPoolTaskExecutor) asyncExecutor;
+        assertEquals(2, taskExecutor.getCorePoolSize());
+        assertEquals(4, taskExecutor.getMaxPoolSize());
+        assertEquals(50, taskExecutor.getQueueCapacity());
+        assertEquals("async-", taskExecutor.getThreadNamePrefix());
+
+        // Verify the threadPoolExecutor instead of trying to get the rejection handler directly
+        ThreadPoolExecutor threadPoolExecutor = taskExecutor.getThreadPoolExecutor();
+        assertNotNull(threadPoolExecutor);
+        assertInstanceOf(ThreadPoolExecutor.CallerRunsPolicy.class, threadPoolExecutor.getRejectedExecutionHandler());
     }
 }
