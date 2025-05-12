@@ -177,6 +177,9 @@ public class ProfileService {
     public String getUserRole(UUID userId) {
         User user = userService.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND + userId));
+        if (user.getRole() == null) {
+            throw new InvalidCredentialsException("User role is not set for user with ID: " + userId);
+        }
         return user.getRole().toString();
     }
 
