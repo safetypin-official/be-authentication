@@ -5,35 +5,40 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 import org.junit.jupiter.api.Test;
 
-class PasswordResetRequestTest {
+class LoginRequestTest {
 
     @Test
     void testGetSetEmail() {
-        PasswordResetRequest request = new PasswordResetRequest();
+        LoginRequest request = new LoginRequest();
         request.setEmail(" test@example.com ");
         assertEquals("test@example.com", request.getEmail());
     }
 
     @Test
     void testSetEmail_null() {
-        PasswordResetRequest request = new PasswordResetRequest();
+        LoginRequest request = new LoginRequest();
         request.setEmail(null);
         assertNull(request.getEmail());
     }
 
     @Test
+    void testGetSetPassword() {
+        LoginRequest request = new LoginRequest();
+        request.setPassword("password123");
+        assertEquals("password123", request.getPassword());
+    }
+
+    @Test
     void testSetEmail_empty() {
-        PasswordResetRequest request = new PasswordResetRequest();
+        LoginRequest request = new LoginRequest();
         request.setEmail("");
-        // Assuming @NotBlank will be validated elsewhere, focusing on trim
         assertEquals("", request.getEmail());
     }
 
     @Test
     void testSetEmail_whitespaceOnly() {
-        PasswordResetRequest request = new PasswordResetRequest();
+        LoginRequest request = new LoginRequest();
         request.setEmail("   ");
-        // Assuming @NotBlank will be validated elsewhere, focusing on trim
         assertEquals("", request.getEmail());
     }
 }

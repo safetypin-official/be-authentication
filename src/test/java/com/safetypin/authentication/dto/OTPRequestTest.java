@@ -5,65 +5,61 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 import org.junit.jupiter.api.Test;
 
-class VerifyResetOTPRequestTest {
+class OTPRequestTest {
 
     @Test
     void testGetSetEmail() {
-        VerifyResetOTPRequest request = new VerifyResetOTPRequest();
+        OTPRequest request = new OTPRequest();
         request.setEmail(" test@example.com ");
         assertEquals("test@example.com", request.getEmail());
     }
 
     @Test
     void testSetEmail_null() {
-        VerifyResetOTPRequest request = new VerifyResetOTPRequest();
+        OTPRequest request = new OTPRequest();
         request.setEmail(null);
         assertNull(request.getEmail());
     }
 
     @Test
     void testSetEmail_empty() {
-        VerifyResetOTPRequest request = new VerifyResetOTPRequest();
+        OTPRequest request = new OTPRequest();
         request.setEmail("");
-        // Assuming @NotBlank will be validated elsewhere, focusing on trim
         assertEquals("", request.getEmail());
     }
 
     @Test
     void testSetEmail_whitespaceOnly() {
-        VerifyResetOTPRequest request = new VerifyResetOTPRequest();
+        OTPRequest request = new OTPRequest();
         request.setEmail("   ");
-        // Assuming @NotBlank will be validated elsewhere, focusing on trim
         assertEquals("", request.getEmail());
     }
 
     @Test
     void testGetSetOtp() {
-        VerifyResetOTPRequest request = new VerifyResetOTPRequest();
+        OTPRequest request = new OTPRequest();
         request.setOtp(" 123456 ");
         assertEquals("123456", request.getOtp());
     }
 
     @Test
     void testSetOtp_null() {
-        VerifyResetOTPRequest request = new VerifyResetOTPRequest();
+        OTPRequest request = new OTPRequest();
         request.setOtp(null);
         assertNull(request.getOtp());
     }
 
     @Test
     void testSetOtp_empty() {
-        VerifyResetOTPRequest request = new VerifyResetOTPRequest();
+        OTPRequest request = new OTPRequest();
         request.setOtp("");
-        // Assuming @NotBlank will be validated elsewhere, focusing on trim
         assertEquals("", request.getOtp());
     }
 
     @Test
     void testSetOtp_whitespaceOnly() {
-        VerifyResetOTPRequest request = new VerifyResetOTPRequest();
+        OTPRequest request = new OTPRequest();
         request.setOtp("   ");
-        // Assuming @NotBlank will be validated elsewhere, focusing on trim
         assertEquals("", request.getOtp());
     }
 }
