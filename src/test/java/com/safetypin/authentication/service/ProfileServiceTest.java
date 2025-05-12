@@ -897,5 +897,33 @@ class ProfileServiceTest {
             });
             verify(userService, times(1)).findById(specificUserId);
         }
+
+        @Test
+        void getUserRole_UserExistsWithRole_ReturnsRoleString() {
+            // Arrange
+            when(userService.findById(userId)).thenReturn(Optional.of(testUser));
+
+            // Act
+            String role = profileService.getUserRole(userId);
+
+            // Assert
+            assertEquals("REGISTERED_USER", role);
+            verify(userService, times(1)).findById(userId);
+        }
+
+        @Test
+        void getUserRole_UserWithNullRole_ThrowsInvalidCredentialsException() {
+            // Arrange
+            testUser.setRole(null);
+            when(userService.findById(userId)).thenReturn(Optional.of(testUser));
+
+            // Act & Assert
+            NullPointerException exception = assertThrows(
+                    NullPointerException.class,
+                    () -> profileService.getUserRole(userId));
+
+            assertEquals("User role is not set for user with ID: " + userId, exception.getMessage());
+            verify(userService, times(1)).findById(userId);
+        }
     }
 }
