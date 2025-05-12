@@ -174,6 +174,15 @@ public class ProfileService {
                                 .build()));
     }
 
+    public String getUserRole(UUID userId) {
+        User user = userService.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND + userId));
+        if (user.getRole() == null) {
+            throw new NullPointerException("User role is not set for user with ID: " + userId);
+        }
+        return user.getRole().toString();
+    }
+
     // Helper methods to extract usernames from social media URLs
 
     private String extractInstagramUsername(String input) {
@@ -231,7 +240,7 @@ public class ProfileService {
         return input.trim();
     }
 
-    private String extractDiscordId(String input) {
+    private String extractDiscordId(String input) { // NOSONAR
         if (input == null || input.trim().isEmpty()) {
             return null;
         }

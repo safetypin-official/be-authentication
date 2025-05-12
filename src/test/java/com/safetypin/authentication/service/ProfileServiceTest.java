@@ -811,4 +811,119 @@ class ProfileServiceTest {
             verify(profileViewRepository, never()).findByUser_Id(any());
         }
     }
+
+    @Nested
+    @DisplayName("getUserRole Tests")
+    class GetUserRoleTests {
+
+        private UUID specificUserId;
+        private User specificUser;
+
+        @BeforeEach
+        void setUp() {
+            specificUserId = UUID.randomUUID();
+            specificUser = new User();
+            specificUser.setId(specificUserId);
+            specificUser.setName("Specific User");
+            specificUser.setEmail("specific@example.com");
+        }
+
+        @Test
+        void getUserRole_UserFound_ReturnsRoleString() {
+            // Arrange
+            specificUser.setRole(Role.PREMIUM_USER);
+            when(userService.findById(specificUserId)).thenReturn(Optional.of(specificUser));
+
+            // Act
+            String role = profileService.getUserRole(specificUserId);
+
+            // Assert
+            assertEquals("PREMIUM_USER", role);
+            verify(userService, times(1)).findById(specificUserId);
+        }
+
+        @Test
+        void getUserRole_UserFound_RegisteredUser_ReturnsRoleString() {
+            // Arrange
+            specificUser.setRole(Role.REGISTERED_USER);
+            when(userService.findById(specificUserId)).thenReturn(Optional.of(specificUser));
+
+            // Act
+            String role = profileService.getUserRole(specificUserId);
+
+            // Assert
+            assertEquals("REGISTERED_USER", role);
+            verify(userService, times(1)).findById(specificUserId);
+        }
+
+        @Test
+        void getUserRole_UserFound_ModeratorRole_ReturnsRoleString() {
+            // Arrange
+            specificUser.setRole(Role.MODERATOR);
+            when(userService.findById(specificUserId)).thenReturn(Optional.of(specificUser));
+
+            // Act
+            String role = profileService.getUserRole(specificUserId);
+
+            // Assert
+            assertEquals("MODERATOR", role);
+            verify(userService, times(1)).findById(specificUserId);
+        }
+
+        @Test
+        void getUserRole_UserNotFound_ThrowsResourceNotFoundException() {
+            // Arrange
+            when(userService.findById(specificUserId)).thenReturn(Optional.empty());
+
+            // Act & Assert
+            ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
+                profileService.getUserRole(specificUserId);
+            });
+            assertTrue(exception.getMessage().contains("User not found with id " + specificUserId));
+            verify(userService, times(1)).findById(specificUserId);
+        }
+
+        @Test
+        void getUserRole_UserFoundButRoleIsNull_ThrowsNullPointerException() {
+            // Arrange
+            specificUser.setRole(null); // Explicitly set role to null
+            when(userService.findById(specificUserId)).thenReturn(Optional.of(specificUser));
+
+            // Act & Assert
+            // Expecting NullPointerException because user.getRole() would be null, then
+            // .toString() is called.
+            assertThrows(NullPointerException.class, () -> {
+                profileService.getUserRole(specificUserId);
+            });
+            verify(userService, times(1)).findById(specificUserId);
+        }
+
+        @Test
+        void getUserRole_UserExistsWithRole_ReturnsRoleString() {
+            // Arrange
+            when(userService.findById(userId)).thenReturn(Optional.of(testUser));
+
+            // Act
+            String role = profileService.getUserRole(userId);
+
+            // Assert
+            assertEquals("REGISTERED_USER", role);
+            verify(userService, times(1)).findById(userId);
+        }
+
+        @Test
+        void getUserRole_UserWithNullRole_ThrowsInvalidCredentialsException() {
+            // Arrange
+            testUser.setRole(null);
+            when(userService.findById(userId)).thenReturn(Optional.of(testUser));
+
+            // Act & Assert
+            NullPointerException exception = assertThrows(
+                    NullPointerException.class,
+                    () -> profileService.getUserRole(userId));
+
+            assertEquals("User role is not set for user with ID: " + userId, exception.getMessage());
+            verify(userService, times(1)).findById(userId);
+        }
+    }
 }
