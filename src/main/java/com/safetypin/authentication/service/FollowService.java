@@ -28,7 +28,7 @@ public class FollowService {
 
     /**
      * Follow a user
-     * 
+     *
      * @param followerId  ID of the user who wants to follow
      * @param followingId ID of the user to be followed
      * @return the created Follow entity
@@ -62,7 +62,7 @@ public class FollowService {
 
     /**
      * Unfollow a user
-     * 
+     *
      * @param followerId  ID of the user who wants to unfollow
      * @param followingId ID of the user to be unfollowed
      */
@@ -78,7 +78,7 @@ public class FollowService {
 
     /**
      * Check if a user is following another user
-     * 
+     *
      * @param followerId  ID of the potential follower
      * @param followingId ID of the potential followed user
      * @return true if following, false otherwise
@@ -89,7 +89,7 @@ public class FollowService {
 
     /**
      * Get all users that a user is following
-     * 
+     *
      * @param userId ID of the user
      * @return List of users that the user is following
      */
@@ -108,8 +108,8 @@ public class FollowService {
 
     /**
      * Get all users that a user is following, with follow status for viewer
-     * 
-     * @param userId ID of the user
+     *
+     * @param userId   ID of the user
      * @param viewerId ID of the user viewing the list
      * @return List of users that the user is following with follow status
      */
@@ -124,7 +124,7 @@ public class FollowService {
         }
 
         List<User> followingUsers = userService.findAllById(followingIds);
-        
+
         return followingUsers.stream()
                 .map(user -> UserFollowResponse.builder()
                         .userId(user.getId())
@@ -137,7 +137,7 @@ public class FollowService {
 
     /**
      * Get all followers of a user
-     * 
+     *
      * @param userId ID of the user
      * @return List of users that follow the user
      */
@@ -156,8 +156,8 @@ public class FollowService {
 
     /**
      * Get all followers of a user, with follow status for viewer
-     * 
-     * @param userId ID of the user
+     *
+     * @param userId   ID of the user
      * @param viewerId ID of the user viewing the list
      * @return List of users that follow the user with follow status
      */
@@ -172,7 +172,7 @@ public class FollowService {
         }
 
         List<User> followers = userService.findAllById(followerIds);
-        
+
         return followers.stream()
                 .map(user -> UserFollowResponse.builder()
                         .userId(user.getId())
@@ -185,7 +185,7 @@ public class FollowService {
 
     /**
      * Get the count of users a user is following
-     * 
+     *
      * @param userId ID of the user
      * @return count of users being followed
      */
@@ -195,7 +195,7 @@ public class FollowService {
 
     /**
      * Get the count of followers for a user
-     * 
+     *
      * @param userId ID of the user
      * @return count of followers
      */
@@ -205,10 +205,10 @@ public class FollowService {
 
     /**
      * Get recent followers for a user from the last 30 days
-     * 
+     *
      * @param userId ID of the user
      * @return List of follower notifications with user info and how long ago they
-     *         followed
+     * followed
      */
     public List<FollowerNotificationDTO> getRecentFollowers(UUID userId) {
         // Check if user exists
@@ -255,6 +255,6 @@ public class FollowService {
                             .build();
                 })
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
     }
 }
