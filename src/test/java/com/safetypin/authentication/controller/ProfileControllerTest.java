@@ -526,4 +526,74 @@ class ProfileControllerTest {
                 assertTrue(body.getMessage().contains(errorMessage));
                 assertNull(body.getData());
         }
+
+        // GET USER ROLE TESTS
+
+        @Test
+        void getUserRole_Success() {
+                // Arrange
+                when(profileService.getUserRole(testUserId)).thenReturn("PREMIUM_USER");
+
+                // Act
+                ResponseEntity<AuthResponse> response = profileController.getUserRole(testUserId, testAuthHeader);
+
+                // Assert
+                assertEquals(HttpStatus.OK, response.getStatusCode());
+                assertNotNull(response.getBody());
+                assertTrue(response.getBody().isSuccess());
+                assertEquals("User role retrieved successfully", response.getBody().getMessage());
+                assertEquals("PREMIUM_USER", response.getBody().getData());
+                verify(jwtService).getUserFromJwtToken("test-token");
+                verify(profileService).getUserRole(testUserId);
+        }
+
+        @Test
+        void getUserRole_Unauthorized() {
+                // Arrange
+                when(jwtService.getUserFromJwtToken(any(String.class)))
+                                .thenThrow(new InvalidCredentialsException("Invalid token"));
+
+                // Act
+                ResponseEntity<AuthResponse> response = profileController.getUserRole(testUserId,
+                                "Bearer invalid-token");
+
+                // Assert
+                assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+                assertNotNull(response.getBody());
+                assertFalse(response.getBody().isSuccess());
+                assertEquals("Invalid token", response.getBody().getMessage());
+                assertNull(response.getBody().getData());
+        }
+
+        @Test
+        void getUserRole_NotFound() {
+                // Arrange
+                when(profileService.getUserRole(testUserId)).thenThrow(new ResourceNotFoundException("User not found"));
+
+                // Act
+                ResponseEntity<AuthResponse> response = profileController.getUserRole(testUserId, testAuthHeader);
+
+                // Assert
+                assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+                assertNotNull(response.getBody());
+                assertFalse(response.getBody().isSuccess());
+                assertEquals("User not found", response.getBody().getMessage());
+                assertNull(response.getBody().getData());
+        }
+
+        @Test
+        void getUserRole_InternalServerError() {
+                // Arrange
+                when(profileService.getUserRole(testUserId)).thenThrow(new RuntimeException("Some internal error"));
+
+                // Act
+                ResponseEntity<AuthResponse> response = profileController.getUserRole(testUserId, testAuthHeader);
+
+                // Assert
+                assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+                assertNotNull(response.getBody());
+                assertFalse(response.getBody().isSuccess());
+                assertTrue(response.getBody().getMessage().contains("Error retrieving user role"));
+                assertNull(response.getBody().getData());
+        }
 }
