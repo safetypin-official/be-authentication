@@ -174,6 +174,12 @@ public class ProfileService {
                                 .build()));
     }
 
+    public String getUserRole(UUID userId) {
+        User user = userService.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND + userId));
+        return user.getRole().toString();
+    }
+
     // Helper methods to extract usernames from social media URLs
 
     private String extractInstagramUsername(String input) {
