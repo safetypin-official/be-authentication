@@ -166,7 +166,7 @@ class AuthenticationServiceTest {
         Exception exception = assertThrows(InvalidCredentialsException.class,
                 () -> authenticationService.loginUser("notfound@example.com", "password"));
 
-        assertEquals("Invalid email", exception.getMessage());
+        assertEquals("Invalid email or password", exception.getMessage());
     }
 
     @Test
@@ -186,7 +186,7 @@ class AuthenticationServiceTest {
         Exception exception = assertThrows(InvalidCredentialsException.class,
                 () -> authenticationService.loginUser("test@example.com", "wrongPassword"));
 
-        assertEquals("Invalid password", exception.getMessage());
+        assertEquals("Invalid email or password", exception.getMessage());
     }
 
     @Test
