@@ -3,37 +3,32 @@ package com.safetypin.authentication.dto;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-import org.junit.jupiter.api.Test;
+import java.util.stream.Stream;
+
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class PasswordResetRequestTest {
 
-    @Test
-    void testGetSetEmail() {
+    @ParameterizedTest
+    @MethodSource("emailTestCases")
+    void testEmailHandling(String inputEmail, String expectedResult) {
         PasswordResetRequest request = new PasswordResetRequest();
-        request.setEmail(" test@example.com ");
-        assertEquals("test@example.com", request.getEmail());
+        request.setEmail(inputEmail);
+
+        if (inputEmail == null) {
+            assertNull(request.getEmail());
+        } else {
+            assertEquals(expectedResult, request.getEmail());
+        }
     }
 
-    @Test
-    void testSetEmail_null() {
-        PasswordResetRequest request = new PasswordResetRequest();
-        request.setEmail(null);
-        assertNull(request.getEmail());
-    }
-
-    @Test
-    void testSetEmail_empty() {
-        PasswordResetRequest request = new PasswordResetRequest();
-        request.setEmail("");
-        // Assuming @NotBlank will be validated elsewhere, focusing on trim
-        assertEquals("", request.getEmail());
-    }
-
-    @Test
-    void testSetEmail_whitespaceOnly() {
-        PasswordResetRequest request = new PasswordResetRequest();
-        request.setEmail("   ");
-        // Assuming @NotBlank will be validated elsewhere, focusing on trim
-        assertEquals("", request.getEmail());
+    private static Stream<Arguments> emailTestCases() {
+        return Stream.of(
+                Arguments.of(" test@example.com ", "test@example.com"),
+                Arguments.of(null, null),
+                Arguments.of("", ""),
+                Arguments.of("   ", ""));
     }
 }

@@ -4,8 +4,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.time.LocalDate;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class RegistrationRequestTest {
 
@@ -31,26 +35,25 @@ class RegistrationRequestTest {
         assertEquals(birthdate, request.getBirthdate());
     }
 
-    @Test
-    void testGetSetEmail() {
+    @ParameterizedTest
+    @MethodSource("emailProvider")
+    void testSetAndGetEmail(String input, String expected) {
         RegistrationRequest request = new RegistrationRequest();
-        request.setEmail(" test@example.com ");
-        assertEquals("test@example.com", request.getEmail());
+        request.setEmail(input);
+
+        if (expected == null) {
+            assertNull(request.getEmail(), "Expected null for input: " + input);
+        } else {
+            assertEquals(expected, request.getEmail(), "Trimming didn’t work for input: " + input);
+        }
     }
 
-    @Test
-    void testSetEmail_null() {
-        RegistrationRequest request = new RegistrationRequest();
-        request.setEmail(null);
-        assertNull(request.getEmail());
-    }
-
-    @Test
-    void testSetEmail_empty() {
-        RegistrationRequest request = new RegistrationRequest();
-        request.setEmail("");
-        // Assuming @NotBlank will be validated elsewhere, focusing on trim
-        assertEquals("", request.getEmail());
+    static Stream<Arguments> emailProvider() {
+        return Stream.of(
+                // input , expected
+                Arguments.of(" test@example.com ", "test@example.com"),
+                Arguments.of(null, null),
+                Arguments.of("", ""));
     }
 
     @Test
@@ -68,34 +71,27 @@ class RegistrationRequestTest {
         assertEquals("password123", request.getPassword());
     }
 
-    @Test
-    void testGetSetName() {
+    @ParameterizedTest
+    @MethodSource("nameProvider")
+    void testSetAndGetName(String input, String expected) {
         RegistrationRequest request = new RegistrationRequest();
-        request.setName(" Test Name ");
-        assertEquals("Test Name", request.getName());
+        request.setName(input);
+
+        if (expected == null) {
+            assertNull(request.getName(), "Expected null for input: " + input);
+        } else {
+            assertEquals(expected, request.getName(), "Trimming didn’t work for input: " + input);
+        }
     }
 
-    @Test
-    void testSetName_null() {
-        RegistrationRequest request = new RegistrationRequest();
-        request.setName(null);
-        assertNull(request.getName());
-    }
-
-    @Test
-    void testSetName_empty() {
-        RegistrationRequest request = new RegistrationRequest();
-        request.setName("");
-        // Assuming @NotBlank will be validated elsewhere, focusing on trim
-        assertEquals("", request.getName());
-    }
-
-    @Test
-    void testSetName_whitespaceOnly() {
-        RegistrationRequest request = new RegistrationRequest();
-        request.setName("   ");
-        // Assuming @NotBlank will be validated elsewhere, focusing on trim
-        assertEquals("", request.getName());
+    static Stream<Arguments> nameProvider() {
+        return Stream.of(
+                // input , expected
+                Arguments.of(" Test Name ", "Test Name"),
+                Arguments.of(null, null),
+                Arguments.of("", ""),
+                Arguments.of("   ", "") // whitespace-only → empty
+        );
     }
 
     @Test

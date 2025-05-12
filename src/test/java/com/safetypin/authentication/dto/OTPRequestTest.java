@@ -3,63 +3,58 @@ package com.safetypin.authentication.dto;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-import org.junit.jupiter.api.Test;
+import java.util.stream.Stream;
+
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullSource;
 
 class OTPRequestTest {
 
-    @Test
-    void testGetSetEmail() {
+    @ParameterizedTest
+    @NullSource
+    @MethodSource("emailTestCases")
+    void testSetEmail(String input) {
         OTPRequest request = new OTPRequest();
-        request.setEmail(" test@example.com ");
-        assertEquals("test@example.com", request.getEmail());
+        request.setEmail(input);
+
+        if (input == null) {
+            assertNull(request.getEmail());
+        } else if (input.trim().isEmpty()) {
+            assertEquals("", request.getEmail());
+        } else {
+            assertEquals(input.trim(), request.getEmail());
+        }
     }
 
-    @Test
-    void testSetEmail_null() {
-        OTPRequest request = new OTPRequest();
-        request.setEmail(null);
-        assertNull(request.getEmail());
+    static Stream<Arguments> emailTestCases() {
+        return Stream.of(
+                Arguments.of(" test@example.com "),
+                Arguments.of(""),
+                Arguments.of("   "));
     }
 
-    @Test
-    void testSetEmail_empty() {
+    @ParameterizedTest
+    @NullSource
+    @MethodSource("otpTestCases")
+    void testSetOtp(String input) {
         OTPRequest request = new OTPRequest();
-        request.setEmail("");
-        assertEquals("", request.getEmail());
+        request.setOtp(input);
+
+        if (input == null) {
+            assertNull(request.getOtp());
+        } else if (input.trim().isEmpty()) {
+            assertEquals("", request.getOtp());
+        } else {
+            assertEquals(input.trim(), request.getOtp());
+        }
     }
 
-    @Test
-    void testSetEmail_whitespaceOnly() {
-        OTPRequest request = new OTPRequest();
-        request.setEmail("   ");
-        assertEquals("", request.getEmail());
-    }
-
-    @Test
-    void testGetSetOtp() {
-        OTPRequest request = new OTPRequest();
-        request.setOtp(" 123456 ");
-        assertEquals("123456", request.getOtp());
-    }
-
-    @Test
-    void testSetOtp_null() {
-        OTPRequest request = new OTPRequest();
-        request.setOtp(null);
-        assertNull(request.getOtp());
-    }
-
-    @Test
-    void testSetOtp_empty() {
-        OTPRequest request = new OTPRequest();
-        request.setOtp("");
-        assertEquals("", request.getOtp());
-    }
-
-    @Test
-    void testSetOtp_whitespaceOnly() {
-        OTPRequest request = new OTPRequest();
-        request.setOtp("   ");
-        assertEquals("", request.getOtp());
+    static Stream<Arguments> otpTestCases() {
+        return Stream.of(
+                Arguments.of(" 123456 "),
+                Arguments.of(""),
+                Arguments.of("   "));
     }
 }

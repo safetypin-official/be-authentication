@@ -3,67 +3,55 @@ package com.safetypin.authentication.dto;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-import org.junit.jupiter.api.Test;
+import java.util.stream.Stream;
+
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class VerifyResetOTPRequestTest {
 
-    @Test
-    void testGetSetEmail() {
+    @ParameterizedTest
+    @MethodSource("emailProvider")
+    void testSetAndGetEmail(String input, String expected) {
         VerifyResetOTPRequest request = new VerifyResetOTPRequest();
-        request.setEmail(" test@example.com ");
-        assertEquals("test@example.com", request.getEmail());
+        request.setEmail(input);
+
+        if (expected == null) {
+            assertNull(request.getEmail(), "Expected null for input: " + input);
+        } else {
+            assertEquals(expected, request.getEmail(), "Trimming didn’t work for input: " + input);
+        }
     }
 
-    @Test
-    void testSetEmail_null() {
-        VerifyResetOTPRequest request = new VerifyResetOTPRequest();
-        request.setEmail(null);
-        assertNull(request.getEmail());
+    static Stream<Arguments> emailProvider() {
+        return Stream.of(
+                // input , expected
+                Arguments.of(" test@example.com ", "test@example.com"),
+                Arguments.of(null, null),
+                Arguments.of("", ""),
+                Arguments.of("   ", ""));
     }
 
-    @Test
-    void testSetEmail_empty() {
+    @ParameterizedTest
+    @MethodSource("otpProvider")
+    void testSetAndGetOtp(String input, String expected) {
         VerifyResetOTPRequest request = new VerifyResetOTPRequest();
-        request.setEmail("");
-        // Assuming @NotBlank will be validated elsewhere, focusing on trim
-        assertEquals("", request.getEmail());
+        request.setOtp(input);
+
+        if (expected == null) {
+            assertNull(request.getOtp(), "Expected null for input: " + input);
+        } else {
+            assertEquals(expected, request.getOtp(), "Trimming didn’t work for input: " + input);
+        }
     }
 
-    @Test
-    void testSetEmail_whitespaceOnly() {
-        VerifyResetOTPRequest request = new VerifyResetOTPRequest();
-        request.setEmail("   ");
-        // Assuming @NotBlank will be validated elsewhere, focusing on trim
-        assertEquals("", request.getEmail());
-    }
-
-    @Test
-    void testGetSetOtp() {
-        VerifyResetOTPRequest request = new VerifyResetOTPRequest();
-        request.setOtp(" 123456 ");
-        assertEquals("123456", request.getOtp());
-    }
-
-    @Test
-    void testSetOtp_null() {
-        VerifyResetOTPRequest request = new VerifyResetOTPRequest();
-        request.setOtp(null);
-        assertNull(request.getOtp());
-    }
-
-    @Test
-    void testSetOtp_empty() {
-        VerifyResetOTPRequest request = new VerifyResetOTPRequest();
-        request.setOtp("");
-        // Assuming @NotBlank will be validated elsewhere, focusing on trim
-        assertEquals("", request.getOtp());
-    }
-
-    @Test
-    void testSetOtp_whitespaceOnly() {
-        VerifyResetOTPRequest request = new VerifyResetOTPRequest();
-        request.setOtp("   ");
-        // Assuming @NotBlank will be validated elsewhere, focusing on trim
-        assertEquals("", request.getOtp());
+    static Stream<Arguments> otpProvider() {
+        return Stream.of(
+                // input , expected
+                Arguments.of(" 123456 ", "123456"),
+                Arguments.of(null, null),
+                Arguments.of("", ""),
+                Arguments.of("   ", ""));
     }
 }

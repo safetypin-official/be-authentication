@@ -3,76 +3,59 @@ package com.safetypin.authentication.dto;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
+import java.util.stream.Stream;
+
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class PasswordResetWithOTPRequestTest {
 
-    @Test
-    void testGetSetEmail() {
+    @ParameterizedTest
+    @MethodSource("emailTestCases")
+    void testSetEmail(String input, String expected) {
         PasswordResetWithOTPRequest request = new PasswordResetWithOTPRequest();
-        request.setEmail(" test@example.com ");
-        assertEquals("test@example.com", request.getEmail());
+        request.setEmail(input);
+        if (expected == null) {
+            assertNull(request.getEmail());
+        } else {
+            assertEquals(expected, request.getEmail());
+        }
     }
 
-    @Test
-    void testSetEmail_null() {
-        PasswordResetWithOTPRequest request = new PasswordResetWithOTPRequest();
-        request.setEmail(null);
-        assertNull(request.getEmail());
-    }
-
-    @Test
-    void testSetEmail_empty() {
-        PasswordResetWithOTPRequest request = new PasswordResetWithOTPRequest();
-        request.setEmail("");
-        // Assuming @NotBlank will be validated elsewhere, focusing on trim
-        assertEquals("", request.getEmail());
-    }
-
-    @Test
-    void testSetEmail_whitespaceOnly() {
-        PasswordResetWithOTPRequest request = new PasswordResetWithOTPRequest();
-        request.setEmail("   ");
-        // Assuming @NotBlank will be validated elsewhere, focusing on trim
-        assertEquals("", request.getEmail());
+    static Stream<Arguments> emailTestCases() {
+        return Stream.of(
+                Arguments.of(" test@example.com ", "test@example.com"),
+                Arguments.of(null, null),
+                Arguments.of("", ""),
+                Arguments.of("   ", ""));
     }
 
     @Test
     void testGetSetNewPassword() {
         PasswordResetWithOTPRequest request = new PasswordResetWithOTPRequest();
         request.setNewPassword(" newPassword123 ");
-        // Assuming no trim on password, but if there was:
-        // assertEquals("newPassword123", request.getNewPassword());
         assertEquals(" newPassword123 ", request.getNewPassword());
     }
 
-    @Test
-    void testGetSetResetToken() {
+    @ParameterizedTest
+    @MethodSource("resetTokenTestCases")
+    void testSetResetToken(String input, String expected) {
         PasswordResetWithOTPRequest request = new PasswordResetWithOTPRequest();
-        request.setResetToken(" testToken ");
-        assertEquals("testToken", request.getResetToken());
+        request.setResetToken(input);
+        if (expected == null) {
+            assertNull(request.getResetToken());
+        } else {
+            assertEquals(expected, request.getResetToken());
+        }
     }
 
-    @Test
-    void testSetResetToken_null() {
-        PasswordResetWithOTPRequest request = new PasswordResetWithOTPRequest();
-        request.setResetToken(null);
-        assertNull(request.getResetToken());
-    }
-
-    @Test
-    void testSetResetToken_empty() {
-        PasswordResetWithOTPRequest request = new PasswordResetWithOTPRequest();
-        request.setResetToken("");
-        // Assuming @NotBlank will be validated elsewhere, focusing on trim
-        assertEquals("", request.getResetToken());
-    }
-
-    @Test
-    void testSetResetToken_whitespaceOnly() {
-        PasswordResetWithOTPRequest request = new PasswordResetWithOTPRequest();
-        request.setResetToken("   ");
-        // Assuming @NotBlank will be validated elsewhere, focusing on trim
-        assertEquals("", request.getResetToken());
+    static Stream<Arguments> resetTokenTestCases() {
+        return Stream.of(
+                Arguments.of(" testToken ", "testToken"),
+                Arguments.of(null, null),
+                Arguments.of("", ""),
+                Arguments.of("   ", ""));
     }
 }
