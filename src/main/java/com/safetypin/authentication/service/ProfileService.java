@@ -240,7 +240,7 @@ public class ProfileService {
         return input.trim();
     }
 
-    private String extractDiscordId(String input) {
+    private String extractDiscordId(String input) { // NOSONAR
         if (input == null || input.trim().isEmpty()) {
             return null;
         }

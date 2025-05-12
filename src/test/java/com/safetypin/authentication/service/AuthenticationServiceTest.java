@@ -28,6 +28,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import com.safetypin.authentication.dto.AuthToken;
 import com.safetypin.authentication.dto.RegistrationRequest;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
+import com.safetypin.authentication.exception.PendingVerificationException;
 import com.safetypin.authentication.exception.UserAlreadyExistsException;
 import com.safetypin.authentication.model.RefreshToken;
 import com.safetypin.authentication.model.Role;
@@ -84,11 +85,35 @@ class AuthenticationServiceTest {
         request.setBirthdate(LocalDate.now().minusYears(20));
 
         User existingUser = new User();
+        existingUser.setProvider("OTHER_PROVIDER"); // Set a different provider initially
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(existingUser));
 
         Exception exception = assertThrows(UserAlreadyExistsException.class,
                 () -> authenticationService.registerUser(request));
         assertTrue(exception.getMessage().contains("Email address is already registered"));
+    }
+
+    @Test
+    void testRegisterUser_ExistingUnverifiedEmailUser_ResendsOTP() {
+        RegistrationRequest request = new RegistrationRequest();
+        request.setEmail("test@example.com");
+        request.setPassword("password");
+        request.setName("Test User");
+        request.setBirthdate(LocalDate.now().minusYears(20));
+
+        User existingUser = new User();
+        existingUser.setEmail("test@example.com");
+        existingUser.setProvider(AuthenticationService.EMAIL_PROVIDER);
+        existingUser.setVerified(false);
+
+        when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(existingUser));
+
+        Exception exception = assertThrows(PendingVerificationException.class,
+                () -> authenticationService.registerUser(request));
+
+        assertEquals("User already exists but is not verified. A new OTP has been sent.", exception.getMessage());
+        verify(otpService, times(1)).generateOTP("test@example.com");
+        verify(userService, never()).save(any(User.class)); // Ensure user is not saved again
     }
 
     @Test
