@@ -1,5 +1,18 @@
 package com.safetypin.authentication.service;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.safetypin.authentication.dto.PostedByData;
 import com.safetypin.authentication.dto.ProfileResponse;
 import com.safetypin.authentication.dto.ProfileViewDTO;
@@ -10,18 +23,6 @@ import com.safetypin.authentication.exception.ResourceNotFoundException;
 import com.safetypin.authentication.model.ProfileView;
 import com.safetypin.authentication.model.User;
 import com.safetypin.authentication.repository.ProfileViewRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 @Service
 public class ProfileService {
@@ -33,7 +34,8 @@ public class ProfileService {
     private final FollowService followService;
 
     @Autowired
-    public ProfileService(UserService userService, ProfileViewRepository profileViewRepository, FollowService followService) {
+    public ProfileService(UserService userService, ProfileViewRepository profileViewRepository,
+            FollowService followService) {
         this.userService = userService;
         this.profileViewRepository = profileViewRepository;
         this.followService = followService;
@@ -77,8 +79,7 @@ public class ProfileService {
                 user,
                 followService.getFollowersCount(userId),
                 followService.getFollowingCount(userId),
-                isFollowing
-        );
+                isFollowing);
     }
 
     public ProfileResponse updateProfile(UUID userId, UpdateProfileRequest request) {
@@ -86,6 +87,12 @@ public class ProfileService {
                 .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND + userId));
 
         // Update fields only if they are provided (not null) in the request
+        if (request.getName() != null) {
+            if (request.getName().length() > 100) {
+                throw new IllegalArgumentException("Name must not exceed 100 characters");
+            }
+            user.setName(request.getName());
+        }
         if (request.getInstagram() != null) {
             user.setInstagram(extractInstagramUsername(request.getInstagram()));
         }
@@ -114,8 +121,7 @@ public class ProfileService {
                 savedUser,
                 followService.getFollowersCount(userId),
                 followService.getFollowingCount(userId),
-                false
-        );
+                false);
     }
 
     // Get all profiles
@@ -144,15 +150,14 @@ public class ProfileService {
         List<ProfileView> profileViews = profileViewRepository.findByUser_Id(userId);
 
         return profileViews.stream()
-            .map(profileView -> ProfileViewDTO.builder()
-                .viewerUserId(profileView.getViewer().getId())
-                .name(profileView.getViewer().getName())
-                .profilePicture(profileView.getViewer().getProfilePicture())
-                .viewedAt(profileView.getViewedAt())
-                .build())
-            .toList();
+                .map(profileView -> ProfileViewDTO.builder()
+                        .viewerUserId(profileView.getViewer().getId())
+                        .name(profileView.getViewer().getName())
+                        .profilePicture(profileView.getViewer().getProfilePicture())
+                        .viewedAt(profileView.getViewedAt())
+                        .build())
+                .toList();
     }
-
 
     public Map<UUID, PostedByData> getUsersBatch(List<UUID> userIds) {
         if (userIds == null || userIds.isEmpty()) {
@@ -169,7 +174,14 @@ public class ProfileService {
                                 .build()));
     }
 
-
+    public String getUserRole(UUID userId) {
+        User user = userService.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND + userId));
+        if (user.getRole() == null) {
+            throw new NullPointerException("User role is not set for user with ID: " + userId);
+        }
+        return user.getRole().toString();
+    }
 
     // Helper methods to extract usernames from social media URLs
 
@@ -228,7 +240,7 @@ public class ProfileService {
         return input.trim();
     }
 
-    private String extractDiscordId(String input) {
+    private String extractDiscordId(String input) { // NOSONAR
         if (input == null || input.trim().isEmpty()) {
             return null;
         }

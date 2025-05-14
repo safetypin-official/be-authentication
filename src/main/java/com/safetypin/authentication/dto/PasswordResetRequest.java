@@ -14,5 +14,8 @@ public class PasswordResetRequest {
     private String email;
 
     // Getters and setters
+    public void setEmail(String email) {
+        this.email = (email != null) ? email.trim() : null;
+    }
 
 }

@@ -19,4 +19,12 @@ public class PasswordResetWithOTPRequest {
 
     @NotBlank(message = "Reset token is required")
     private String resetToken;
+
+    public void setEmail(String email) {
+        this.email = (email != null) ? email.trim() : null;
+    }
+
+    public void setResetToken(String resetToken) {
+        this.resetToken = (resetToken != null) ? resetToken.trim() : null;
+    }
 }

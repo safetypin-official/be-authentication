@@ -46,6 +46,9 @@ public class AuthenticationService {
         if (calculateAge(request.getBirthdate()) < 16) {
             throw new IllegalArgumentException("User must be at least 16 years old");
         }
+        if (request.getName().length() > 100) {
+            throw new IllegalArgumentException("Name must not exceed 100 characters");
+        }
         Optional<User> existingUserOpt = userService.findByEmail(request.getEmail());
         if (existingUserOpt.isPresent()) {
             User existingUser = existingUserOpt.get();
@@ -92,14 +95,14 @@ public class AuthenticationService {
         Optional<User> findUser = userService.findByEmail(email);
         if (findUser.isEmpty()) {
             // email not exists
-            logger.warn("Login failed: Email not found");
-            throw new InvalidCredentialsException("Invalid email");
+            logger.warn("Login failed: Email not found for email: {}", email);
+            throw new InvalidCredentialsException("Invalid email or password");
         }
         User user = findUser.get();
         if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
             // incorrect password
-            logger.warn("Login failed: Incorrect password attempt");
-            throw new InvalidCredentialsException("Invalid password");
+            logger.debug("Login failed: Incorrect password for email: {}", email);
+            throw new InvalidCredentialsException("Invalid email or password");
         }
         String accessToken = jwtService.generateToken(user.getId());
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());

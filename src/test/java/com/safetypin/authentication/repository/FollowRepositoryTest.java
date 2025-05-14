@@ -1,17 +1,21 @@
 package com.safetypin.authentication.repository;
 
-import com.safetypin.authentication.model.Follow;
-import com.safetypin.authentication.model.User;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 
-import java.time.LocalDateTime;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
+import com.safetypin.authentication.model.Follow;
+import com.safetypin.authentication.model.User;
 
 @DataJpaTest
 class FollowRepositoryTest {
@@ -21,9 +25,6 @@ class FollowRepositoryTest {
 
     @Autowired
     private FollowRepository followRepository;
-
-    @Autowired
-    private UserRepository userRepository;
 
     private User follower;
     private User followee1;
@@ -150,7 +151,7 @@ class FollowRepositoryTest {
 
         // Assert
         assertFalse(followRepository.existsByFollowerIdAndFollowingId(follower.getId(), followee1.getId()));
-        
+
         // Verify other relationships are still intact
         assertTrue(followRepository.existsByFollowerIdAndFollowingId(follower.getId(), followee2.getId()));
         assertTrue(followRepository.existsByFollowerIdAndFollowingId(followee2.getId(), followee1.getId()));
