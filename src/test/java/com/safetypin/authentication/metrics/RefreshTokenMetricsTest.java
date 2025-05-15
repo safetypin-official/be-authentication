@@ -11,7 +11,6 @@ import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
-import java.util.function.ToDoubleFunction;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.*;
@@ -45,7 +44,7 @@ class RefreshTokenMetricsTest {
             when(mockBuilder.description(anyString())).thenReturn(mockBuilder);
             when(mockBuilder.register(any(MeterRegistry.class))).thenReturn(null); // Return value doesn't matter
 
-            mockedGauge.when(() -> Gauge.builder(anyString(), any(RefreshTokenMetrics.class), any(ToDoubleFunction.class)))
+            mockedGauge.when(() -> Gauge.builder(anyString(), any(RefreshTokenMetrics.class), any()))
                     .thenReturn(mockBuilder);
 
             refreshTokenMetrics.init();
