@@ -29,6 +29,6 @@ public class RefreshTokenMetrics {
 
     // Micrometer calls this method to get the latest value
     public double getTotalTokens() {
-        return refreshTokenRepository.countByExpiryTimeBefore(Instant.now());
+        return refreshTokenRepository.countByExpiryTimeAfter(Instant.now());
     }
 }

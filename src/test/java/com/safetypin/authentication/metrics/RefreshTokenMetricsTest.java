@@ -13,12 +13,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class RefreshTokenMetricsTest {
-
     @Mock
     private RefreshTokenRepository refreshTokenRepository;
 
@@ -36,38 +36,35 @@ class RefreshTokenMetricsTest {
     }
 
     @Test
-    void init_shouldRegisterGauge() {
-        // Mock static Gauge.builder()
-        try (MockedStatic<Gauge> mockedGauge = mockStatic(Gauge.class)) {
-            @SuppressWarnings("unchecked")
-            Gauge.Builder<RefreshTokenMetrics> mockBuilder = mock(Gauge.Builder.class);
-            when(mockBuilder.description(anyString())).thenReturn(mockBuilder);
-            when(mockBuilder.register(any(MeterRegistry.class))).thenReturn(null); // Return value doesn't matter
+    void init_shouldRegisterGaugeAndReportCorrectValue() {
+        // Arrange
+        long expectedTokenCount = 5L;
+        when(refreshTokenRepository.countByExpiryTimeAfter(any(Instant.class))).thenReturn(expectedTokenCount);
 
-            mockedGauge.when(() -> Gauge.builder(anyString(), any(RefreshTokenMetrics.class), any()))
-                    .thenReturn(mockBuilder);
+        // Act
+        refreshTokenMetrics.init(); // This will register the gauge
 
-            refreshTokenMetrics.init();
+        // Assert
+        Gauge registeredGauge = meterRegistry.find("refresh_tokens_not_expired_total").gauge();
+        assertNotNull(registeredGauge, "Gauge 'refresh_tokens_not_expired_total' should be registered.");
+        assertEquals(expectedTokenCount, registeredGauge.value(), "Gauge should report the count from the repository.");
 
-            mockedGauge.verify(() -> Gauge.builder(
-                    eq("refresh_tokens_not_expired_total"),
-                    eq(refreshTokenMetrics),
-                    any()
-            ));
-            verify(mockBuilder).description("Total number of non-expired refresh tokens in Database, aka the number of users logged in");
-            verify(mockBuilder).register(meterRegistry);
-        }
+        // Verify that the repository method was called when the gauge value was fetched (implicitly by init and then by value())
+        // The gauge's value function (getTotalTokens) will be called by Micrometer when the gauge is registered
+        // and again when we call registeredGauge.value().
+        // We expect at least one call to countByExpiryTimeAfter due to the gauge's nature.
+        verify(refreshTokenRepository, atLeastOnce()).countByExpiryTimeAfter(any(Instant.class));
     }
 
     @Test
     void getTotalTokens_shouldReturnCountFromRepository() {
         long expectedCount = 10L;
-        when(refreshTokenRepository.countByExpiryTimeBefore(any(Instant.class))).thenReturn(expectedCount);
+        when(refreshTokenRepository.countByExpiryTimeAfter(any(Instant.class))).thenReturn(expectedCount);
 
         double actualCount = refreshTokenMetrics.getTotalTokens();
 
         assertEquals(expectedCount, actualCount);
-        verify(refreshTokenRepository).countByExpiryTimeBefore(instantCaptor.capture());
+        verify(refreshTokenRepository).countByExpiryTimeAfter(instantCaptor.capture());
 
         // Verify that Instant.now() was called (approximately)
         long nowMillis = Instant.now().toEpochMilli();
