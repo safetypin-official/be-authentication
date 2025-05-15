@@ -11,4 +11,7 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID
 
     // maybe don't use? or call this periodically
     void deleteAllByExpiryTimeBefore(Instant expiryTime);
+
+    // For monitoring purposes
+    long countByExpiryTimeBefore(Instant expiryTime);
 }
