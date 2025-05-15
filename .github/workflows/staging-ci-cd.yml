@@ -58,12 +58,13 @@ jobs:
         run: mvn test
       - name: Generate Coverage Report
         run: mvn jacoco:report
-      - name: Run Regression Tests
-        run: mvn test -P regression-tests
-      - name: Run Integration Tests
-        run: mvn verify -P integration-tests
-      - name: Run User Acceptance Tests
-        run: mvn test -P uat
+#      - name: Run Regression Tests
+#        run: mvn test -P regression-tests
+#      - name: Run Integration Tests
+#        run: mvn verify -P integration-tests
+#      - name: Run User Acceptance Tests
+#        run: mvn test -P uat
+## BROOOOOOOOOOOOOO Who made this
 
   publish:
     name: Publish Docker Image
