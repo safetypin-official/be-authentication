@@ -70,7 +70,7 @@ class ProfileControllerTest {
                 // Set up test profile response
                 testProfileResponse = ProfileResponse.builder()
                                 .id(testUserId)
-                                .role("USER")
+                                .role("Role.REGISTERED_USER")
                                 .isVerified(true)
                                 .instagram("testuser")
                                 .twitter("testuser")
@@ -336,7 +336,7 @@ class ProfileControllerTest {
                 ProfileResponse updatedProfileResponse = ProfileResponse.builder()
                                 .id(testUserId)
                                 .name("Updated User Name")
-                                .role("USER")
+                                .role("Role.REGISTERED_USER")
                                 .isVerified(true)
                                 .instagram("testuser")
                                 .twitter("testuser")
@@ -527,7 +527,7 @@ class ProfileControllerTest {
                 assertNull(body.getData());
         }
 
-        // GET USER ROLE TESTS
+        // GET Role.REGISTERED_USER ROLE TESTS
 
         @Test
         void getUserRole_Success() {

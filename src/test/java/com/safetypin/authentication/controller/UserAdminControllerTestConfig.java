@@ -1,23 +1,62 @@
 package com.safetypin.authentication.controller;
 
-import static org.mockito.Mockito.mock;
-
+import org.mockito.Mockito;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.client.RestTemplate;
 
+import com.safetypin.authentication.repository.FollowRepository;
+import com.safetypin.authentication.repository.ProfileViewRepository;
+import com.safetypin.authentication.repository.RefreshTokenRepository;
+import com.safetypin.authentication.repository.UserRepository;
 import com.safetypin.authentication.service.JwtService;
 import com.safetypin.authentication.service.UserAdminService;
 
-@Configuration
+@TestConfiguration
 public class UserAdminControllerTestConfig {
 
     @Bean
     public UserAdminService userAdminService() {
-        return mock(UserAdminService.class);
+        return Mockito.mock(UserAdminService.class);
     }
 
     @Bean
     public JwtService jwtService() {
-        return mock(JwtService.class);
+        return Mockito.mock(JwtService.class);
+    }
+
+    @Bean
+    public UserRepository userRepository() {
+        return Mockito.mock(UserRepository.class);
+    }
+
+    @Bean
+    public RefreshTokenRepository refreshTokenRepository() {
+        return Mockito.mock(RefreshTokenRepository.class);
+    }
+
+    @Bean
+    public ProfileViewRepository profileViewRepository() {
+        return Mockito.mock(ProfileViewRepository.class);
+    }
+
+    @Bean
+    public FollowRepository followRepository() {
+        return Mockito.mock(FollowRepository.class);
+    }
+
+    @Bean
+    public RestTemplate restTemplate() {
+        return Mockito.mock(RestTemplate.class);
+    }
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http.csrf(AbstractHttpConfigurer::disable)
+                .authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll());
+        return http.build();
     }
 }
