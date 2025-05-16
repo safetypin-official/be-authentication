@@ -26,7 +26,7 @@ public class UserResponse {
 
     private LocalDate birthdate;
 
-    private String provider; // "EMAIL", "GOOGLE", "APPLE" private String profilePicture;
+    private String provider; // "EMAIL", "GOOGLE", "APPLE"
 
     private String profileBanner;
 
