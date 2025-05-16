@@ -3,6 +3,8 @@ package com.safetypin.authentication.dto;
 import java.time.LocalDate;
 import java.util.UUID;
 
+import com.safetypin.authentication.model.Role;
+
 import lombok.Builder;
 import lombok.Data;
 import lombok.Getter;
@@ -22,7 +24,7 @@ public class UserResponse {
 
     private boolean isVerified;
 
-    private String role;
+    private Role role;
 
     private LocalDate birthdate;
 

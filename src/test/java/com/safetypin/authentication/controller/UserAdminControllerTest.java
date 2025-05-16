@@ -61,11 +61,10 @@ class UserAdminControllerTest {
 
                 moderatorId = UUID.randomUUID();
                 targetUserId = UUID.randomUUID();
-
                 moderatorResponse = UserResponse.builder()
                                 .id(moderatorId)
                                 .name("Test Moderator")
-                                .role(Role.MODERATOR.name())
+                                .role(Role.MODERATOR)
                                 .isVerified(true)
                                 .build();
 

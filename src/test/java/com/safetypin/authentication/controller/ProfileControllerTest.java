@@ -34,6 +34,7 @@ import com.safetypin.authentication.dto.UpdateProfileRequest;
 import com.safetypin.authentication.dto.UserResponse;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.ResourceNotFoundException;
+import com.safetypin.authentication.model.Role;
 import com.safetypin.authentication.service.JwtService;
 import com.safetypin.authentication.service.ProfileService;
 
@@ -65,12 +66,10 @@ class ProfileControllerTest {
                                 .id(testUserId)
                                 .name("testuser")
                                 .email("test@example.com")
-                                .build();
-
-                // Set up test profile response
+                                .build(); // Set up test profile response
                 testProfileResponse = ProfileResponse.builder()
                                 .id(testUserId)
-                                .role("Role.REGISTERED_USER")
+                                .role(Role.REGISTERED_USER)
                                 .isVerified(true)
                                 .instagram("testuser")
                                 .twitter("testuser")
@@ -336,7 +335,7 @@ class ProfileControllerTest {
                 ProfileResponse updatedProfileResponse = ProfileResponse.builder()
                                 .id(testUserId)
                                 .name("Updated User Name")
-                                .role("Role.REGISTERED_USER")
+                                .role(Role.REGISTERED_USER)
                                 .isVerified(true)
                                 .instagram("testuser")
                                 .twitter("testuser")
@@ -527,12 +526,10 @@ class ProfileControllerTest {
                 assertNull(body.getData());
         }
 
-        // GET Role.REGISTERED_USER ROLE TESTS
-
-        @Test
+        // GET Role.REGISTERED_USER ROLE TESTS @Test
         void getUserRole_Success() {
                 // Arrange
-                when(profileService.getUserRole(testUserId)).thenReturn("PREMIUM_USER");
+                when(profileService.getUserRole(testUserId)).thenReturn(Role.PREMIUM_USER);
 
                 // Act
                 ResponseEntity<AuthResponse> response = profileController.getUserRole(testUserId, testAuthHeader);

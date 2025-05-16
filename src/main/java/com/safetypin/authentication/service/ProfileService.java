@@ -21,6 +21,7 @@ import com.safetypin.authentication.dto.UserPostResponse;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.ResourceNotFoundException;
 import com.safetypin.authentication.model.ProfileView;
+import com.safetypin.authentication.model.Role;
 import com.safetypin.authentication.model.User;
 import com.safetypin.authentication.repository.ProfileViewRepository;
 
@@ -143,7 +144,7 @@ public class ProfileService {
         // Check if the user is premium
         User user = userService.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND + userId));
-        if (!user.getRole().toString().contains("PREMIUM")) {
+        if (user.getRole() != Role.PREMIUM_USER) {
             throw new InvalidCredentialsException("You need to be a premium user to view profile views.");
         }
 
@@ -174,13 +175,13 @@ public class ProfileService {
                                 .build()));
     }
 
-    public String getUserRole(UUID userId) {
+    public Role getUserRole(UUID userId) {
         User user = userService.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND + userId));
         if (user.getRole() == null) {
             throw new NullPointerException("User role is not set for user with ID: " + userId);
         }
-        return user.getRole().toString();
+        return user.getRole();
     }
 
     // Helper methods to extract usernames from social media URLs

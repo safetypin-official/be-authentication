@@ -24,6 +24,7 @@ import com.safetypin.authentication.dto.UpdateProfileRequest;
 import com.safetypin.authentication.dto.UserResponse;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.ResourceNotFoundException;
+import com.safetypin.authentication.model.Role;
 import com.safetypin.authentication.service.JwtService;
 import com.safetypin.authentication.service.ProfileService;
 
@@ -140,7 +141,7 @@ public class ProfileController {
             // Authenticate user from JWT token
             parseUserResponseFromAuthHeader(authHeader);
 
-            String role = profileService.getUserRole(id);
+            Role role = profileService.getUserRole(id);
             return ResponseEntity.ok(new AuthResponse(true, "User role retrieved successfully", role));
         } catch (InvalidCredentialsException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)

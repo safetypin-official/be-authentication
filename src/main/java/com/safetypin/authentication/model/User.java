@@ -88,16 +88,15 @@ public class User {
 
     @Setter
     @Getter
-    private String profileBanner;
+    private String profileBanner; // used for jwt
 
-    // used for jwt
     public UserResponse generateUserResponse() {
         return UserResponse.builder()
                 .email(email)
                 .id(id)
                 .provider(provider)
                 .birthdate(birthdate)
-                .role(role != null ? role.name() : null)
+                .role(role)
                 .name(name)
                 .isVerified(this.isVerified()) // Explicitly call the getter
                 .profilePicture(profilePicture)

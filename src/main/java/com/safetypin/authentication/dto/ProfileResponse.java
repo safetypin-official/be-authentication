@@ -1,14 +1,16 @@
 package com.safetypin.authentication.dto;
 
+import java.util.UUID;
+
+import com.safetypin.authentication.model.Role;
 import com.safetypin.authentication.model.User;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.util.UUID;
 
 @Data
 @Getter
@@ -18,7 +20,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class ProfileResponse {
     private UUID id;
-    private String role;
+    private Role role;
     private boolean isVerified;
     private String name;
     private String instagram;
@@ -32,11 +34,10 @@ public class ProfileResponse {
     private long followingCount;
     private boolean isFollowing;
 
-
     public static ProfileResponse fromUser(User user) {
         return ProfileResponse.builder()
                 .id(user.getId())
-                .role(user.getRole() != null ? user.getRole().name() : null)
+                .role(user.getRole())
                 .isVerified(user.isVerified())
                 .instagram(user.getInstagram())
                 .twitter(user.getTwitter())
@@ -47,14 +48,13 @@ public class ProfileResponse {
                 .profilePicture(user.getProfilePicture())
                 .profileBanner(user.getProfileBanner())
                 .build();
-    }
+    } // Maybe better to set followings as a separate DTO
 
-    // Maybe better to set followings as a separate DTO
     public static ProfileResponse fromUserAndFollowStatus(
-                User user, long followersCount, long followingCount, boolean isFollowing) {
+            User user, long followersCount, long followingCount, boolean isFollowing) {
         return ProfileResponse.builder()
                 .id(user.getId())
-                .role(user.getRole() != null ? user.getRole().name() : null)
+                .role(user.getRole())
                 .isVerified(user.isVerified())
                 .instagram(user.getInstagram())
                 .twitter(user.getTwitter())

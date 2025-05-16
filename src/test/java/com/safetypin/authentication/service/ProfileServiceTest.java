@@ -113,7 +113,7 @@ class ProfileServiceTest {
             assertNotNull(response);
             assertEquals(userId, response.getId());
             assertEquals(testUser.getName(), response.getName());
-            assertEquals("REGISTERED_USER", response.getRole());
+            assertEquals(Role.REGISTERED_USER, response.getRole());
             assertTrue(response.isVerified());
             assertEquals("testinsta", response.getInstagram());
             assertEquals("testtwitter", response.getTwitter());
@@ -835,10 +835,10 @@ class ProfileServiceTest {
             when(userService.findById(specificUserId)).thenReturn(Optional.of(specificUser));
 
             // Act
-            String role = profileService.getUserRole(specificUserId);
+            Role role = profileService.getUserRole(specificUserId);
 
             // Assert
-            assertEquals("PREMIUM_USER", role);
+            assertEquals(Role.PREMIUM_USER, role);
             verify(userService, times(1)).findById(specificUserId);
         }
 
@@ -849,10 +849,10 @@ class ProfileServiceTest {
             when(userService.findById(specificUserId)).thenReturn(Optional.of(specificUser));
 
             // Act
-            String role = profileService.getUserRole(specificUserId);
+            Role role = profileService.getUserRole(specificUserId);
 
             // Assert
-            assertEquals("REGISTERED_USER", role);
+            assertEquals(Role.REGISTERED_USER, role);
             verify(userService, times(1)).findById(specificUserId);
         }
 
@@ -863,10 +863,10 @@ class ProfileServiceTest {
             when(userService.findById(specificUserId)).thenReturn(Optional.of(specificUser));
 
             // Act
-            String role = profileService.getUserRole(specificUserId);
+            Role role = profileService.getUserRole(specificUserId);
 
             // Assert
-            assertEquals("MODERATOR", role);
+            assertEquals(Role.MODERATOR, role);
             verify(userService, times(1)).findById(specificUserId);
         }
 
@@ -904,10 +904,10 @@ class ProfileServiceTest {
             when(userService.findById(userId)).thenReturn(Optional.of(testUser));
 
             // Act
-            String role = profileService.getUserRole(userId);
+            Role role = profileService.getUserRole(userId);
 
             // Assert
-            assertEquals("REGISTERED_USER", role);
+            assertEquals(Role.REGISTERED_USER, role);
             verify(userService, times(1)).findById(userId);
         }
 
