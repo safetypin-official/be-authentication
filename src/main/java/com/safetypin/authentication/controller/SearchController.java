@@ -3,6 +3,8 @@ package com.safetypin.authentication.controller;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -42,12 +44,18 @@ public class SearchController {
             users = userService.findUsersByNameContaining(query.trim());
         }
 
-        // Convert users to UserResponse DTOs and set followers count for each
+        // Extract user IDs for batch follower count fetching
+        List<UUID> userIds = users.stream().map(User::getId).toList();
+
+        // Get follower counts for all users in a single batch operation
+        Map<UUID, Long> followerCountsMap = followService.getFollowersCountBatch(userIds);
+
+        // Convert users to UserResponse DTOs using the pre-fetched follower counts
         List<UserResponse> userResponses = users.stream()
                 .map(user -> {
                     UserResponse response = user.generateUserResponse();
-                    // Set followers count for each user
-                    response.setFollowersCount(followService.getFollowersCount(user.getId()));
+                    // Set followers count from the batch results
+                    response.setFollowersCount(followerCountsMap.getOrDefault(user.getId(), 0L));
                     return response;
                 })
                 .sorted(Comparator.comparing(UserResponse::getFollowersCount).reversed())

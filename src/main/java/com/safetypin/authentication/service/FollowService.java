@@ -1,19 +1,25 @@
 package com.safetypin.authentication.service;
 
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.safetypin.authentication.dto.FollowerNotificationDTO;
 import com.safetypin.authentication.dto.UserFollowResponse;
 import com.safetypin.authentication.exception.ResourceNotFoundException;
 import com.safetypin.authentication.model.Follow;
 import com.safetypin.authentication.model.User;
 import com.safetypin.authentication.repository.FollowRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
-import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 public class FollowService {
@@ -204,11 +210,40 @@ public class FollowService {
     }
 
     /**
+     * Get follower counts for multiple users in a single operation
+     *
+     * @param userIds List of user IDs to get follower counts for
+     * @return Map of user IDs to their follower counts
+     */
+    public Map<UUID, Long> getFollowersCountBatch(List<UUID> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return Map.of();
+        }
+
+        List<Object[]> results = followRepository.countFollowersByUserIds(userIds);
+        Map<UUID, Long> followerCountMap = new HashMap<>();
+
+        // Process query results and build the map
+        for (Object[] result : results) {
+            UUID userId = (UUID) result[0];
+            Long count = ((Number) result[1]).longValue();
+            followerCountMap.put(userId, count);
+        }
+
+        // Ensure all requested userIds have an entry, even if they have no followers
+        for (UUID userId : userIds) {
+            followerCountMap.putIfAbsent(userId, 0L);
+        }
+
+        return followerCountMap;
+    }
+
+    /**
      * Get recent followers for a user from the last 30 days
      *
      * @param userId ID of the user
      * @return List of follower notifications with user info and how long ago they
-     * followed
+     *         followed
      */
     public List<FollowerNotificationDTO> getRecentFollowers(UUID userId) {
         // Check if user exists
