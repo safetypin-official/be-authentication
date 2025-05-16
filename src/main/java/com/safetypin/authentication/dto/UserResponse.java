@@ -1,12 +1,12 @@
 package com.safetypin.authentication.dto;
 
+import java.time.LocalDate;
+import java.util.UUID;
+
 import lombok.Builder;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.time.LocalDate;
-import java.util.UUID;
 
 @Data
 @Getter
@@ -26,9 +26,11 @@ public class UserResponse {
 
     private LocalDate birthdate;
 
-    private String provider;  // "EMAIL", "GOOGLE", "APPLE"
+    private String provider; // "EMAIL", "GOOGLE", "APPLE" private String profilePicture;
+
+    private String profileBanner;
 
     private String profilePicture;
 
-    private String profileBanner;
+    private long followersCount;
 }
