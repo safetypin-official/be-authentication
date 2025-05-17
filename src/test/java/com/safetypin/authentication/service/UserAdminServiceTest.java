@@ -1,13 +1,19 @@
 package com.safetypin.authentication.service;
 
-import com.safetypin.authentication.exception.ResourceNotFoundException;
-import com.safetypin.authentication.exception.UnauthorizedAccessException;
-import com.safetypin.authentication.model.Role;
-import com.safetypin.authentication.model.User;
-import com.safetypin.authentication.repository.FollowRepository;
-import com.safetypin.authentication.repository.ProfileViewRepository;
-import com.safetypin.authentication.repository.RefreshTokenRepository;
-import com.safetypin.authentication.repository.UserRepository;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.Optional;
+import java.util.UUID;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,12 +28,14 @@ import org.springframework.http.MediaType;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.Optional;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import com.safetypin.authentication.exception.ResourceNotFoundException;
+import com.safetypin.authentication.exception.UnauthorizedAccessException;
+import com.safetypin.authentication.model.Role;
+import com.safetypin.authentication.model.User;
+import com.safetypin.authentication.repository.FollowRepository;
+import com.safetypin.authentication.repository.ProfileViewRepository;
+import com.safetypin.authentication.repository.RefreshTokenRepository;
+import com.safetypin.authentication.repository.UserRepository;
 
 @ExtendWith(MockitoExtension.class)
 class UserAdminServiceTest {
@@ -43,6 +51,8 @@ class UserAdminServiceTest {
     private FollowRepository followRepository;
     @Mock
     private RestTemplate restTemplate;
+    @Mock
+    private JwtService jwtService;
     @InjectMocks
     private UserAdminService userAdminService;
     private UUID moderatorId;
@@ -53,7 +63,7 @@ class UserAdminServiceTest {
     @BeforeEach
     void setUp() {
         moderatorId = UUID.randomUUID();
-        targetUserId = UUID.randomUUID();
+        targetUserId = UUID.fromString("e4384827-54f9-447b-8197-e6887170b291");
 
         moderator = new User();
         moderator.setId(moderatorId);
@@ -71,6 +81,9 @@ class UserAdminServiceTest {
 
         // Set the post service URL for testing
         ReflectionTestUtils.setField(userAdminService, "postServiceUrl", POST_SERVICE_URL);
+
+        // Mock JWT token generation with lenient stubbing
+        lenient().when(jwtService.generateToken(any(UUID.class))).thenReturn("mocked-jwt-token");
     }
 
     @Test
@@ -126,6 +139,7 @@ class UserAdminServiceTest {
         HttpHeaders headers = entity.getHeaders();
         assert (headers.getContentType().equals(MediaType.APPLICATION_JSON));
         assert (headers.getAccept().contains(MediaType.APPLICATION_JSON));
+        assert (headers.get("Authorization").get(0).equals("Bearer mocked-jwt-token"));
     }
 
     @Test
@@ -192,7 +206,7 @@ class UserAdminServiceTest {
 
         // Simulate exception when calling post service
         doThrow(new RuntimeException("Connection refused")).when(restTemplate).exchange(
-                any(String.class),
+                anyString(),
                 eq(HttpMethod.DELETE),
                 any(HttpEntity.class),
                 eq(Void.class));
