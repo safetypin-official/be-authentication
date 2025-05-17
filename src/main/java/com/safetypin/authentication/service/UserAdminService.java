@@ -1,14 +1,8 @@
 package com.safetypin.authentication.service;
 
-import com.safetypin.authentication.exception.ResourceNotFoundException;
-import com.safetypin.authentication.exception.UnauthorizedAccessException;
-import com.safetypin.authentication.model.Role;
-import com.safetypin.authentication.model.User;
-import com.safetypin.authentication.repository.FollowRepository;
-import com.safetypin.authentication.repository.ProfileViewRepository;
-import com.safetypin.authentication.repository.RefreshTokenRepository;
-import com.safetypin.authentication.repository.UserRepository;
-import lombok.extern.slf4j.Slf4j;
+import java.util.Collections;
+import java.util.UUID;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -19,8 +13,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.Collections;
-import java.util.UUID;
+import com.safetypin.authentication.exception.ResourceNotFoundException;
+import com.safetypin.authentication.exception.UnauthorizedAccessException;
+import com.safetypin.authentication.model.Role;
+import com.safetypin.authentication.model.User;
+import com.safetypin.authentication.repository.FollowRepository;
+import com.safetypin.authentication.repository.ProfileViewRepository;
+import com.safetypin.authentication.repository.RefreshTokenRepository;
+import com.safetypin.authentication.repository.UserRepository;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Slf4j
@@ -31,20 +33,23 @@ public class UserAdminService {
     private final ProfileViewRepository profileViewRepository;
     private final FollowRepository followRepository;
     private final RestTemplate restTemplate;
+    private final JwtService jwtService; // Added JwtService
     @Value("${be-post}")
     private String postServiceUrl;
 
     @Autowired
     public UserAdminService(UserRepository userRepository,
-                            RefreshTokenRepository refreshTokenRepository,
-                            ProfileViewRepository profileViewRepository,
-                            FollowRepository followRepository,
-                            RestTemplate restTemplate) {
+            RefreshTokenRepository refreshTokenRepository,
+            ProfileViewRepository profileViewRepository,
+            FollowRepository followRepository,
+            RestTemplate restTemplate,
+            JwtService jwtService) { // Added JwtService to constructor
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.profileViewRepository = profileViewRepository;
         this.followRepository = followRepository;
         this.restTemplate = restTemplate;
+        this.jwtService = jwtService; // Initialize JwtService
     }
 
     /**
@@ -90,6 +95,9 @@ public class UserAdminService {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+            // Add JWT token to Authorization header
+            String token = jwtService.generateToken(moderatorId);
+            headers.setBearerAuth(token);
 
             HttpEntity<String> entity = new HttpEntity<>(headers);
 
