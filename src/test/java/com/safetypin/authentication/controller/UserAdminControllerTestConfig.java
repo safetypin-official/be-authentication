@@ -1,5 +1,11 @@
 package com.safetypin.authentication.controller;
 
+import com.safetypin.authentication.repository.FollowRepository;
+import com.safetypin.authentication.repository.ProfileViewRepository;
+import com.safetypin.authentication.repository.RefreshTokenRepository;
+import com.safetypin.authentication.repository.UserRepository;
+import com.safetypin.authentication.service.JwtService;
+import com.safetypin.authentication.service.UserAdminService;
 import org.mockito.Mockito;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -7,13 +13,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.client.RestTemplate;
-
-import com.safetypin.authentication.repository.FollowRepository;
-import com.safetypin.authentication.repository.ProfileViewRepository;
-import com.safetypin.authentication.repository.RefreshTokenRepository;
-import com.safetypin.authentication.repository.UserRepository;
-import com.safetypin.authentication.service.JwtService;
-import com.safetypin.authentication.service.UserAdminService;
 
 @TestConfiguration
 public class UserAdminControllerTestConfig {

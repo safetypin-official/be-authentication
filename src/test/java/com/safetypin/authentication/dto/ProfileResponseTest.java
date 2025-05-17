@@ -1,17 +1,12 @@
 package com.safetypin.authentication.dto;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import com.safetypin.authentication.model.Role;
+import com.safetypin.authentication.model.User;
+import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
 
-import org.junit.jupiter.api.Test;
-
-import com.safetypin.authentication.model.Role;
-import com.safetypin.authentication.model.User;
+import static org.junit.jupiter.api.Assertions.*;
 
 class ProfileResponseTest {
 

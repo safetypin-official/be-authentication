@@ -1,11 +1,9 @@
 package com.safetypin.authentication.controller;
 
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
+import com.safetypin.authentication.dto.UserResponse;
+import com.safetypin.authentication.model.User;
+import com.safetypin.authentication.service.FollowService;
+import com.safetypin.authentication.service.UserService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -16,10 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.safetypin.authentication.dto.UserResponse;
-import com.safetypin.authentication.model.User;
-import com.safetypin.authentication.service.FollowService;
-import com.safetypin.authentication.service.UserService;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/users")

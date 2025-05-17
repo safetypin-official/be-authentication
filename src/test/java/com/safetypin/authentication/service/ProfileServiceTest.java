@@ -1,28 +1,12 @@
 package com.safetypin.authentication.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.stream.Stream;
-
+import com.safetypin.authentication.dto.*;
+import com.safetypin.authentication.exception.InvalidCredentialsException;
+import com.safetypin.authentication.exception.ResourceNotFoundException;
+import com.safetypin.authentication.model.ProfileView;
+import com.safetypin.authentication.model.Role;
+import com.safetypin.authentication.model.User;
+import com.safetypin.authentication.repository.ProfileViewRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -36,17 +20,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.safetypin.authentication.dto.PostedByData;
-import com.safetypin.authentication.dto.ProfileResponse;
-import com.safetypin.authentication.dto.ProfileViewDTO;
-import com.safetypin.authentication.dto.UpdateProfileRequest;
-import com.safetypin.authentication.dto.UserPostResponse;
-import com.safetypin.authentication.exception.InvalidCredentialsException;
-import com.safetypin.authentication.exception.ResourceNotFoundException;
-import com.safetypin.authentication.model.ProfileView;
-import com.safetypin.authentication.model.Role;
-import com.safetypin.authentication.model.User;
-import com.safetypin.authentication.repository.ProfileViewRepository;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Stream;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ProfileServiceTest {

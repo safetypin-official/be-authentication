@@ -1,14 +1,13 @@
 package com.safetypin.authentication.repository;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.UUID;
-
+import com.safetypin.authentication.model.Follow;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
-import com.safetypin.authentication.model.Follow;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
 
 @Repository
 public interface FollowRepository extends JpaRepository<Follow, UUID> {
@@ -35,7 +34,7 @@ public interface FollowRepository extends JpaRepository<Follow, UUID> {
 
     /**
      * Count followers for a batch of users in a single query
-     * 
+     *
      * @param followingIds List of user IDs to count followers for
      * @return Map of user ID to follower count
      */

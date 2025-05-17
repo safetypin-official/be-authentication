@@ -1,16 +1,5 @@
 package com.safetypin.authentication.controller;
 
-import java.util.UUID;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
 import com.safetypin.authentication.dto.ApiResponse;
 import com.safetypin.authentication.dto.UserResponse;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
@@ -18,16 +7,22 @@ import com.safetypin.authentication.exception.ResourceNotFoundException;
 import com.safetypin.authentication.exception.UnauthorizedAccessException;
 import com.safetypin.authentication.service.JwtService;
 import com.safetypin.authentication.service.UserAdminService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/admin/users")
 public class UserAdminController {
 
-    private final UserAdminService userAdminService;
-    private final JwtService jwtService;
     private static final String BEARER_PREFIX = "Bearer ";
     private static final String STATUS_SUCCESS = "success";
     private static final String STATUS_ERROR = "error";
+    private final UserAdminService userAdminService;
+    private final JwtService jwtService;
 
     @Autowired
     public UserAdminController(UserAdminService userAdminService, JwtService jwtService) {
@@ -38,7 +33,7 @@ public class UserAdminController {
     /**
      * Delete a user account
      * This endpoint can only be accessed by users with MODERATOR role
-     * 
+     *
      * @param userId     ID of the user to delete
      * @param authHeader Authorization header with JWT token
      * @return Response with success or error message

@@ -20,7 +20,7 @@ public class SecurityConfig {
                         .requestMatchers("/**").permitAll() // Allow all requests
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // No
-                                                                                                              // session
+                // session
                 .formLogin(AbstractHttpConfigurer::disable) // Disable login page
                 .httpBasic(AbstractHttpConfigurer::disable); // Disable basic authentication
 

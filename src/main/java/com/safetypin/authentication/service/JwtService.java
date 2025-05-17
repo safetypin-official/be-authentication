@@ -1,22 +1,20 @@
 package com.safetypin.authentication.service;
 
+import com.safetypin.authentication.dto.UserResponse;
+import com.safetypin.authentication.exception.InvalidCredentialsException;
+import com.safetypin.authentication.model.User;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
 import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-
-import com.safetypin.authentication.dto.UserResponse;
-import com.safetypin.authentication.exception.InvalidCredentialsException;
-import com.safetypin.authentication.model.User;
-
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.security.Keys;
 
 @Service
 public class JwtService {
@@ -26,7 +24,7 @@ public class JwtService {
     private final UserService userService;
 
     public JwtService(@Value("${jwt.secret:biggerboysandstolensweethearts}") String secretKey,
-            UserService userService) {
+                      UserService userService) {
         this.key = Keys.hmacShaKeyFor(secretKey.getBytes());
         this.userService = userService;
     }

@@ -1,11 +1,10 @@
 package com.safetypin.authentication.repository;
 
-import java.time.Instant;
-import java.util.UUID;
-
+import com.safetypin.authentication.model.RefreshToken;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import com.safetypin.authentication.model.RefreshToken;
+import java.time.Instant;
+import java.util.UUID;
 
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID> {
     RefreshToken findByToken(String token);

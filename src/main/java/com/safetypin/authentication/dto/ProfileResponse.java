@@ -1,16 +1,10 @@
 package com.safetypin.authentication.dto;
 
-import java.util.UUID;
-
 import com.safetypin.authentication.model.Role;
 import com.safetypin.authentication.model.User;
+import lombok.*;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import java.util.UUID;
 
 @Data
 @Getter

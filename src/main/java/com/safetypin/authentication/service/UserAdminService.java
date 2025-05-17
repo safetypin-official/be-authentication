@@ -1,8 +1,14 @@
 package com.safetypin.authentication.service;
 
-import java.util.Collections;
-import java.util.UUID;
-
+import com.safetypin.authentication.exception.ResourceNotFoundException;
+import com.safetypin.authentication.exception.UnauthorizedAccessException;
+import com.safetypin.authentication.model.Role;
+import com.safetypin.authentication.model.User;
+import com.safetypin.authentication.repository.FollowRepository;
+import com.safetypin.authentication.repository.ProfileViewRepository;
+import com.safetypin.authentication.repository.RefreshTokenRepository;
+import com.safetypin.authentication.repository.UserRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -13,16 +19,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
-import com.safetypin.authentication.exception.ResourceNotFoundException;
-import com.safetypin.authentication.exception.UnauthorizedAccessException;
-import com.safetypin.authentication.model.Role;
-import com.safetypin.authentication.model.User;
-import com.safetypin.authentication.repository.FollowRepository;
-import com.safetypin.authentication.repository.ProfileViewRepository;
-import com.safetypin.authentication.repository.RefreshTokenRepository;
-import com.safetypin.authentication.repository.UserRepository;
-
-import lombok.extern.slf4j.Slf4j;
+import java.util.Collections;
+import java.util.UUID;
 
 @Service
 @Slf4j
@@ -38,10 +36,10 @@ public class UserAdminService {
 
     @Autowired
     public UserAdminService(UserRepository userRepository,
-            RefreshTokenRepository refreshTokenRepository,
-            ProfileViewRepository profileViewRepository,
-            FollowRepository followRepository,
-            RestTemplate restTemplate) {
+                            RefreshTokenRepository refreshTokenRepository,
+                            ProfileViewRepository profileViewRepository,
+                            FollowRepository followRepository,
+                            RestTemplate restTemplate) {
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.profileViewRepository = profileViewRepository;
@@ -52,7 +50,7 @@ public class UserAdminService {
     /**
      * Delete a user account and all associated data
      * This operation can only be performed by a user with MODERATOR role
-     * 
+     *
      * @param moderatorId  the ID of the moderator attempting the deletion
      * @param targetUserId the ID of the user to delete
      * @throws ResourceNotFoundException   if user is not found
