@@ -77,7 +77,7 @@ public class DevDataSeeder implements Runnable {
             user4.setPassword(passwordEncoder.encode("password4")); // NOSONAR
             user4.setName("User Four");
             user4.setVerified(true);
-            user4.setRole(Role.REGISTERED_USER);
+            user4.setRole(Role.MODERATOR);
             user4.setBirthdate(LocalDate.of(1993, 4, 4));
             user4.setProvider(EMAIL_PROVIDER);
             userRepository.save(user4);
