@@ -1,33 +1,22 @@
 package com.safetypin.authentication.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.util.Date;
-import java.util.Optional;
-import java.util.UUID;
-
+import com.safetypin.authentication.dto.UserResponse;
+import com.safetypin.authentication.exception.InvalidCredentialsException;
+import com.safetypin.authentication.model.User;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.safetypin.authentication.dto.UserResponse;
-import com.safetypin.authentication.exception.InvalidCredentialsException;
-import com.safetypin.authentication.model.User;
+import java.util.Date;
+import java.util.Optional;
+import java.util.UUID;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtException;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class JwtServiceTest {
@@ -166,7 +155,7 @@ class JwtServiceTest {
         // Mock the claims to simulate an expired token
         Claims mockClaims = mock(Claims.class);
         when(mockClaims.getExpiration()).thenReturn(new Date(System.currentTimeMillis() - 2000000)); // 2000 seconds in
-                                                                                                     // the past
+        // the past
         when(mockClaims.getSubject()).thenReturn(userId.toString());
 
         // Create a new JwtService instance with a spy to mock parseToken

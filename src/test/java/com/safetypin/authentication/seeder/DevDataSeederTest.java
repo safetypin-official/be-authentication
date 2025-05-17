@@ -1,10 +1,10 @@
 package com.safetypin.authentication.seeder;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
-import java.time.LocalDate;
-import java.util.List;
-
+import com.safetypin.authentication.model.Role;
+import com.safetypin.authentication.model.User;
+import com.safetypin.authentication.repository.FollowRepository;
+import com.safetypin.authentication.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,12 +12,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 
-import com.safetypin.authentication.model.Role;
-import com.safetypin.authentication.model.User;
-import com.safetypin.authentication.repository.FollowRepository;
-import com.safetypin.authentication.repository.UserRepository;
+import java.time.LocalDate;
+import java.util.List;
 
-import jakarta.transaction.Transactional;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest
 @ActiveProfiles("dev") // Use the 'dev' profile during tests

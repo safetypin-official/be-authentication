@@ -14,4 +14,6 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID
 
     // For monitoring purposes (active users)
     long countByExpiryTimeAfter(Instant expiryTime);
+
+    void deleteByUserId(UUID userId);
 }

@@ -1,14 +1,5 @@
 package com.safetypin.authentication.service;
 
-import java.time.LocalDate;
-import java.time.Period;
-import java.util.Optional;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-
 import com.safetypin.authentication.dto.AuthToken;
 import com.safetypin.authentication.dto.RegistrationRequest;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
@@ -17,6 +8,14 @@ import com.safetypin.authentication.exception.UserAlreadyExistsException;
 import com.safetypin.authentication.model.RefreshToken;
 import com.safetypin.authentication.model.Role;
 import com.safetypin.authentication.model.User;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDate;
+import java.time.Period;
+import java.util.Optional;
 
 @Service
 public class AuthenticationService {

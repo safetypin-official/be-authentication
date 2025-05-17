@@ -1,17 +1,35 @@
 package com.safetypin.authentication.dto;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-
-import java.time.LocalDate;
-import java.util.stream.Stream;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.time.LocalDate;
+import java.util.stream.Stream;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+
 class RegistrationRequestTest {
+
+    static Stream<Arguments> emailProvider() {
+        return Stream.of(
+                // input , expected
+                Arguments.of(" test@example.com ", "test@example.com"),
+                Arguments.of(null, null),
+                Arguments.of("", ""));
+    }
+
+    static Stream<Arguments> nameProvider() {
+        return Stream.of(
+                // input , expected
+                Arguments.of(" Test Name ", "Test Name"),
+                Arguments.of(null, null),
+                Arguments.of("", ""),
+                Arguments.of("   ", "") // whitespace-only → empty
+        );
+    }
 
     @Test
     void testGettersAndSetters() {
@@ -48,14 +66,6 @@ class RegistrationRequestTest {
         }
     }
 
-    static Stream<Arguments> emailProvider() {
-        return Stream.of(
-                // input , expected
-                Arguments.of(" test@example.com ", "test@example.com"),
-                Arguments.of(null, null),
-                Arguments.of("", ""));
-    }
-
     @Test
     void testSetEmail_whitespaceOnly() {
         RegistrationRequest request = new RegistrationRequest();
@@ -82,16 +92,6 @@ class RegistrationRequestTest {
         } else {
             assertEquals(expected, request.getName(), "Trimming didn’t work for input: " + input);
         }
-    }
-
-    static Stream<Arguments> nameProvider() {
-        return Stream.of(
-                // input , expected
-                Arguments.of(" Test Name ", "Test Name"),
-                Arguments.of(null, null),
-                Arguments.of("", ""),
-                Arguments.of("   ", "") // whitespace-only → empty
-        );
     }
 
     @Test
