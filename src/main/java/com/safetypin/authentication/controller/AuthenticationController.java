@@ -1,34 +1,17 @@
 package com.safetypin.authentication.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
-import com.safetypin.authentication.dto.AuthResponse;
-import com.safetypin.authentication.dto.AuthToken;
-import com.safetypin.authentication.dto.GoogleAuthDTO;
-import com.safetypin.authentication.dto.LoginRequest;
-import com.safetypin.authentication.dto.OTPRequest;
-import com.safetypin.authentication.dto.PasswordResetRequest;
-import com.safetypin.authentication.dto.PasswordResetWithOTPRequest;
-import com.safetypin.authentication.dto.RegistrationRequest;
-import com.safetypin.authentication.dto.ResetTokenResponse;
-import com.safetypin.authentication.dto.UserResponse;
-import com.safetypin.authentication.dto.VerifyResetOTPRequest;
+import com.safetypin.authentication.dto.*;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
 import com.safetypin.authentication.exception.PendingVerificationException;
 import com.safetypin.authentication.exception.UserAlreadyExistsException;
 import com.safetypin.authentication.service.AuthenticationService;
 import com.safetypin.authentication.service.GoogleAuthService;
 import com.safetypin.authentication.service.JwtService;
-
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -40,7 +23,7 @@ public class AuthenticationController {
 
     @Autowired
     public AuthenticationController(AuthenticationService authenticationService, GoogleAuthService googleAuthService,
-            JwtService jwtService) {
+                                    JwtService jwtService) {
         this.authenticationService = authenticationService;
         this.googleAuthService = googleAuthService;
         this.jwtService = jwtService;
@@ -98,7 +81,7 @@ public class AuthenticationController {
         try {
             AuthToken tokens = googleAuthService.authenticate(googleAuthData);
             return ResponseEntity.ok(new AuthResponse(true, "OK", tokens));
-        } catch (UserAlreadyExistsException | IllegalArgumentException e ) {
+        } catch (UserAlreadyExistsException | IllegalArgumentException e) {
             AuthResponse response = new AuthResponse(false, e.getMessage(), null);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         } catch (Exception e) {

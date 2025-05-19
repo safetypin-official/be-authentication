@@ -16,15 +16,15 @@ import java.util.UUID;
 @AllArgsConstructor
 @IdClass(FollowId.class)
 public class Follow implements Serializable {
-    
+
     @Id
     @Column(name = "follower_id", nullable = false)
     private UUID followerId;
-    
+
     @Id
     @Column(name = "following_id", nullable = false)
     private UUID followingId;
-    
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 }

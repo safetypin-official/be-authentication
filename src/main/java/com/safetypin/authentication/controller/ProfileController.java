@@ -1,31 +1,19 @@
 package com.safetypin.authentication.controller;
 
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
+import com.safetypin.authentication.dto.*;
+import com.safetypin.authentication.exception.InvalidCredentialsException;
+import com.safetypin.authentication.exception.ResourceNotFoundException;
+import com.safetypin.authentication.model.Role;
+import com.safetypin.authentication.service.JwtService;
+import com.safetypin.authentication.service.ProfileService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import com.safetypin.authentication.dto.AuthResponse;
-import com.safetypin.authentication.dto.PostedByData;
-import com.safetypin.authentication.dto.ProfileResponse;
-import com.safetypin.authentication.dto.ProfileViewDTO;
-import com.safetypin.authentication.dto.UpdateProfileRequest;
-import com.safetypin.authentication.dto.UserResponse;
-import com.safetypin.authentication.exception.InvalidCredentialsException;
-import com.safetypin.authentication.exception.ResourceNotFoundException;
-import com.safetypin.authentication.service.JwtService;
-import com.safetypin.authentication.service.ProfileService;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/profiles")
@@ -42,7 +30,7 @@ public class ProfileController {
 
     @GetMapping("/{id}")
     public ResponseEntity<AuthResponse> getProfile(@PathVariable UUID id,
-            @RequestHeader("Authorization") String authHeader) {
+                                                   @RequestHeader("Authorization") String authHeader) {
         UUID viewerId;
         try {
             // Extract viewer ID from JWT token
@@ -50,7 +38,8 @@ public class ProfileController {
             viewerId = viewer.getId();
         } catch (Exception e) {
             viewerId = null;
-            /* If token is not present or invalid, viewerId remains null */ }
+            /* If token is not present or invalid, viewerId remains null */
+        }
 
         try {
             ProfileResponse profile = profileService.getProfile(id, viewerId);
@@ -135,12 +124,12 @@ public class ProfileController {
 
     @GetMapping("/{id}/role")
     public ResponseEntity<AuthResponse> getUserRole(@PathVariable UUID id,
-            @RequestHeader("Authorization") String authHeader) {
+                                                    @RequestHeader("Authorization") String authHeader) {
         try {
             // Authenticate user from JWT token
             parseUserResponseFromAuthHeader(authHeader);
 
-            String role = profileService.getUserRole(id);
+            Role role = profileService.getUserRole(id);
             return ResponseEntity.ok(new AuthResponse(true, "User role retrieved successfully", role));
         } catch (InvalidCredentialsException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)

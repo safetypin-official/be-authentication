@@ -1,15 +1,33 @@
 package com.safetypin.authentication.dto;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-
-import java.util.stream.Stream;
-
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.stream.Stream;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+
 class VerifyResetOTPRequestTest {
+
+    static Stream<Arguments> emailProvider() {
+        return Stream.of(
+                // input , expected
+                Arguments.of(" test@example.com ", "test@example.com"),
+                Arguments.of(null, null),
+                Arguments.of("", ""),
+                Arguments.of("   ", ""));
+    }
+
+    static Stream<Arguments> otpProvider() {
+        return Stream.of(
+                // input , expected
+                Arguments.of(" 123456 ", "123456"),
+                Arguments.of(null, null),
+                Arguments.of("", ""),
+                Arguments.of("   ", ""));
+    }
 
     @ParameterizedTest
     @MethodSource("emailProvider")
@@ -24,15 +42,6 @@ class VerifyResetOTPRequestTest {
         }
     }
 
-    static Stream<Arguments> emailProvider() {
-        return Stream.of(
-                // input , expected
-                Arguments.of(" test@example.com ", "test@example.com"),
-                Arguments.of(null, null),
-                Arguments.of("", ""),
-                Arguments.of("   ", ""));
-    }
-
     @ParameterizedTest
     @MethodSource("otpProvider")
     void testSetAndGetOtp(String input, String expected) {
@@ -44,14 +53,5 @@ class VerifyResetOTPRequestTest {
         } else {
             assertEquals(expected, request.getOtp(), "Trimming didn’t work for input: " + input);
         }
-    }
-
-    static Stream<Arguments> otpProvider() {
-        return Stream.of(
-                // input , expected
-                Arguments.of(" 123456 ", "123456"),
-                Arguments.of(null, null),
-                Arguments.of("", ""),
-                Arguments.of("   ", ""));
     }
 }

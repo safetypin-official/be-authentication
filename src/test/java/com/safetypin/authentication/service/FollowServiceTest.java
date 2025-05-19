@@ -1,26 +1,11 @@
 package com.safetypin.authentication.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-
+import com.safetypin.authentication.dto.FollowerNotificationDTO;
+import com.safetypin.authentication.dto.UserFollowResponse;
+import com.safetypin.authentication.exception.ResourceNotFoundException;
+import com.safetypin.authentication.model.Follow;
+import com.safetypin.authentication.model.User;
+import com.safetypin.authentication.repository.FollowRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,12 +13,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.safetypin.authentication.dto.FollowerNotificationDTO;
-import com.safetypin.authentication.dto.UserFollowResponse;
-import com.safetypin.authentication.exception.ResourceNotFoundException;
-import com.safetypin.authentication.model.Follow;
-import com.safetypin.authentication.model.User;
-import com.safetypin.authentication.repository.FollowRepository;
+import java.time.LocalDateTime;
+import java.util.*;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class FollowServiceTest {
@@ -495,7 +480,7 @@ class FollowServiceTest {
     void getFollowingWithFollowStatus_ReturnsUserFollowResponses() {
         // Arrange
         UUID viewerId = UUID.randomUUID();
-        
+
         Follow follow1 = new Follow();
         follow1.setFollowerId(followerId);
         follow1.setFollowingId(followingId);
@@ -518,7 +503,7 @@ class FollowServiceTest {
 
         when(followRepository.findByFollowerId(followerId)).thenReturn(follows);
         when(userService.findAllById(followingIds)).thenReturn(Arrays.asList(following, following2));
-        
+
         // ViewerId follows following1 but not following2
         when(followRepository.existsByFollowerIdAndFollowingId(viewerId, followingId)).thenReturn(true);
         when(followRepository.existsByFollowerIdAndFollowingId(viewerId, followingId2)).thenReturn(false);
@@ -528,27 +513,27 @@ class FollowServiceTest {
 
         // Assert
         assertEquals(2, result.size());
-        
+
         // Check first user
         UserFollowResponse firstResponse = result.stream()
-            .filter(r -> r.getUserId().equals(followingId))
-            .findFirst()
-            .orElse(null);
+                .filter(r -> r.getUserId().equals(followingId))
+                .findFirst()
+                .orElse(null);
         assertNotNull(firstResponse);
         assertEquals(following.getName(), firstResponse.getName());
         assertEquals(following.getProfilePicture(), firstResponse.getProfilePicture());
         assertTrue(firstResponse.isFollowing()); // ViewerId follows this user
-        
+
         // Check second user
         UserFollowResponse secondResponse = result.stream()
-            .filter(r -> r.getUserId().equals(followingId2))
-            .findFirst()
-            .orElse(null);
+                .filter(r -> r.getUserId().equals(followingId2))
+                .findFirst()
+                .orElse(null);
         assertNotNull(secondResponse);
         assertEquals(following2.getName(), secondResponse.getName());
         assertEquals(following2.getProfilePicture(), secondResponse.getProfilePicture());
         assertFalse(secondResponse.isFollowing()); // ViewerId doesn't follow this user
-        
+
         verify(followRepository, times(1)).findByFollowerId(followerId);
         verify(userService, times(1)).findAllById(followingIds);
         verify(followRepository, times(1)).existsByFollowerIdAndFollowingId(viewerId, followingId);
@@ -592,13 +577,13 @@ class FollowServiceTest {
         follower2.setId(follower2Id);
         follower2.setName("Another Follower User");
         follower2.setProfilePicture("pic2.jpg");
-        
+
         // Set up follower details
         follower.setProfilePicture("pic1.jpg");
 
         when(followRepository.findByFollowingId(followingId)).thenReturn(follows);
         when(userService.findAllById(followerIds)).thenReturn(Arrays.asList(follower, follower2));
-        
+
         // ViewerId follows follower1 but not follower2
         when(followRepository.existsByFollowerIdAndFollowingId(viewerId, followerId)).thenReturn(true);
         when(followRepository.existsByFollowerIdAndFollowingId(viewerId, follower2Id)).thenReturn(false);
@@ -608,27 +593,27 @@ class FollowServiceTest {
 
         // Assert
         assertEquals(2, result.size());
-        
+
         // Check first follower
         UserFollowResponse firstResponse = result.stream()
-            .filter(r -> r.getUserId().equals(followerId))
-            .findFirst()
-            .orElse(null);
+                .filter(r -> r.getUserId().equals(followerId))
+                .findFirst()
+                .orElse(null);
         assertNotNull(firstResponse);
         assertEquals(follower.getName(), firstResponse.getName());
         assertEquals(follower.getProfilePicture(), firstResponse.getProfilePicture());
         assertTrue(firstResponse.isFollowing()); // ViewerId follows this user
-        
+
         // Check second follower
         UserFollowResponse secondResponse = result.stream()
-            .filter(r -> r.getUserId().equals(follower2Id))
-            .findFirst()
-            .orElse(null);
+                .filter(r -> r.getUserId().equals(follower2Id))
+                .findFirst()
+                .orElse(null);
         assertNotNull(secondResponse);
         assertEquals(follower2.getName(), secondResponse.getName());
         assertEquals(follower2.getProfilePicture(), secondResponse.getProfilePicture());
         assertFalse(secondResponse.isFollowing()); // ViewerId doesn't follow this user
-        
+
         verify(followRepository, times(1)).findByFollowingId(followingId);
         verify(userService, times(1)).findAllById(followerIds);
         verify(followRepository, times(1)).existsByFollowerIdAndFollowingId(viewerId, followerId);

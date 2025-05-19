@@ -1,24 +1,22 @@
 package com.safetypin.authentication.seeder;
 
-import static com.safetypin.authentication.service.AuthenticationService.EMAIL_PROVIDER;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime; // Import LocalDateTime
-
-import org.springframework.context.annotation.Profile;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Component;
-
 import com.safetypin.authentication.model.Follow;
 import com.safetypin.authentication.model.Role;
 import com.safetypin.authentication.model.User;
 import com.safetypin.authentication.repository.FollowRepository;
 import com.safetypin.authentication.repository.UserRepository;
-
 import jakarta.annotation.PostConstruct;
+import org.springframework.context.annotation.Profile;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Component;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
+import static com.safetypin.authentication.service.AuthenticationService.EMAIL_PROVIDER;
 
 @Component
-@Profile({ "dev" })
+@Profile({"dev"})
 public class DevDataSeeder implements Runnable {
 
     private final UserRepository userRepository;
@@ -26,7 +24,7 @@ public class DevDataSeeder implements Runnable {
     private final FollowRepository followRepository; // Add FollowRepository
 
     public DevDataSeeder(UserRepository userRepository, PasswordEncoder passwordEncoder,
-            FollowRepository followRepository) { // Add FollowRepository to constructor
+                         FollowRepository followRepository) { // Add FollowRepository to constructor
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.followRepository = followRepository; // Initialize FollowRepository
@@ -77,7 +75,7 @@ public class DevDataSeeder implements Runnable {
             user4.setPassword(passwordEncoder.encode("password4")); // NOSONAR
             user4.setName("User Four");
             user4.setVerified(true);
-            user4.setRole(Role.REGISTERED_USER);
+            user4.setRole(Role.MODERATOR);
             user4.setBirthdate(LocalDate.of(1993, 4, 4));
             user4.setProvider(EMAIL_PROVIDER);
             userRepository.save(user4);

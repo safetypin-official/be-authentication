@@ -204,6 +204,35 @@ public class FollowService {
     }
 
     /**
+     * Get follower counts for multiple users in a single operation
+     *
+     * @param userIds List of user IDs to get follower counts for
+     * @return Map of user IDs to their follower counts
+     */
+    public Map<UUID, Long> getFollowersCountBatch(List<UUID> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return Map.of();
+        }
+
+        List<Object[]> results = followRepository.countFollowersByUserIds(userIds);
+        Map<UUID, Long> followerCountMap = new HashMap<>();
+
+        // Process query results and build the map
+        for (Object[] result : results) {
+            UUID userId = (UUID) result[0];
+            Long count = ((Number) result[1]).longValue();
+            followerCountMap.put(userId, count);
+        }
+
+        // Ensure all requested userIds have an entry, even if they have no followers
+        for (UUID userId : userIds) {
+            followerCountMap.putIfAbsent(userId, 0L);
+        }
+
+        return followerCountMap;
+    }
+
+    /**
      * Get recent followers for a user from the last 30 days
      *
      * @param userId ID of the user

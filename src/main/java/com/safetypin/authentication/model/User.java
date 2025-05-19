@@ -1,22 +1,14 @@
 package com.safetypin.authentication.model;
 
-import java.time.LocalDate;
-import java.util.UUID;
-
 import com.safetypin.authentication.dto.UserResponse;
-
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.time.LocalDate;
+import java.util.UUID;
 
 @Entity
 @Table(name = "users")
@@ -88,16 +80,15 @@ public class User {
 
     @Setter
     @Getter
-    private String profileBanner;
+    private String profileBanner; // used for jwt
 
-    // used for jwt
     public UserResponse generateUserResponse() {
         return UserResponse.builder()
                 .email(email)
                 .id(id)
                 .provider(provider)
                 .birthdate(birthdate)
-                .role(role != null ? role.name() : null)
+                .role(role)
                 .name(name)
                 .isVerified(this.isVerified()) // Explicitly call the getter
                 .profilePicture(profilePicture)

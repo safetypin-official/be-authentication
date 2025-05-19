@@ -1,6 +1,7 @@
 package com.safetypin.authentication.dto;
 
-import com.safetypin.authentication.model.*;
+import com.safetypin.authentication.model.Role;
+import com.safetypin.authentication.model.User;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
@@ -27,12 +28,10 @@ class ProfileResponseTest {
         user.setProfileBanner("profile_banner_url");
 
         // Act
-        ProfileResponse response = ProfileResponse.fromUser(user);
-
-        // Assert
+        ProfileResponse response = ProfileResponse.fromUser(user); // Assert
         assertNotNull(response);
         assertEquals(userId, response.getId());
-        assertEquals(Role.REGISTERED_USER.toString(), response.getRole());
+        assertEquals(Role.REGISTERED_USER, response.getRole());
         assertTrue(response.isVerified());
         assertEquals("user_instagram", response.getInstagram());
         assertEquals("user_twitter", response.getTwitter());
