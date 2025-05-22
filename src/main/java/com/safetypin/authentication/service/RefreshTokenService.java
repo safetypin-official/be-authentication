@@ -46,7 +46,7 @@ public class RefreshTokenService {
         refreshToken.setToken(encodedBytes);
         refreshToken.setExpiryTime(Instant.now().plusSeconds(EXPIRATION_TIME));
         refreshToken.setUser(user);
-        
+
 
         return refreshTokenRepository.save(refreshToken);
     }

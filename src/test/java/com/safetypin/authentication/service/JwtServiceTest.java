@@ -136,9 +136,38 @@ class JwtServiceTest {
         // Verify exception is thrown
         InvalidCredentialsException exception = assertThrows(
                 InvalidCredentialsException.class,
-                () -> jwtService.getUserFromJwtToken(token)
-        );
+                () -> jwtService.getUserFromJwtToken(token));
 
         assertEquals("User not found", exception.getMessage());
+    }
+
+    @Test
+    void getUserFromJwtToken_shouldThrowExceptionForExpiredToken() {
+        // Setup mock user for token generation
+        when(userService.findById(userId)).thenReturn(Optional.of(mockUser));
+        when(mockUser.getName()).thenReturn("Test User");
+        when(mockUser.isVerified()).thenReturn(true);
+        when(mockUser.getRole()).thenReturn(com.safetypin.authentication.model.Role.REGISTERED_USER);
+
+        // Generate a token
+        String token = jwtService.generateToken(userId);
+
+        // Mock the claims to simulate an expired token
+        Claims mockClaims = mock(Claims.class);
+        when(mockClaims.getExpiration()).thenReturn(new Date(System.currentTimeMillis() - 2000000)); // 2000 seconds in
+        // the past
+        when(mockClaims.getSubject()).thenReturn(userId.toString());
+
+        // Create a new JwtService instance with a spy to mock parseToken
+        JwtService spyJwtService = spy(
+                new JwtService("justanormalsecretkeyfortestingnothingsuspicioushere", userService));
+        doReturn(mockClaims).when(spyJwtService).parseToken(token);
+
+        // Verify exception is thrown
+        InvalidCredentialsException exception = assertThrows(
+                InvalidCredentialsException.class,
+                () -> spyJwtService.getUserFromJwtToken(token));
+
+        assertEquals("Token expired", exception.getMessage());
     }
 }

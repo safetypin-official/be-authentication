@@ -1,34 +1,23 @@
 package com.safetypin.authentication.controller;
 
-import java.util.List;
-import java.util.UUID;
-
+import com.safetypin.authentication.dto.*;
+import com.safetypin.authentication.service.FollowService;
+import com.safetypin.authentication.service.JwtService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import com.safetypin.authentication.dto.FollowStats;
-import com.safetypin.authentication.dto.FollowerNotificationDTO;
-import com.safetypin.authentication.dto.UserFollowResponse;
-import com.safetypin.authentication.dto.UserResponse;
-import com.safetypin.authentication.dto.ApiResponse;
-import com.safetypin.authentication.service.FollowService;
-import com.safetypin.authentication.service.JwtService;
+import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/follow")
 public class FollowController {
-    private final FollowService followService;
-    private final JwtService jwtService;
     private static final String BEARER_PREFIX = "Bearer ";
     private static final String STATUS_SUCCESS = "success";
+    private final FollowService followService;
+    private final JwtService jwtService;
 
     @Autowired
     public FollowController(FollowService followService, JwtService jwtService) {
@@ -65,18 +54,18 @@ public class FollowController {
     public ResponseEntity<ApiResponse<List<UserFollowResponse>>> getFollowers(
             @PathVariable UUID userId,
             @RequestHeader("Authorization") String authHeader) {
-        
+
         String token = authHeader.replace(BEARER_PREFIX, "");
         UserResponse currentUser = jwtService.getUserFromJwtToken(token);
         UUID viewerId = currentUser.getId();
-        
+
         List<UserFollowResponse> followers = followService.getFollowers(userId, viewerId);
         ApiResponse<List<UserFollowResponse>> response = ApiResponse.<List<UserFollowResponse>>builder()
                 .status(STATUS_SUCCESS)
                 .data(followers)
                 .message("Followers retrieved successfully")
                 .build();
-        
+
         return ResponseEntity.ok(response);
     }
 
@@ -84,18 +73,18 @@ public class FollowController {
     public ResponseEntity<ApiResponse<List<UserFollowResponse>>> getFollowing(
             @PathVariable UUID userId,
             @RequestHeader("Authorization") String authHeader) {
-        
+
         String token = authHeader.replace(BEARER_PREFIX, "");
         UserResponse currentUser = jwtService.getUserFromJwtToken(token);
         UUID viewerId = currentUser.getId();
-        
+
         List<UserFollowResponse> following = followService.getFollowing(userId, viewerId);
         ApiResponse<List<UserFollowResponse>> response = ApiResponse.<List<UserFollowResponse>>builder()
                 .status(STATUS_SUCCESS)
                 .data(following)
                 .message("Following list retrieved successfully")
                 .build();
-        
+
         return ResponseEntity.ok(response);
     }
 
@@ -132,7 +121,7 @@ public class FollowController {
 
     /**
      * Get recent followers from the last 30 days for the current authenticated user
-     * 
+     *
      * @param authHeader Authorization header containing the JWT token
      * @return List of recent followers with information about when they followed
      */

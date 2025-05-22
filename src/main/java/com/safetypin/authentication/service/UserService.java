@@ -38,6 +38,7 @@ public class UserService {
 
     /**
      * Find all users by their IDs
+     *
      * @param ids List of user IDs
      * @return List of users
      */

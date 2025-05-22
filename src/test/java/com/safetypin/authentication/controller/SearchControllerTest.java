@@ -3,6 +3,7 @@ package com.safetypin.authentication.controller;
 import com.safetypin.authentication.dto.UserResponse;
 import com.safetypin.authentication.model.Role;
 import com.safetypin.authentication.model.User;
+import com.safetypin.authentication.service.FollowService;
 import com.safetypin.authentication.service.ProfileService;
 import com.safetypin.authentication.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,6 +41,9 @@ class SearchControllerTest {
     @Mock
     private ProfileService profileService;
 
+    @Mock
+    private FollowService followService;
+
     @InjectMocks
     private SearchController searchController;
 
@@ -73,7 +77,12 @@ class SearchControllerTest {
         user3.setVerified(true);
 
         allUsers = Arrays.asList(user1, user2, user3);
-        johnUsers = Arrays.asList(user1, user3);
+        johnUsers = Arrays.asList(user1, user3); // Mock followService to return follower counts
+        // Order users by followers count: user1 > user2 > user3 to maintain the
+        // expected order in tests
+        lenient().when(followService.getFollowersCount(user1.getId())).thenReturn(30L);
+        lenient().when(followService.getFollowersCount(user2.getId())).thenReturn(20L);
+        lenient().when(followService.getFollowersCount(user3.getId())).thenReturn(10L);
     }
 
     @Nested
@@ -101,17 +110,17 @@ class SearchControllerTest {
             assertEquals(HttpStatus.OK, response.getStatusCode());
             assertNotNull(response.getBody());
             List<UserResponse> resultUsers = response.getBody();
-            assertThat(resultUsers, hasSize(2));
-            // Assert based on UserResponse fields (assuming UserResponse has these getters)
+            assertThat(resultUsers, hasSize(2)); // Assert based on UserResponse fields (assuming UserResponse has these
+            // getters)
             assertThat(resultUsers.get(0).getId(), is(user1.getId()));
             assertThat(resultUsers.get(0).getName(), is("John Doe"));
-            // Assuming UserResponse.getRole() returns String
-            assertThat(resultUsers.get(0).getRole(), is(Role.REGISTERED_USER.name()));
+            // Using enum comparison instead of string
+            assertThat(resultUsers.get(0).getRole(), is(Role.REGISTERED_USER));
             assertThat(resultUsers.get(0).isVerified(), is(true));
             assertThat(resultUsers.get(1).getId(), is(user3.getId()));
             assertThat(resultUsers.get(1).getName(), is("John Richard"));
-            // Assuming UserResponse.getRole() returns String
-            assertThat(resultUsers.get(1).getRole(), is(Role.MODERATOR.name()));
+            // Using enum comparison instead of string
+            assertThat(resultUsers.get(1).getRole(), is(Role.MODERATOR));
             assertThat(resultUsers.get(1).isVerified(), is(true));
 
             verify(userService, times(1)).findUsersByNameContaining(query);
@@ -142,10 +151,10 @@ class SearchControllerTest {
             assertThat(resultUsers.get(0).getName(), is("John Doe"));
             assertThat(resultUsers.get(1).getName(), is("Jane Smith"));
             assertThat(resultUsers.get(2).getName(), is("John Richard"));
-            // Optionally assert roles/verified status if needed
-            assertThat(resultUsers.get(0).getRole(), is(Role.REGISTERED_USER.name()));
-            assertThat(resultUsers.get(1).getRole(), is(Role.REGISTERED_USER.name()));
-            assertThat(resultUsers.get(2).getRole(), is(Role.MODERATOR.name()));
+            // Using enum comparison instead of string
+            assertThat(resultUsers.get(0).getRole(), is(Role.REGISTERED_USER));
+            assertThat(resultUsers.get(1).getRole(), is(Role.REGISTERED_USER));
+            assertThat(resultUsers.get(2).getRole(), is(Role.MODERATOR));
 
             verify(userService, times(1)).findAllUsers();
             verify(userService, never()).findUsersByNameContaining(anyString());
@@ -176,9 +185,9 @@ class SearchControllerTest {
             assertThat(resultUsers.get(0).getName(), is("John Doe"));
             assertThat(resultUsers.get(1).getName(), is("Jane Smith"));
             assertThat(resultUsers.get(2).getName(), is("John Richard"));
-            assertThat(resultUsers.get(0).getRole(), is(Role.REGISTERED_USER.name()));
-            assertThat(resultUsers.get(1).getRole(), is(Role.REGISTERED_USER.name()));
-            assertThat(resultUsers.get(2).getRole(), is(Role.MODERATOR.name()));
+            assertThat(resultUsers.get(0).getRole(), is(Role.REGISTERED_USER));
+            assertThat(resultUsers.get(1).getRole(), is(Role.REGISTERED_USER));
+            assertThat(resultUsers.get(2).getRole(), is(Role.MODERATOR));
 
             verify(userService, times(1)).findAllUsers();
             verify(userService, never()).findUsersByNameContaining(anyString());
@@ -209,9 +218,9 @@ class SearchControllerTest {
             assertThat(resultUsers.get(0).getName(), is("John Doe"));
             assertThat(resultUsers.get(1).getName(), is("Jane Smith"));
             assertThat(resultUsers.get(2).getName(), is("John Richard"));
-            assertThat(resultUsers.get(0).getRole(), is(Role.REGISTERED_USER.name()));
-            assertThat(resultUsers.get(1).getRole(), is(Role.REGISTERED_USER.name()));
-            assertThat(resultUsers.get(2).getRole(), is(Role.MODERATOR.name()));
+            assertThat(resultUsers.get(0).getRole(), is(Role.REGISTERED_USER));
+            assertThat(resultUsers.get(1).getRole(), is(Role.REGISTERED_USER));
+            assertThat(resultUsers.get(2).getRole(), is(Role.MODERATOR));
 
             verify(userService, times(1)).findAllUsers();
             verify(userService, never()).findUsersByNameContaining(anyString());

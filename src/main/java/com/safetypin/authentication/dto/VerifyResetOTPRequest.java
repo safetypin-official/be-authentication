@@ -16,7 +16,7 @@ public class VerifyResetOTPRequest {
     }
 
     public void setEmail(String email) {
-        this.email = email;
+        this.email = (email != null) ? email.trim() : null;
     }
 
     public String getOtp() {
@@ -24,6 +24,6 @@ public class VerifyResetOTPRequest {
     }
 
     public void setOtp(String otp) {
-        this.otp = otp;
+        this.otp = (otp != null) ? otp.trim() : null;
     }
 }

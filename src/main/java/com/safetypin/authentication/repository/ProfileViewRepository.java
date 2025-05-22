@@ -11,4 +11,8 @@ public interface ProfileViewRepository extends JpaRepository<ProfileView, UUID> 
     Optional<ProfileView> findByUser_IdAndViewer_Id(UUID userId, UUID viewerId);
 
     List<ProfileView> findByUser_Id(UUID userId);
+
+    void deleteByUserId(UUID userId);
+
+    void deleteByViewerId(UUID viewerId);
 }

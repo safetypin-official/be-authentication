@@ -1,28 +1,12 @@
 package com.safetypin.authentication.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.stream.Stream;
-
+import com.safetypin.authentication.dto.*;
+import com.safetypin.authentication.exception.InvalidCredentialsException;
+import com.safetypin.authentication.exception.ResourceNotFoundException;
+import com.safetypin.authentication.model.ProfileView;
+import com.safetypin.authentication.model.Role;
+import com.safetypin.authentication.model.User;
+import com.safetypin.authentication.repository.ProfileViewRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -36,17 +20,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.safetypin.authentication.dto.PostedByData;
-import com.safetypin.authentication.dto.ProfileResponse;
-import com.safetypin.authentication.dto.ProfileViewDTO;
-import com.safetypin.authentication.dto.UpdateProfileRequest;
-import com.safetypin.authentication.dto.UserPostResponse;
-import com.safetypin.authentication.exception.InvalidCredentialsException;
-import com.safetypin.authentication.exception.ResourceNotFoundException;
-import com.safetypin.authentication.model.ProfileView;
-import com.safetypin.authentication.model.Role;
-import com.safetypin.authentication.model.User;
-import com.safetypin.authentication.repository.ProfileViewRepository;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Stream;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ProfileServiceTest {
@@ -113,7 +93,7 @@ class ProfileServiceTest {
             assertNotNull(response);
             assertEquals(userId, response.getId());
             assertEquals(testUser.getName(), response.getName());
-            assertEquals("REGISTERED_USER", response.getRole());
+            assertEquals(Role.REGISTERED_USER, response.getRole());
             assertTrue(response.isVerified());
             assertEquals("testinsta", response.getInstagram());
             assertEquals("testtwitter", response.getTwitter());
@@ -809,6 +789,121 @@ class ProfileServiceTest {
             assertEquals("User not found with id " + userId, exception.getMessage());
             verify(userService, times(1)).findById(userId);
             verify(profileViewRepository, never()).findByUser_Id(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("getUserRole Tests")
+    class GetUserRoleTests {
+
+        private UUID specificUserId;
+        private User specificUser;
+
+        @BeforeEach
+        void setUp() {
+            specificUserId = UUID.randomUUID();
+            specificUser = new User();
+            specificUser.setId(specificUserId);
+            specificUser.setName("Specific User");
+            specificUser.setEmail("specific@example.com");
+        }
+
+        @Test
+        void getUserRole_UserFound_ReturnsRoleString() {
+            // Arrange
+            specificUser.setRole(Role.PREMIUM_USER);
+            when(userService.findById(specificUserId)).thenReturn(Optional.of(specificUser));
+
+            // Act
+            Role role = profileService.getUserRole(specificUserId);
+
+            // Assert
+            assertEquals(Role.PREMIUM_USER, role);
+            verify(userService, times(1)).findById(specificUserId);
+        }
+
+        @Test
+        void getUserRole_UserFound_RegisteredUser_ReturnsRoleString() {
+            // Arrange
+            specificUser.setRole(Role.REGISTERED_USER);
+            when(userService.findById(specificUserId)).thenReturn(Optional.of(specificUser));
+
+            // Act
+            Role role = profileService.getUserRole(specificUserId);
+
+            // Assert
+            assertEquals(Role.REGISTERED_USER, role);
+            verify(userService, times(1)).findById(specificUserId);
+        }
+
+        @Test
+        void getUserRole_UserFound_ModeratorRole_ReturnsRoleString() {
+            // Arrange
+            specificUser.setRole(Role.MODERATOR);
+            when(userService.findById(specificUserId)).thenReturn(Optional.of(specificUser));
+
+            // Act
+            Role role = profileService.getUserRole(specificUserId);
+
+            // Assert
+            assertEquals(Role.MODERATOR, role);
+            verify(userService, times(1)).findById(specificUserId);
+        }
+
+        @Test
+        void getUserRole_UserNotFound_ThrowsResourceNotFoundException() {
+            // Arrange
+            when(userService.findById(specificUserId)).thenReturn(Optional.empty());
+
+            // Act & Assert
+            ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
+                profileService.getUserRole(specificUserId);
+            });
+            assertTrue(exception.getMessage().contains("User not found with id " + specificUserId));
+            verify(userService, times(1)).findById(specificUserId);
+        }
+
+        @Test
+        void getUserRole_UserFoundButRoleIsNull_ThrowsNullPointerException() {
+            // Arrange
+            specificUser.setRole(null); // Explicitly set role to null
+            when(userService.findById(specificUserId)).thenReturn(Optional.of(specificUser));
+
+            // Act & Assert
+            // Expecting NullPointerException because user.getRole() would be null, then
+            // .toString() is called.
+            assertThrows(NullPointerException.class, () -> {
+                profileService.getUserRole(specificUserId);
+            });
+            verify(userService, times(1)).findById(specificUserId);
+        }
+
+        @Test
+        void getUserRole_UserExistsWithRole_ReturnsRoleString() {
+            // Arrange
+            when(userService.findById(userId)).thenReturn(Optional.of(testUser));
+
+            // Act
+            Role role = profileService.getUserRole(userId);
+
+            // Assert
+            assertEquals(Role.REGISTERED_USER, role);
+            verify(userService, times(1)).findById(userId);
+        }
+
+        @Test
+        void getUserRole_UserWithNullRole_ThrowsInvalidCredentialsException() {
+            // Arrange
+            testUser.setRole(null);
+            when(userService.findById(userId)).thenReturn(Optional.of(testUser));
+
+            // Act & Assert
+            NullPointerException exception = assertThrows(
+                    NullPointerException.class,
+                    () -> profileService.getUserRole(userId));
+
+            assertEquals("User role is not set for user with ID: " + userId, exception.getMessage());
+            verify(userService, times(1)).findById(userId);
         }
     }
 }
