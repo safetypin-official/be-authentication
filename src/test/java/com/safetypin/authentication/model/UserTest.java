@@ -73,7 +73,6 @@ class UserTest {
         user.setBirthdate(birthdate);
         user.setProvider(provider);
 
-
         // id remains null until set (by the persistence layer)
         assertNull(user.getId(), "Id should be null when not set");
         assertEquals(email, user.getEmail());
@@ -93,7 +92,7 @@ class UserTest {
         user.setRole(Role.REGISTERED_USER);
 
         var response = user.generateUserResponse();
-        assertEquals("REGISTERED_USER", response.getRole());
+        assertEquals(Role.REGISTERED_USER, response.getRole());
     }
 
     @Test
@@ -123,15 +122,15 @@ class UserTest {
         // Test UserResponse generation with each role
         User registeredUser = new User();
         registeredUser.setRole(Role.REGISTERED_USER);
-        assertEquals("REGISTERED_USER", registeredUser.generateUserResponse().getRole());
+        assertEquals(Role.REGISTERED_USER, registeredUser.generateUserResponse().getRole());
 
         User premiumUser = new User();
         premiumUser.setRole(Role.PREMIUM_USER);
-        assertEquals("PREMIUM_USER", premiumUser.generateUserResponse().getRole());
+        assertEquals(Role.PREMIUM_USER, premiumUser.generateUserResponse().getRole());
 
         User moderatorUser = new User();
         moderatorUser.setRole(Role.MODERATOR);
-        assertEquals("MODERATOR", moderatorUser.generateUserResponse().getRole());
+        assertEquals(Role.MODERATOR, moderatorUser.generateUserResponse().getRole());
     }
 
     @Test
@@ -159,7 +158,7 @@ class UserTest {
         assertEquals(id, response.getId());
         assertEquals("test@example.com", response.getEmail());
         assertEquals("Test User", response.getName());
-        assertEquals("PREMIUM_USER", response.getRole());
+        assertEquals(Role.PREMIUM_USER, response.getRole());
         assertTrue(response.isVerified());
         assertEquals(LocalDate.of(1990, 1, 1), response.getBirthdate());
         assertEquals("GOOGLE", response.getProvider());

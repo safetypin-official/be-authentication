@@ -23,7 +23,8 @@ public class JwtService {
     private final Key key;
     private final UserService userService;
 
-    public JwtService(@Value("${jwt.secret:biggerboysandstolensweethearts}") String secretKey, UserService userService) {
+    public JwtService(@Value("${jwt.secret:biggerboysandstolensweethearts}") String secretKey,
+                      UserService userService) {
         this.key = Keys.hmacShaKeyFor(secretKey.getBytes());
         this.userService = userService;
     }
@@ -31,12 +32,11 @@ public class JwtService {
     public String generateToken(UUID userId) {
         User user = userService.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", userId.toString());
         claims.put("name", user.getName());
         claims.put("isVerified", user.isVerified());
-        claims.put("role", user.getRole().toString());
+        claims.put("role", user.getRole());
 
         return Jwts.builder()
                 .setClaims(claims)

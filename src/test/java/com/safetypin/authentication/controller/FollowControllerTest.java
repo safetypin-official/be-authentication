@@ -1,21 +1,10 @@
 package com.safetypin.authentication.controller;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
-
+import com.safetypin.authentication.dto.*;
+import com.safetypin.authentication.model.Follow;
+import com.safetypin.authentication.model.User;
+import com.safetypin.authentication.service.FollowService;
+import com.safetypin.authentication.service.JwtService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,15 +14,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import com.safetypin.authentication.dto.FollowStats;
-import com.safetypin.authentication.dto.FollowerNotificationDTO;
-import com.safetypin.authentication.dto.UserFollowResponse;
-import com.safetypin.authentication.dto.ApiResponse;
-import com.safetypin.authentication.dto.UserResponse;
-import com.safetypin.authentication.model.Follow;
-import com.safetypin.authentication.model.User;
-import com.safetypin.authentication.service.FollowService;
-import com.safetypin.authentication.service.JwtService;
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class FollowControllerTest {
@@ -117,21 +105,21 @@ class FollowControllerTest {
     void getFollowers_ReturnsFollowersList() {
         // Arrange
         when(jwtService.getUserFromJwtToken("mock-token")).thenReturn(userResponse);
-        
+
         UserFollowResponse user1Response = UserFollowResponse.builder()
                 .userId(user1.getId())
                 .name(user1.getName())
                 .profilePicture(user1.getProfilePicture())
                 .isFollowing(true)
                 .build();
-        
+
         UserFollowResponse user2Response = UserFollowResponse.builder()
                 .userId(user2.getId())
                 .name(user2.getName())
                 .profilePicture(user2.getProfilePicture())
                 .isFollowing(false)
                 .build();
-        
+
         List<UserFollowResponse> followerResponses = Arrays.asList(user1Response, user2Response);
         when(followService.getFollowers(targetUserId, userId)).thenReturn(followerResponses);
 
@@ -143,16 +131,16 @@ class FollowControllerTest {
         assertNotNull(response.getBody());
         assertEquals("success", response.getBody().getStatus());
         assertEquals("Followers retrieved successfully", response.getBody().getMessage());
-        
+
         List<UserFollowResponse> responseData = response.getBody().getData();
         assertNotNull(responseData);
         assertEquals(2, responseData.size());
-        
+
         assertEquals(user1.getId(), responseData.get(0).getUserId());
         assertEquals(user1.getName(), responseData.get(0).getName());
         assertEquals(user1.getProfilePicture(), responseData.get(0).getProfilePicture());
         assertTrue(responseData.get(0).isFollowing());
-        
+
         assertEquals(user2.getId(), responseData.get(1).getUserId());
         assertEquals(user2.getName(), responseData.get(1).getName());
         assertEquals(user2.getProfilePicture(), responseData.get(1).getProfilePicture());
@@ -166,21 +154,21 @@ class FollowControllerTest {
     void getFollowing_ReturnsFollowingList() {
         // Arrange
         when(jwtService.getUserFromJwtToken("mock-token")).thenReturn(userResponse);
-        
+
         UserFollowResponse user1Response = UserFollowResponse.builder()
                 .userId(user1.getId())
                 .name(user1.getName())
                 .profilePicture(user1.getProfilePicture())
                 .isFollowing(true)
                 .build();
-        
+
         UserFollowResponse user2Response = UserFollowResponse.builder()
                 .userId(user2.getId())
                 .name(user2.getName())
                 .profilePicture(user2.getProfilePicture())
                 .isFollowing(false)
                 .build();
-        
+
         List<UserFollowResponse> followingResponses = Arrays.asList(user1Response, user2Response);
         when(followService.getFollowing(targetUserId, userId)).thenReturn(followingResponses);
 
@@ -192,16 +180,16 @@ class FollowControllerTest {
         assertNotNull(response.getBody());
         assertEquals("success", response.getBody().getStatus());
         assertEquals("Following list retrieved successfully", response.getBody().getMessage());
-        
+
         List<UserFollowResponse> responseData = response.getBody().getData();
         assertNotNull(responseData);
         assertEquals(2, responseData.size());
-        
+
         assertEquals(user1.getId(), responseData.get(0).getUserId());
         assertEquals(user1.getName(), responseData.get(0).getName());
         assertEquals(user1.getProfilePicture(), responseData.get(0).getProfilePicture());
         assertTrue(responseData.get(0).isFollowing());
-        
+
         assertEquals(user2.getId(), responseData.get(1).getUserId());
         assertEquals(user2.getName(), responseData.get(1).getName());
         assertEquals(user2.getProfilePicture(), responseData.get(1).getProfilePicture());
@@ -227,7 +215,7 @@ class FollowControllerTest {
         assertNotNull(response.getBody());
         assertEquals("success", response.getBody().getStatus());
         assertEquals("Follow statistics retrieved successfully", response.getBody().getMessage());
-        
+
         FollowStats stats = response.getBody().getData();
         assertNotNull(stats);
         assertEquals(5L, stats.getFollowersCount());
@@ -254,7 +242,7 @@ class FollowControllerTest {
         assertNotNull(response.getBody());
         assertEquals("success", response.getBody().getStatus());
         assertEquals("Follow statistics retrieved successfully", response.getBody().getMessage());
-        
+
         FollowStats stats = response.getBody().getData();
         assertNotNull(stats);
         assertEquals(5L, stats.getFollowersCount());
@@ -282,7 +270,7 @@ class FollowControllerTest {
         assertNotNull(response.getBody());
         assertEquals("success", response.getBody().getStatus());
         assertEquals("Follow statistics retrieved successfully", response.getBody().getMessage());
-        
+
         FollowStats stats = response.getBody().getData();
         assertNotNull(stats);
         assertEquals(5L, stats.getFollowersCount());

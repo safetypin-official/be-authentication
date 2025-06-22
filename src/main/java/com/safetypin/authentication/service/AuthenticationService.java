@@ -1,14 +1,5 @@
 package com.safetypin.authentication.service;
 
-import java.time.LocalDate;
-import java.time.Period;
-import java.util.Optional;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-
 import com.safetypin.authentication.dto.AuthToken;
 import com.safetypin.authentication.dto.RegistrationRequest;
 import com.safetypin.authentication.exception.InvalidCredentialsException;
@@ -17,6 +8,14 @@ import com.safetypin.authentication.exception.UserAlreadyExistsException;
 import com.safetypin.authentication.model.RefreshToken;
 import com.safetypin.authentication.model.Role;
 import com.safetypin.authentication.model.User;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDate;
+import java.time.Period;
+import java.util.Optional;
 
 @Service
 public class AuthenticationService {
@@ -95,14 +94,14 @@ public class AuthenticationService {
         Optional<User> findUser = userService.findByEmail(email);
         if (findUser.isEmpty()) {
             // email not exists
-            logger.warn("Login failed: Email not found");
-            throw new InvalidCredentialsException("Invalid email");
+            logger.warn("Login failed: Email not found for email: {}", email);
+            throw new InvalidCredentialsException("Invalid email or password");
         }
         User user = findUser.get();
         if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
             // incorrect password
-            logger.warn("Login failed: Incorrect password attempt");
-            throw new InvalidCredentialsException("Invalid password");
+            logger.debug("Login failed: Incorrect password for email: {}", email);
+            throw new InvalidCredentialsException("Invalid email or password");
         }
         String accessToken = jwtService.generateToken(user.getId());
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());

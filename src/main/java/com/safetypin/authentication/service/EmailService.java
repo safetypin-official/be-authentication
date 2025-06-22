@@ -4,11 +4,14 @@ import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 
 @Service
@@ -17,9 +20,24 @@ public class EmailService {
     private static final String SENDER = "noreply@safetyp.in";
     private final JavaMailSender mailSender;
 
+
     @Autowired
-    public EmailService(JavaMailSender mailSender) {
+    public EmailService(
+            JavaMailSender mailSender,
+            @Value("${mail.proxy.host}") String proxyHost,
+            @Value("${mail.proxy.port}") String proxyPort,
+            @Value("${mail.proxy.enabled}") boolean proxyEnabled) {
+        // Configure the proxy settings for JavaMail
+        if (proxyEnabled && mailSender instanceof JavaMailSenderImpl javaMailSender) {
+            Properties props = javaMailSender.getJavaMailProperties();
+            props.put("mail.smtp.proxy.host", proxyHost);
+            props.put("mail.smtp.proxy.port", proxyPort);
+            logger.info("EmailService:: Configured SMTP proxy settings - host: {}, port: {}", proxyHost, proxyPort);
+        }
+
         this.mailSender = mailSender;
+
+        logger.info("EmailService:: initialized with JavaMailSender: {}", mailSender);
     }
 
     @Async("emailTaskExecutor")
@@ -72,6 +90,17 @@ public class EmailService {
         } catch (Exception e) {
             logger.warn("EmailService.sendOTPMail:: Failed to send mail with error; {}", e.getMessage());
             return CompletableFuture.completedFuture(false);
+        }
+    }
+
+
+    public void testConnection() {
+        try {
+            logger.info("{}", ((JavaMailSenderImpl) mailSender).getJavaMailProperties());
+            // testConnection
+            ((JavaMailSenderImpl) mailSender).testConnection();
+        } catch (Exception e) {
+            logger.warn("EmailService:: Init Error:", e);
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.safetypin.authentication.dto;
 
+import com.safetypin.authentication.model.Role;
 import lombok.Builder;
 import lombok.Data;
 import lombok.Getter;
@@ -22,13 +23,15 @@ public class UserResponse {
 
     private boolean isVerified;
 
-    private String role;
+    private Role role;
 
     private LocalDate birthdate;
 
-    private String provider;  // "EMAIL", "GOOGLE", "APPLE"
+    private String provider; // "EMAIL", "GOOGLE", "APPLE"
+
+    private String profileBanner;
 
     private String profilePicture;
 
-    private String profileBanner;
+    private long followersCount;
 }

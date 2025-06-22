@@ -22,9 +22,6 @@ class FollowRepositoryTest {
     @Autowired
     private FollowRepository followRepository;
 
-    @Autowired
-    private UserRepository userRepository;
-
     private User follower;
     private User followee1;
     private User followee2;
@@ -150,7 +147,7 @@ class FollowRepositoryTest {
 
         // Assert
         assertFalse(followRepository.existsByFollowerIdAndFollowingId(follower.getId(), followee1.getId()));
-        
+
         // Verify other relationships are still intact
         assertTrue(followRepository.existsByFollowerIdAndFollowingId(follower.getId(), followee2.getId()));
         assertTrue(followRepository.existsByFollowerIdAndFollowingId(followee2.getId(), followee1.getId()));

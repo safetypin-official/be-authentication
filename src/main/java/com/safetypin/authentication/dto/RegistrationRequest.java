@@ -26,5 +26,12 @@ public class RegistrationRequest {
     private LocalDate birthdate;
 
     // Getters and setters
+    public void setEmail(String email) {
+        this.email = (email != null) ? email.trim() : null;
+    }
+
+    public void setName(String name) {
+        this.name = (name != null) ? name.trim() : null;
+    }
 
 }

@@ -1,5 +1,16 @@
 package com.safetypin.authentication.service;
 
+import com.safetypin.authentication.dto.*;
+import com.safetypin.authentication.exception.InvalidCredentialsException;
+import com.safetypin.authentication.exception.ResourceNotFoundException;
+import com.safetypin.authentication.model.ProfileView;
+import com.safetypin.authentication.model.Role;
+import com.safetypin.authentication.model.User;
+import com.safetypin.authentication.repository.ProfileViewRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -8,21 +19,6 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import com.safetypin.authentication.dto.PostedByData;
-import com.safetypin.authentication.dto.ProfileResponse;
-import com.safetypin.authentication.dto.ProfileViewDTO;
-import com.safetypin.authentication.dto.UpdateProfileRequest;
-import com.safetypin.authentication.dto.UserPostResponse;
-import com.safetypin.authentication.exception.InvalidCredentialsException;
-import com.safetypin.authentication.exception.ResourceNotFoundException;
-import com.safetypin.authentication.model.ProfileView;
-import com.safetypin.authentication.model.User;
-import com.safetypin.authentication.repository.ProfileViewRepository;
 
 @Service
 public class ProfileService {
@@ -35,7 +31,7 @@ public class ProfileService {
 
     @Autowired
     public ProfileService(UserService userService, ProfileViewRepository profileViewRepository,
-            FollowService followService) {
+                          FollowService followService) {
         this.userService = userService;
         this.profileViewRepository = profileViewRepository;
         this.followService = followService;
@@ -143,7 +139,7 @@ public class ProfileService {
         // Check if the user is premium
         User user = userService.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND + userId));
-        if (!user.getRole().toString().contains("PREMIUM")) {
+        if (user.getRole() != Role.PREMIUM_USER) {
             throw new InvalidCredentialsException("You need to be a premium user to view profile views.");
         }
 
@@ -172,6 +168,15 @@ public class ProfileService {
                                 .name(user.getName())
                                 .profilePicture(user.getProfilePicture())
                                 .build()));
+    }
+
+    public Role getUserRole(UUID userId) {
+        User user = userService.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND + userId));
+        if (user.getRole() == null) {
+            throw new NullPointerException("User role is not set for user with ID: " + userId);
+        }
+        return user.getRole();
     }
 
     // Helper methods to extract usernames from social media URLs
@@ -231,7 +236,7 @@ public class ProfileService {
         return input.trim();
     }
 
-    private String extractDiscordId(String input) {
+    private String extractDiscordId(String input) { // NOSONAR
         if (input == null || input.trim().isEmpty()) {
             return null;
         }

@@ -1,23 +1,13 @@
 package com.safetypin.authentication.service;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.time.LocalDate;
-import java.util.Optional;
-import java.util.UUID;
-
+import com.safetypin.authentication.dto.AuthToken;
+import com.safetypin.authentication.dto.RegistrationRequest;
+import com.safetypin.authentication.exception.InvalidCredentialsException;
+import com.safetypin.authentication.exception.PendingVerificationException;
+import com.safetypin.authentication.exception.UserAlreadyExistsException;
+import com.safetypin.authentication.model.RefreshToken;
+import com.safetypin.authentication.model.Role;
+import com.safetypin.authentication.model.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,13 +15,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import com.safetypin.authentication.dto.AuthToken;
-import com.safetypin.authentication.dto.RegistrationRequest;
-import com.safetypin.authentication.exception.InvalidCredentialsException;
-import com.safetypin.authentication.exception.UserAlreadyExistsException;
-import com.safetypin.authentication.model.RefreshToken;
-import com.safetypin.authentication.model.Role;
-import com.safetypin.authentication.model.User;
+import java.time.LocalDate;
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class AuthenticationServiceTest {
@@ -84,11 +75,35 @@ class AuthenticationServiceTest {
         request.setBirthdate(LocalDate.now().minusYears(20));
 
         User existingUser = new User();
+        existingUser.setProvider("OTHER_PROVIDER"); // Set a different provider initially
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(existingUser));
 
         Exception exception = assertThrows(UserAlreadyExistsException.class,
                 () -> authenticationService.registerUser(request));
         assertTrue(exception.getMessage().contains("Email address is already registered"));
+    }
+
+    @Test
+    void testRegisterUser_ExistingUnverifiedEmailUser_ResendsOTP() {
+        RegistrationRequest request = new RegistrationRequest();
+        request.setEmail("test@example.com");
+        request.setPassword("password");
+        request.setName("Test User");
+        request.setBirthdate(LocalDate.now().minusYears(20));
+
+        User existingUser = new User();
+        existingUser.setEmail("test@example.com");
+        existingUser.setProvider(AuthenticationService.EMAIL_PROVIDER);
+        existingUser.setVerified(false);
+
+        when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(existingUser));
+
+        Exception exception = assertThrows(PendingVerificationException.class,
+                () -> authenticationService.registerUser(request));
+
+        assertEquals("User already exists but is not verified. A new OTP has been sent.", exception.getMessage());
+        verify(otpService, times(1)).generateOTP("test@example.com");
+        verify(userService, never()).save(any(User.class)); // Ensure user is not saved again
     }
 
     @Test
@@ -166,7 +181,7 @@ class AuthenticationServiceTest {
         Exception exception = assertThrows(InvalidCredentialsException.class,
                 () -> authenticationService.loginUser("notfound@example.com", "password"));
 
-        assertEquals("Invalid email", exception.getMessage());
+        assertEquals("Invalid email or password", exception.getMessage());
     }
 
     @Test
@@ -186,7 +201,7 @@ class AuthenticationServiceTest {
         Exception exception = assertThrows(InvalidCredentialsException.class,
                 () -> authenticationService.loginUser("test@example.com", "wrongPassword"));
 
-        assertEquals("Invalid password", exception.getMessage());
+        assertEquals("Invalid email or password", exception.getMessage());
     }
 
     @Test
